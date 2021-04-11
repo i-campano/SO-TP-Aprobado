@@ -44,7 +44,12 @@ t_log* iniciar_logger() {
 }
 
 t_config* leer_config() {
-	return config_create("discordiador.config");
+	t_config *config;
+	if((config = config_create("discordiador.config"))==NULL) {
+		printf("No se pudo leer de la config. Revise. \n");
+		exit(1);
+	}
+	return config;
 }
 
 void leer_consola(t_log* logger) {
@@ -74,3 +79,5 @@ t_paquete* armar_paquete() {
 
 	return paquete;
 }
+
+
