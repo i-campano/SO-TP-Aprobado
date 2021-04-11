@@ -34,7 +34,13 @@ int main(void) {
 }
 
 t_log* iniciar_logger() {
-	return log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO);
+	t_log* logger;
+
+	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
+		printf("No se pudo crear el logger. Revise parametros\n");
+		exit(1);
+	}
+	return logger;
 }
 
 t_config* leer_config() {
