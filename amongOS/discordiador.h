@@ -10,8 +10,9 @@
 
 #include "utils.h"
 
+int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante);
 t_log* iniciar_logger(void);
 t_config* leer_config(void);
-void leer_consola(t_log* logger);
+void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip);
 t_paquete* armar_paquete();
 #endif /* DISCORDIADOR_H_ */

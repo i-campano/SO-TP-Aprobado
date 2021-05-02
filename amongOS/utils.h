@@ -15,12 +15,7 @@
 #include<sys/socket.h>
 #include<netdb.h>
 #include<string.h>
-
-typedef enum
-{
-	MENSAJE,
-	PAQUETE
-}op_code;
+#include "mylibrary.h"
 
 typedef struct
 {

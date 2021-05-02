@@ -11,7 +11,7 @@ int main(void)
 		printf("%s\n", value);
 	}
 
-	logger = log_create("MiRAMHQ/MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
+	logger = log_create("MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
 
 	int server_fd = iniciar_servidor();
 	log_info(logger, "Servidor listo para recibir al cliente");
@@ -25,9 +25,11 @@ int main(void)
 		{
 		case MENSAJE:
 			recibir_mensaje(cliente_fd);
+
 			break;
 		case PAQUETE:
 			lista = recibir_paquete(cliente_fd);
+
 			printf("Me llegaron los siguientes valores:\n");
 			list_iterate(lista, (void*) iterator);
 			break;

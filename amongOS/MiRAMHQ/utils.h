@@ -22,8 +22,8 @@
 
 typedef enum
 {
-	MENSAJE,
-	PAQUETE
+	MENSAJE = 7,
+	PAQUETE = 8
 }op_code;
 
 t_log* logger;
