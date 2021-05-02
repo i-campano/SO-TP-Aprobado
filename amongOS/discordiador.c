@@ -22,11 +22,22 @@ int main(void) {
 }
 
 t_log* iniciar_logger() {
-	return log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO);
+	t_log* logger;
+
+	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
+		printf("No se pudo crear el logger. Revise parametros\n");
+		exit(1);
+	}
+	return logger;
 }
 
 t_config* leer_config() {
-	return config_create("discordiador.config");
+	t_config *config;
+	if((config = config_create("discordiador.config"))==NULL) {
+		printf("No se pudo leer de la config. Revise. \n");
+		exit(1);
+	}
+	return config;
 }
 
 void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip) {
@@ -90,3 +101,5 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 	return 0;
 
 }
+
+
