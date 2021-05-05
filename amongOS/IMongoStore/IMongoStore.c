@@ -1,8 +1,7 @@
 /*
- *
  */
 
-#include "MiRAMHQ.h"
+#include "IMongoStore.h"
 
 int main(void)
 {
@@ -11,10 +10,10 @@ int main(void)
 		printf("%s\n", value);
 	}
 
-	logger = log_create("./MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
+	logger = log_create("./IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
 
 	int server_fd = iniciar_servidor();
-	log_info(logger, "Servidor listo para recibir al cliente");
+	log_info(logger, "IMONGOSTORE listo para recibir al cliente");
 	int cliente_fd = esperar_cliente(server_fd);
 
 	t_list* lista;
@@ -25,19 +24,17 @@ int main(void)
 		{
 		case MENSAJE:
 			recibir_mensaje(cliente_fd);
-
 			break;
 		case PAQUETE:
 			lista = recibir_paquete(cliente_fd);
-
 			printf("Me llegaron los siguientes valores:\n");
 			list_iterate(lista, (void*) iterator);
 			break;
 		case -1:
-			log_error(logger, "el cliente se desconecto. Terminando servidor");
+			log_error(logger, "el cliente se desconecto. Terminando IMONGOSTORE");
 			return EXIT_FAILURE;
 		default:
-			log_warning(logger, "Operacion desconocida. No quieras meter la pata");
+			log_warning(logger, "IMONGOSTORE: Operacion desconocida. No quieras meter la pata");
 			break;
 		}
 	}

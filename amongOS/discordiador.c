@@ -13,12 +13,15 @@ int main(void) {
 	log_info(logger, ip);
 	int conexion_ram = crear_conexion(ip,config_get_string_value(config, "PUERTO"));
 
-	leer_consola(logger,conexion_ram,conexion_ram,conexion_ram);
+	int conexion_mongo_store = crear_conexion(ip,config_get_string_value(config, "PUERTO_MONGO_STORE"));
+
+	leer_consola(logger,conexion_ram,conexion_mongo_store,conexion_ram);
 
 	// Viejo terminar programa
 	log_destroy(logger);
 	config_destroy(config);
 	close(conexion_ram);
+	close(conexion_mongo_store);
 }
 
 t_log* iniciar_logger() {
@@ -45,7 +48,6 @@ void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_tr
 	realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
-		printf("Entre en WHILE LEER \n");
 		free(leido);
 		leido = readline(">");
 		realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
@@ -66,6 +68,7 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 		case INICIAR_PLANIFICACION: {
 			//Accion iniciar
 			enviar_mensaje("Inicio_Planificacion\0",conexion_mi_ram);
+			enviar_mensaje("Inicio_Planificacion\0",conexion_file_system);
 			break;
 		}
 		case PAUSAR_PLANIFICACION: {

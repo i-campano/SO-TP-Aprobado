@@ -18,12 +18,12 @@
 #include<string.h>
 
 #define IP "127.0.0.1"
-#define PUERTO "5002"
+#define PUERTO "5001"
 
 typedef enum
 {
-	MENSAJE = 7,
-	PAQUETE = 8
+	MENSAJE,
+	PAQUETE
 }op_code;
 
 t_log* logger;

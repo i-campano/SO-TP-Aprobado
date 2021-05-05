@@ -7904,3 +7904,7 @@
 [INFO] 19:39:31:260 MiRAMHQ/(7961:7961): Me llego el mensaje Iniciar_tripulante
 [INFO] 19:39:40:668 MiRAMHQ/(7961:7961): Me llego el mensaje Hay_que_rajar_a_1
 [ERROR] 19:42:54:625 MiRAMHQ/(7961:7961): el cliente se desconecto. Terminando servidor
+[INFO] 22:32:39:135 MiRAMHQ/(28592:28592): Servidor listo para recibir al cliente
+[INFO] 22:34:14:672 MiRAMHQ/(28659:28659): Servidor listo para recibir al cliente
+[INFO] 22:34:44:345 MiRAMHQ/(28659:28659): Se conecto un cliente!
+[INFO] 22:34:57:974 MiRAMHQ/(28659:28659): Me llego el mensaje Inicio_Planificacion
