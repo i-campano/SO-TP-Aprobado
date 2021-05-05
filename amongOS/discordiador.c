@@ -8,15 +8,15 @@ int main(void) {
 	t_config* config = leer_config();
 	char* valor = config_get_string_value(config, "CLAVE");
 	log_info(logger, valor);
-
+	printf("1 \n ");
 	char* ip = config_get_string_value(config, "IP");
 	log_info(logger, ip);
 	int conexion_ram = crear_conexion(ip,config_get_string_value(config, "PUERTO"));
-
+	printf("2 \n ");
 	int conexion_mongo_store = crear_conexion(ip,config_get_string_value(config, "PUERTO_MONGO_STORE"));
 
 	leer_consola(logger,conexion_ram,conexion_mongo_store,conexion_ram);
-
+	printf("3 \n ");
 	// Viejo terminar programa
 	log_destroy(logger);
 	config_destroy(config);
@@ -68,7 +68,6 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 		case INICIAR_PLANIFICACION: {
 			//Accion iniciar
 			enviar_mensaje("Inicio_Planificacion\0",conexion_mi_ram);
-			enviar_mensaje("Inicio_Planificacion\0",conexion_file_system);
 			break;
 		}
 		case PAUSAR_PLANIFICACION: {
