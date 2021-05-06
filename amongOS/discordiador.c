@@ -31,6 +31,25 @@ int main(void) {
 	log_destroy(logger);
 	config_destroy(config);
 	close(conexion);
+
+
+
+
+	//planificacion
+
+	// thread_tripulantes = malloc(sizeof(pthread_t));
+	// pthread_t hilo_planificaion;
+	// pthread_create(&hilo_planificacion,NULL,funcion,NULL);
+	// pthread_join(hilo_planificacion, NULL)
+
+
+
+
+
+
+
+
+
 }
 
 t_log* iniciar_logger() {
@@ -68,3 +87,6 @@ t_paquete* armar_paquete() {
 
 	return paquete;
 }
+
+
+
