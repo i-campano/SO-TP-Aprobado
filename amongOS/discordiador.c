@@ -1,27 +1,24 @@
 #include "discordiador.h"
 
+
 int main(void) {
 
 	t_log* logger = iniciar_logger();
-	log_info(logger, "Soy el Discordiador");
-
 	t_config* config = leer_config();
 	char* valor = config_get_string_value(config, "CLAVE");
-	log_info(logger, valor);
-	printf("1 \n ");
 	char* ip = config_get_string_value(config, "IP");
-	log_info(logger, ip);
-	int conexion_ram = crear_conexion(ip,config_get_string_value(config, "PUERTO"));
-	printf("2 \n ");
-	int conexion_mongo_store = crear_conexion(ip,config_get_string_value(config, "PUERTO_MONGO_STORE"));
+	int conexiones[2];
 
-	leer_consola(logger,conexion_ram,conexion_mongo_store,conexion_ram);
-	printf("3 \n ");
-	// Viejo terminar programa
-	log_destroy(logger);
-	config_destroy(config);
-	close(conexion_ram);
-	close(conexion_mongo_store);
+	conexiones[RAM] = crear_conexion(ip,config_get_string_value(config, "PUERTO"));
+	conexiones[FILE_SYSTEM] = crear_conexion(ip,config_get_string_value(config, "PUERTO_MONGO_STORE"));
+	log_info(logger, "Soy el Discordiador");
+	log_info(logger, valor);
+	log_info(logger, ip);
+
+
+	leer_consola(logger,conexiones[RAM],conexiones[FILE_SYSTEM],conexiones[RAM]);
+	return terminar_programa(logger,config,conexiones);
+
 }
 
 t_log* iniciar_logger() {
@@ -104,4 +101,11 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 
 }
 
+int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
+	log_destroy(logger);
+	config_destroy(config);
+	close(conexion[RAM]);
+	close(conexion[FILE_SYSTEM]);
+	return 0;
+}
 
