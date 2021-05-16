@@ -11,6 +11,7 @@
 #include<commons/collections/queue.h>
 #include<readline/readline.h>
 #include <pthread.h>
+#include "tripulante.h"
 
 #include "utils.h"
 
@@ -31,4 +32,6 @@ t_paquete* armar_paquete();
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
 static t_nodo_tripulante *nodo_tripulante_create(char estado, short int fin_tareas, short int trabajando, char *tarea);
 static void nodo_tripulante_destroy(t_nodo_tripulante *self);
+void iniciar_patota(char* mensaje);
+void *labor_tripulante (void* tripulante);
 #endif /* DISCORDIADOR_H_ */

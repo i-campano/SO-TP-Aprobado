@@ -7,6 +7,7 @@ t_queue* planificacion_cola_exec = NULL;
 t_queue* planificacion_cola_bloq = NULL;
 t_queue* planificcion_cola_fin = NULL;
 
+unsigned int contador_hilos = 0;
 
 int main(void) {
 
@@ -123,7 +124,7 @@ int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 	return 0;
 }
 
-void inciar_patota(char* mensaje)
+void iniciar_patota(char* mensaje)
 {
 	//declaraciones
 	int iCantidadDeTripulantesACrear = 0;
@@ -161,14 +162,15 @@ void inciar_patota(char* mensaje)
 static t_nodo_tripulante *nodo_tripulante_create(char estado, short int fin_tareas, short int trabajando, char *tarea)
 {
 	t_nodo_tripulante *new = malloc( sizeof(t_nodo_tripulante) );
-	new->id = 0;/////////////////////////////TODO
+	new->id = contador_hilos;/////////////////////////////TODO
+	contador_hilos++;
 	new->estado = estado;
 	new->fin_tareas = fin_tareas;
 	new->trabajando = trabajando;
 	new->tarea = tarea;
 
 	//crea el nuevo hilo
-	pthread_create(&(new->hilo_asociado), NULL, labor_tripulante, NULL);
+	pthread_create(&(new->hilo_asociado),NULL,labor_tripulante,NULL);
 
 	return new;
 }
@@ -176,4 +178,51 @@ static t_nodo_tripulante *nodo_tripulante_create(char estado, short int fin_tare
 static void nodo_tripulante_destroy(t_nodo_tripulante *self){
 	free(self->tarea);
 	free(self);
+}
+void *labor_tripulante (void* tripulante) {
+
+	tripulante_t* p_aux_trip;
+	p_aux_trip = (tripulante_t *) tripulante;
+
+	while (!(p_aux_trip->fin_tareas)) {
+
+		switch (p_aux_trip->estado){
+			case NEW: {
+				if (p_aux_trip->tarea != NULL){
+					//Si ya se mi tarea no la pido otra vez
+					break;
+				}
+				//Pedir tarea a mi Ram
+				//El planificador vera si estoy ready o no
+				break;
+			}
+			case READY: {
+				//Literalmente no hago nada en ready quizas informar donde estoy por algun LOG no se
+				break;
+			}
+			case EXEC: {
+				p_aux_trip->trabajando = TRUE;
+
+				//Me pongo a laburar Conectarse al MONGO y realizar los cambios en las tareas INFORMO A MI RAM
+				//Moverme a X Y posicion e informar a MI_RAM y Mongo que hice
+
+
+				//Pido siguiente tarea a MIRAM y lo guardo en *ẗarea
+				if (p_aux_trip->tarea == NULL){
+					//Termine tareas porque no hay mas
+					p_aux_trip->fin_tareas = TRUE;
+					p_aux_trip->trabajando = FALSE; //Porque ya termine
+				}
+				p_aux_trip->trabajando = FALSE; //Porque ya termine
+				//Se puede buguear!! ojo si el planificador es mas lento, muy poco posible mirando el codigo
+				break;
+			}
+			case FIN: {
+				//No se si informar aca en los logs o afuera en el planif aca se piensa
+				return NULL; //LLEGUE AL FIN TERMINO HILO
+			}
+		}
+	}
+
+	return NULL;
 }
