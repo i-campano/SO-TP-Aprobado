@@ -31,11 +31,11 @@
 
 typedef struct {
 	int id;
-	char estado = NEW; //Tener en cuenta uppercut !
-	short int trabajando = FALSE;
-	short int fin_tareas = FALSE;
-	char* tarea = NULL; //Calculo que es necesario 50 50 SEGURIDAD
-	//pthread_t hilo_asociado;
+	char estado;
+	short int trabajando;
+	short int fin_tareas;
+	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
+	pthread_t hilo_asociado;
 }tripulante_t;
 
 typedef struct {
@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
 
 	unsigned int grado_multitareas;
-	unsigned int trip_en_exec = 0;
+	unsigned int trip_en_exec;
 	short int modo_planificacion; //FIFO = 0 RR = 1
 
 } config_planif;
