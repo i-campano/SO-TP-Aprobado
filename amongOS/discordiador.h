@@ -15,6 +15,30 @@
 
 #include "utils.h"
 
+
+t_log* logger;
+int socketServerMiRam;	// PARA USUARIO
+int socketListener,socketMaximo;	 // PARA SERVER
+fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
+
+t_list * hilosParaConexiones;
+
+t_queue * patotasNew;
+
+t_queue * patotasReady;
+//HILOS
+pthread_t hiloConsola;
+pthread_t hiloCoordinador;
+pthread_t hiloPlanificador;
+
+//Semaforos
+pthread_mutex_t mutexHilos;
+
+typedef struct _infoHilos{
+	int socket;
+	pthread_t hiloAtendedor;
+} infoHilos;
+
 typedef struct {
 	int id;
 	char estado;
@@ -24,8 +48,12 @@ typedef struct {
 	pthread_t hilo_asociado;
 }t_nodo_tripulante;
 
+void atenderLaRam();
+void iniciarEstructurasAdministrativasPlanificador();
+void leer_consola2();
+void iniciarHiloConsola();
 int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante);
-t_log* iniciar_logger(void);
+void iniciar_logger(void);
 t_config* leer_config(void);
 void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip);
 t_paquete* armar_paquete();

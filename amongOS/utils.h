@@ -17,6 +17,8 @@
 #include<string.h>
 #include "mylibrary.h"
 
+int socketServerMiRam;
+
 typedef struct
 {
 	int size;

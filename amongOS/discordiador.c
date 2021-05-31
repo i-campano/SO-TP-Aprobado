@@ -69,6 +69,7 @@ void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_tr
 	free(leido);
 }
 
+
 int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante) {
 	int codigo_operacion;
 
@@ -105,7 +106,7 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 			break;
 		}
 		case INICIAR_PATOTA :{
-			iniciar_patota(mensaje);
+			inicializar_patota(mensaje);
 			break;
 		}
 		default: {
@@ -124,105 +125,101 @@ int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 	return 0;
 }
 
-void iniciar_patota(char* mensaje)
-{
-	//declaraciones
-	int iCantidadDeTripulantesACrear = 0;
-	char *token = NULL; //se utiliza como auxiliar para el pareso de cadenas
 
-	//parsear el mensaje para ver cuantos tripulantes debe crear
-	token = strtok(mensaje, " "); //esta es la cabecera del mensaje
-	if(token != NULL)
-	{
-		token = strtok(NULL, " ");
-		iCantidadDeTripulantesACrear = atoi(token);
-		if (iCantidadDeTripulantesACrear <= 0)
-		{
-			//ERROR TODO
-		}
-	}
-	else
-	{
-		//ERROR TODO
-	}
-
-	//cargar los nodos en la cola de nuevos
-	for (int f = 0; f<iCantidadDeTripulantesACrear; f++)
-	{
-		//Crea el nuevo nodo y lo mete en la cola de nuevos
-		queue_push(planificacion_cola_new, nodo_tripulante_create ('N', 0, 0, ""));
-	}
-
-
-	//mandarle mensaje a ramhq de que se crearon los hilos
-
+void inicializar_patota(char* mensaje) {
+	t_patota *patota = iniciar_patota(mensaje);
+	enviar_patota(patota);
+	list_t tripulantes = crear_tripulantes(patota);
+	enviar_tripulantes(tripulantes);
 }
 
 
-static t_nodo_tripulante *nodo_tripulante_create(char estado, short int fin_tareas, short int trabajando, char *tarea)
+void enviar_patota(t_patota patota){
+
+}
+
+void crear_tripulantes(t_patota patota){
+	//patota->cantidad_tripulantes
+
+	int cantidad_tripulantes = 10;
+
+	for (int f = 0; f<cantidad_tripulantes; f++)
+	{
+		//Crea el nuevo nodo y lo mete en la cola de nuevos
+		queue_push(planificacion_cola_new, nodo_tripulante_create());
+	}
+}
+
+
+void iniciar_patota(char* mensaje)
+{
+	//PARSEAR MENSAJE: Obtener -> Cantidad de tripulantes, etc.
+	t_patota *patota = malloc(sizeof(t_patota));
+	t_patota->id = rand();
+//	t_patota->cantidad_tripulantes = mensaje.cantidad_tripulantes;
+	return patota;
+}
+
+
+static t_nodo_tripulante *nodo_tripulante_create()
 {
 	t_nodo_tripulante *new = malloc( sizeof(t_nodo_tripulante) );
-	new->id = contador_hilos;/////////////////////////////TODO
-	contador_hilos++;
-	new->estado = estado;
-	new->fin_tareas = fin_tareas;
-	new->trabajando = trabajando;
-	new->tarea = tarea;
-
-	//crea el nuevo hilo
-	pthread_create(&(new->hilo_asociado),NULL,labor_tripulante,NULL);
+	new->id = rand();
+	pthread_t hilo_asociado;
+	pthread_create(&(hilo_asociado),NULL,labor_tripulante,NULL);
+	new->hilo_asociado = hilo_asociado;
 
 	return new;
 }
 
 static void nodo_tripulante_destroy(t_nodo_tripulante *self){
-	free(self->tarea);
 	free(self);
 }
+
 void *labor_tripulante (void* tripulante) {
 
-	tripulante_t* p_aux_trip;
-	p_aux_trip = (tripulante_t *) tripulante;
+//	tripulante_t* p_aux_trip;
+//	p_aux_trip = (tripulante_t *) tripulante;
 
-	while (!(p_aux_trip->fin_tareas)) {
-
-		switch (p_aux_trip->estado){
-			case NEW: {
-				if (p_aux_trip->tarea != NULL){
-					//Si ya se mi tarea no la pido otra vez
-					break;
-				}
-				//Pedir tarea a mi Ram
-				//El planificador vera si estoy ready o no
-				break;
-			}
-			case READY: {
-				//Literalmente no hago nada en ready quizas informar donde estoy por algun LOG no se
-				break;
-			}
-			case EXEC: {
-				p_aux_trip->trabajando = TRUE;
-
-				//Me pongo a laburar Conectarse al MONGO y realizar los cambios en las tareas INFORMO A MI RAM
-				//Moverme a X Y posicion e informar a MI_RAM y Mongo que hice
-
-
-				//Pido siguiente tarea a MIRAM y lo guardo en *ẗarea
-				if (p_aux_trip->tarea == NULL){
-					//Termine tareas porque no hay mas
-					p_aux_trip->fin_tareas = TRUE;
-					p_aux_trip->trabajando = FALSE; //Porque ya termine
-				}
-				p_aux_trip->trabajando = FALSE; //Porque ya termine
-				//Se puede buguear!! ojo si el planificador es mas lento, muy poco posible mirando el codigo
-				break;
-			}
-			case FIN: {
-				//No se si informar aca en los logs o afuera en el planif aca se piensa
-				return NULL; //LLEGUE AL FIN TERMINO HILO
-			}
-		}
-	}
+//	while (!(p_aux_trip->fin_tareas)) {
+//
+//		switch (p_aux_trip->estado){
+//			case NEW: {
+//				if (p_aux_trip->tarea != NULL){
+//					//Si ya se mi tarea no la pido otra vez
+//					break;
+//				}
+//				//Pedir tarea a mi Ram
+//				//El planificador vera si estoy ready o no
+//				break;
+//			}
+//			case READY: {
+//				//Literalmente no hago nada en ready quizas informar donde estoy por algun LOG no se
+//				break;
+//			}
+//			case EXEC: {
+//				p_aux_trip->trabajando = TRUE;
+//
+//				//Me pongo a laburar Conectarse al MONGO y realizar los cambios en las tareas INFORMO A MI RAM
+//				//Moverme a X Y posicion e informar a MI_RAM y Mongo que hice
+//
+//
+//				//Pido siguiente tarea a MIRAM y lo guardo en *ẗarea
+//				if (p_aux_trip->tarea == NULL){
+//					//Termine tareas porque no hay mas
+//					p_aux_trip->fin_tareas = TRUE;
+//					p_aux_trip->trabajando = FALSE; //Porque ya termine
+//				}
+//				p_aux_trip->trabajando = FALSE; //Porque ya termine
+//				//Se puede buguear!! ojo si el planificador es mas lento, muy poco posible mirando el codigo
+//				break;
+//			}
+//			case FIN: {
+//				//No se si informar aca en los logs o afuera en el planif aca se piensa
+//				return NULL; //LLEGUE AL FIN TERMINO HILO
+//			}
+//		}
+//	}
 
 	return NULL;
 }
