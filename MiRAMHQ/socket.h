@@ -27,6 +27,8 @@
 #include <readline/history.h>
 
 
+#define BACKLOG 20
+
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

@@ -14,37 +14,121 @@ int main(void) {
 	//Inicia las colas de planificacion
 	planificacion_cola_new = queue_create();
 	planificacion_cola_ready = queue_create();
-	planificacion_cola_exec = queue_create();
-	planificacion_cola_bloq = queue_create();
-	planificcion_cola_fin = queue_create();
 
 
-	t_log* logger = iniciar_logger();
+
+	iniciar_logger();
+	iniciarEstructurasAdministrativasPlanificador();
+
 	t_config* config = leer_config();
+
 	char* valor = config_get_string_value(config, "CLAVE");
+
 	char* ip = config_get_string_value(config, "IP");
-	int conexiones[2];
-
-	conexiones[RAM] = crear_conexion(ip,config_get_string_value(config, "PUERTO"));
-	conexiones[FILE_SYSTEM] = crear_conexion(ip,config_get_string_value(config, "PUERTO_MONGO_STORE"));
-	log_info(logger, "Soy el Discordiador");
-	log_info(logger, valor);
-	log_info(logger, ip);
 
 
-	leer_consola(logger,conexiones[RAM],conexiones[FILE_SYSTEM],conexiones[RAM]);
-	return terminar_programa(logger,config,conexiones);
+
+
+	char * valorip = "127.0.0.1";
+
+	iniciarHiloConsola();
+
+	socketServerMiRam = conectarAServer(valorip, 5002);
+	//realizarHandshake(socketServerMiRam, 2, 9);
+
+	log_info(logger, "Planificador se conecto a MIRAM");
+
+
+	atenderLaRam();
+
+	while(1){}
+
+	return terminar_programa(logger,config,NULL);
+
+}
+void atender_ram(){
+	uint32_t notificacion;
+	while(1){
+
+		notificacion = recibirUint(socketServerMiRam);
+
+		switch(notificacion){
+		case 22:
+
+			log_info(logger,"pasar de new a ready");
+			int * patota = (int *) queue_pop(patotasNew);
+
+
+
+			queue_push(patotasReady, patota);
+			int * patota2 = (int *) queue_pop(patotasReady);
+			char * patotaString = string_itoa(patota2);
+
+
+			log_info(logger,"Estoy logeando la cola de ready: ");
+			log_info(logger,patotaString);
+			log_info(logger,"fin log la cola de ready: ");
+
+		}
+	}
 
 }
 
-t_log* iniciar_logger() {
-	t_log* logger;
+void atenderLaRam(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , &attr1,(void*) atender_ram,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloConsola;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
+void iniciarHiloConsola(){
+	pthread_attr_t attr2;
+	pthread_attr_init(&attr2);
+	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , &attr2,(void*) leer_consola2,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloConsola;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
+void iniciarEstructurasAdministrativasPlanificador(){
+	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
+
+	hilosParaConexiones = list_create();
+
+	patotasNew = queue_create();
+	patotasReady = queue_create();
+
+	//ESI_EJECUTANDO = (infoESI*) malloc(sizeof(infoESI));
+
+	//Inicializo los semaforos
+
+
+	pthread_mutex_init(&mutexHilos,NULL);
+
+}
+
+void iniciar_logger() {
+
 
 	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
 		printf("No se pudo crear el logger. Revise parametros\n");
 		exit(1);
 	}
-	return logger;
+
 }
 
 t_config* leer_config() {
@@ -55,6 +139,85 @@ t_config* leer_config() {
 	}
 	return config;
 }
+
+void leer_consola2() {
+	char* leido = readline(">");
+	while(strncmp(leido, "", 1) != 0) {
+		log_info(logger, leido);
+
+    	//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
+		uint32_t patotaId = 10;
+		uint32_t cantidad_tripulantes = 2;
+
+		char * tareas = string_new();
+		string_append(&tareas,leido);
+		int longitud_tareas = string_length(tareas);
+
+		char * posiciones = string_new();
+		string_append(&posiciones,"#12-3|4&#16-5|6");
+		int longitud_posiciones = string_length(posiciones);
+
+
+
+
+    	char * claveGet = string_new();
+    	string_append(&claveGet,tareas);
+    	string_append(&claveGet,posiciones);
+
+    	//Serializo la clave a enviar.
+
+    	int tamanioGet = 0;
+
+    	void * claveBloqueadaGet = malloc(longitud_tareas + longitud_posiciones  + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int)+ sizeof(int));
+
+
+    	memcpy(claveBloqueadaGet + tamanioGet, &longitud_tareas, sizeof(int));
+
+    	tamanioGet += sizeof(int);
+
+    	memcpy(claveBloqueadaGet + tamanioGet, tareas, longitud_tareas);
+
+    	tamanioGet += longitud_tareas;
+
+    	memcpy(claveBloqueadaGet + tamanioGet, &longitud_posiciones, sizeof(int));
+
+    	tamanioGet += sizeof(int);
+
+    	memcpy(claveBloqueadaGet + tamanioGet, posiciones, longitud_posiciones);
+
+    	tamanioGet += longitud_posiciones;
+
+    	memcpy(claveBloqueadaGet + tamanioGet, &patotaId, sizeof(uint32_t));
+
+    	tamanioGet += sizeof(uint32_t);
+
+
+    	memcpy(claveBloqueadaGet + tamanioGet, &cantidad_tripulantes, sizeof(uint32_t));
+
+    	tamanioGet += sizeof(uint32_t);
+
+
+    	if(longitud_tareas>15){
+    		sendRemasterizado(socketServerMiRam, 3,tamanioGet,claveBloqueadaGet);
+
+    	}
+    	else{
+    		log_info(logger,"creo patota y agrego a cola new");
+
+    		queue_push(patotasNew,&patotaId);
+    		log_info(logger,"se la envio a mi ram");
+    		sendRemasterizado(socketServerMiRam, 4,tamanioGet,claveBloqueadaGet);
+    	}
+    	free(leido);
+    	//sleep(5);
+    	leido = readline(">");
+
+	}
+
+	free(leido);
+}
+
+
 
 void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip) {
 	char* leido = readline(">");
