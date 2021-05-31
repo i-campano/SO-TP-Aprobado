@@ -62,7 +62,7 @@ void atender_ram(){
 
 			queue_push(patotasReady, patota);
 			int * patota2 = (int *) queue_pop(patotasReady);
-			char * patotaString = string_itoa(patota2);
+			char * patotaString = string_itoa(*patota2);
 
 
 			log_info(logger,"Estoy logeando la cola de ready: ");
@@ -269,7 +269,7 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 			break;
 		}
 		case INICIAR_PATOTA :{
-			inicializar_patota(mensaje);
+			//inicializar_patota(mensaje);
 			break;
 		}
 		default: {
@@ -289,55 +289,11 @@ int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 }
 
 
-void inicializar_patota(char* mensaje) {
-	t_patota *patota = iniciar_patota(mensaje);
-	enviar_patota(patota);
-	list_t tripulantes = crear_tripulantes(patota);
-	enviar_tripulantes(tripulantes);
-}
 
 
-void enviar_patota(t_patota patota){
-
-}
-
-void crear_tripulantes(t_patota patota){
-	//patota->cantidad_tripulantes
-
-	int cantidad_tripulantes = 10;
-
-	for (int f = 0; f<cantidad_tripulantes; f++)
-	{
-		//Crea el nuevo nodo y lo mete en la cola de nuevos
-		queue_push(planificacion_cola_new, nodo_tripulante_create());
-	}
-}
 
 
-void iniciar_patota(char* mensaje)
-{
-	//PARSEAR MENSAJE: Obtener -> Cantidad de tripulantes, etc.
-	t_patota *patota = malloc(sizeof(t_patota));
-	t_patota->id = rand();
-//	t_patota->cantidad_tripulantes = mensaje.cantidad_tripulantes;
-	return patota;
-}
 
-
-static t_nodo_tripulante *nodo_tripulante_create()
-{
-	t_nodo_tripulante *new = malloc( sizeof(t_nodo_tripulante) );
-	new->id = rand();
-	pthread_t hilo_asociado;
-	pthread_create(&(hilo_asociado),NULL,labor_tripulante,NULL);
-	new->hilo_asociado = hilo_asociado;
-
-	return new;
-}
-
-static void nodo_tripulante_destroy(t_nodo_tripulante *self){
-	free(self);
-}
 
 void *labor_tripulante (void* tripulante) {
 
