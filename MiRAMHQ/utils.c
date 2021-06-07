@@ -126,6 +126,31 @@ void manejadorDeHilos(){
 	//Chequeo que no falle el accept
 }
 
+void crear_patota(int socket) {
+	char* tareas = recibirString(socket);
+	log_info(logger, tareas);
+	char* id_posiciones = recibirString(socket);
+	log_info(logger, id_posiciones);
+	uint32_t patotaid = recibirUint(socket);
+	log_info(logger, "patotaid: %d", (int) patotaid);
+	uint32_t cantidad_patota = recibirUint(socket);
+	log_info(logger, "cantidad tripulantes: %d", (int) cantidad_patota);
+	tcb2* tcb = malloc(sizeof(tcb2));
+	tcb->id_posicion = string_new();
+	tcb->tareas = string_new();
+	tcb->cantidad_tripulantes = cantidad_patota;
+	strcpy(tcb->id_posicion, id_posiciones);
+	strcpy(tcb->tareas, tareas);
+	tcb->patotaid = patotaid;
+	tcb->estado = 'N';
+	tcb->socket_tcb = socket;
+	log_info(logger, "agregando patota en lista_tcb");
+	list_add(lista_tcb, tcb);
+
+	//printf("%c\n",tcb->estado);
+
+}
+
 void *atenderNotificacion(void * paqueteSocket){
 
 	int socket = *(int*)paqueteSocket;
@@ -149,57 +174,11 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		case CREAR_PATOTA:{
 
-			char* tareas = recibirString(socket);
-			log_info(logger,tareas);
-
-			char* id_posiciones = recibirString(socket);
-
-			log_info(logger,id_posiciones);
-
-			uint32_t patotaid = recibirUint(socket);
-
-			log_info(logger,"patotaid: %d",(int)patotaid);
-
-
-			uint32_t cantidad_patota = recibirUint(socket);
-
-			log_info(logger,"cantidad tripulantes: %d",(int)cantidad_patota);
-
-
-        	tcb2 * tcb = malloc(sizeof(tcb2));
-
-        	tcb->id_posicion = string_new();
-
-        	tcb->tareas = string_new();
-
-        	strcpy(tcb->id_posicion, id_posiciones);
-
-        	strcpy(tcb->tareas, tareas);
-
-        	tcb->patotaid = patotaid;
-
-        	tcb->estado = 'N';
-
-        	tcb->socket_tcb = socket;
-
-
-        	log_info(logger,"agregando patota en lista_tcb");
-        	list_add(lista_tcb,tcb);
-
-        	log_info(logger,tcb->tareas);
-
-        	log_info(logger,tcb->id_posicion);
-
-        	//printf("%c\n",tcb->estado);
-
-        	log_info(logger,"----------------PATOTAS EN MI RAM: ");
-
-        	mostrar_elemento();
-
-        	log_info(logger,"----------------FIN PATOTA CREADA----------------");
-
-			sendDeNotificacion(socket,PATOTA_CREADA);
-
+			crear_patota(socket);
+			log_info(logger, "----------------PATOTAS EN MI RAM: ");
+			mostrar_lista_patota();
+			log_info(logger, "----------------FIN PATOTA CREADA----------------");
+			sendDeNotificacion(socket, PATOTA_CREADA);
 			break;
 		}
 		default:
@@ -213,16 +192,18 @@ void *atenderNotificacion(void * paqueteSocket){
 
 }
 
-
-
-
-
-
-void mostrar_elemento(){
-	void mostrar(tcb2* tcb){
-		log_info(logger,tcb->tareas);
+void mostrar_lista_patota(){
+	int i = 0;
+	void mostrar_patota(tcb2* tcb){
+		i++;
+		log_info(logger,"--------- ##### N: %d ---------", i);
+		log_info(logger, "patotaid: %d", (int) tcb->patotaid);
+		log_info(logger,"tareas: %s ",tcb->tareas);
+		log_info(logger, tcb->id_posicion);
+		log_info(logger, "cantidad tripulantes: %d", (int) tcb->cantidad_tripulantes);
+		log_info(logger, "estado: %c", tcb->estado);
 	}
 
-	list_iterate(lista_tcb, (void*) mostrar);
+	list_iterate(lista_tcb, (void*) mostrar_patota);
 }
 

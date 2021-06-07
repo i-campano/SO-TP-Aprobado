@@ -42,6 +42,7 @@ typedef struct
 	char estado;
 	uint32_t proxima_instruccion;
 	uint32_t patotaid;
+	uint32_t cantidad_tripulantes;
 } tcb2;
 
 
