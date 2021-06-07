@@ -12,6 +12,7 @@
 #include<readline/readline.h>
 #include <pthread.h>
 #include "tripulante.h"
+#include "socket.h"
 
 #include "utils.h"
 

@@ -25,9 +25,14 @@
 #include <semaphore.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include<commons/string.h>
 
 
 #define BACKLOG 20
+
+#define PATOTA_CREADA 22
+
+#define CREAR_PATOTA 4
 
 int iniciarServidor(int);
 void verificarErrorSocket(int);

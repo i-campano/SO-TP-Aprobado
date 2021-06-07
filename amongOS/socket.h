@@ -28,6 +28,10 @@
 
 #define BACKLOG 20
 
+#define PATOTA_CREADA 22
+
+#define CREAR_PATOTA 4
+
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

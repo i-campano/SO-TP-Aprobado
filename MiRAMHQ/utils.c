@@ -1,6 +1,6 @@
 #include"utils.h"
 
-
+#include "socket.h"
 
 int iniciar_servidor(void)
 {
@@ -146,32 +146,8 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			break;
 
-		case 3:{
 
-			log_info(logger,"recibo string....");
-
-			char* tareas = recibirString(socket);
-			log_info(logger,tareas);
-
-			char* id_posiciones = recibirString(socket);
-
-			log_info(logger,id_posiciones);
-
-			uint32_t patotaid = recibirUint(socket);
-
-			printf("%i\n",patotaid);
-
-			uint32_t cantidad_patota = recibirUint(socket);
-
-			printf("%i\n",cantidad_patota);
-
-
-			break;
-		}
-
-		case 4:{
-
-			log_info(logger,"recibo string....");
+		case CREAR_PATOTA:{
 
 			char* tareas = recibirString(socket);
 			log_info(logger,tareas);
@@ -182,17 +158,13 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			uint32_t patotaid = recibirUint(socket);
 
-			printf("%i\n",patotaid);
+			log_info(logger,"patotaid: %d",(int)patotaid);
+
 
 			uint32_t cantidad_patota = recibirUint(socket);
 
-			printf("%i\n",cantidad_patota);
-        	uint32_t valor = 22;
+			log_info(logger,"cantidad tripulantes: %d",(int)cantidad_patota);
 
-        	log_info(logger,"agregando en lista");
-        	log_info(logger,"agregando en lista");
-        	log_info(logger,"agregando en lista");
-        	log_info(logger,"agregando en lista");
 
         	tcb2 * tcb = malloc(sizeof(tcb2));
 
@@ -204,11 +176,6 @@ void *atenderNotificacion(void * paqueteSocket){
 
         	strcpy(tcb->tareas, tareas);
 
-
-
-
-        	log_info(logger,"string copy ok");
-
         	tcb->patotaid = patotaid;
 
         	tcb->estado = 'N';
@@ -216,24 +183,22 @@ void *atenderNotificacion(void * paqueteSocket){
         	tcb->socket_tcb = socket;
 
 
-
+        	log_info(logger,"agregando patota en lista_tcb");
         	list_add(lista_tcb,tcb);
 
         	log_info(logger,tcb->tareas);
 
         	log_info(logger,tcb->id_posicion);
 
-        	printf("%c\n",tcb->estado);
+        	//printf("%c\n",tcb->estado);
+
+        	log_info(logger,"----------------PATOTAS EN MI RAM: ");
 
         	mostrar_elemento();
 
+        	log_info(logger,"----------------FIN PATOTA CREADA----------------");
 
-
-
-
-			//printf("%i\n",valor);
-
-			sendDeNotificacion(socket,valor);
+			sendDeNotificacion(socket,PATOTA_CREADA);
 
 			break;
 		}
@@ -248,10 +213,14 @@ void *atenderNotificacion(void * paqueteSocket){
 
 }
 
-void mostrar_elemento(){
 
+
+
+
+
+void mostrar_elemento(){
 	void mostrar(tcb2* tcb){
-		printf("%s\n",tcb->tareas);
+		log_info(logger,tcb->tareas);
 	}
 
 	list_iterate(lista_tcb, (void*) mostrar);

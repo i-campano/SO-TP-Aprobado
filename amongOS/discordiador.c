@@ -89,21 +89,20 @@ void atender_ram(){
 		notificacion = recibirUint(socketServerMiRam);
 
 		switch(notificacion){
-		case 22:
+		case PATOTA_CREADA:
+			log_info(logger,"PATOTA CREADA EN MI RAM");
+			log_info(logger,"PASAMOS PATOTA DE NEW A READY");
 
-			log_info(logger,"pasar de new a ready");
 			int * patota = (int *) queue_pop(planificacion_cola_new);
 
-
-
 			queue_push(planificacion_cola_ready, patota);
+
 			int * patota2 = (int *) queue_pop(planificacion_cola_ready);
 			char * patotaString = string_itoa(*patota2);
 
-
-			log_info(logger,"Estoy logeando la cola de ready: ");
+			log_info(logger,"PATOTA EN READY: ");
 			log_info(logger,patotaString);
-			log_info(logger,"fin log la cola de ready: ");
+
 
 		}
 	}
@@ -167,17 +166,11 @@ void leer_consola() {
     	tamanioGet += sizeof(uint32_t);
 
 
-    	if(longitud_tareas>15){
-    		sendRemasterizado(socketServerMiRam, 3,tamanioGet,claveBloqueadaGet);
-
-    	}
-    	else{
     		log_info(logger,"creo patota y agrego a cola new");
 
     		queue_push(planificacion_cola_new,&patotaId);
     		log_info(logger,"se la envio a mi ram");
-    		sendRemasterizado(socketServerMiRam, 4,tamanioGet,claveBloqueadaGet);
-    	}
+    		sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,claveBloqueadaGet);
     	free(leido);
     	//sleep(5);
     	leido = readline(">");
