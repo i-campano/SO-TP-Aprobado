@@ -36,6 +36,10 @@ int iniciar_servidor(void)
     return socket_servidor;
 }
 
+void iniciarEstructurasAdministrativas(){
+	lista_tcb = list_create();
+}
+
 int esperar_cliente(int socket_servidor)
 {
 	struct sockaddr_in dir_cliente;
@@ -146,12 +150,12 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			log_info(logger,"recibo string....");
 
-			char* texto = recibirString(socket);
-			log_info(logger,texto);
+			char* tareas = recibirString(socket);
+			log_info(logger,tareas);
 
-			char* texto2 = recibirString(socket);
+			char* id_posiciones = recibirString(socket);
 
-			log_info(logger,texto2);
+			log_info(logger,id_posiciones);
 
 			uint32_t patotaid = recibirUint(socket);
 
@@ -169,12 +173,12 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			log_info(logger,"recibo string....");
 
-			char* texto = recibirString(socket);
-			log_info(logger,texto);
+			char* tareas = recibirString(socket);
+			log_info(logger,tareas);
 
-			char* texto2 = recibirString(socket);
+			char* id_posiciones = recibirString(socket);
 
-			log_info(logger,texto2);
+			log_info(logger,id_posiciones);
 
 			uint32_t patotaid = recibirUint(socket);
 
@@ -185,11 +189,51 @@ void *atenderNotificacion(void * paqueteSocket){
 			printf("%i\n",cantidad_patota);
         	uint32_t valor = 22;
 
+        	log_info(logger,"agregando en lista");
+        	log_info(logger,"agregando en lista");
+        	log_info(logger,"agregando en lista");
+        	log_info(logger,"agregando en lista");
+
+        	tcb2 * tcb = malloc(sizeof(tcb2));
+
+        	tcb->id_posicion = string_new();
+
+        	tcb->tareas = string_new();
+
+        	strcpy(tcb->id_posicion, id_posiciones);
+
+        	strcpy(tcb->tareas, tareas);
+
+
+
+
+        	log_info(logger,"string copy ok");
+
+        	tcb->patotaid = patotaid;
+
+        	tcb->estado = 'N';
+
+        	tcb->socket_tcb = socket;
+
+
+
+        	list_add(lista_tcb,tcb);
+
+        	log_info(logger,tcb->tareas);
+
+        	log_info(logger,tcb->id_posicion);
+
+        	printf("%c\n",tcb->estado);
+
+        	mostrar_elemento();
+
+
+
+
 
 			//printf("%i\n",valor);
 
 			sendDeNotificacion(socket,valor);
-
 
 			break;
 		}
@@ -202,5 +246,14 @@ void *atenderNotificacion(void * paqueteSocket){
 
 	return 0;
 
+}
+
+void mostrar_elemento(){
+
+	void mostrar(tcb2* tcb){
+		printf("%s\n",tcb->tareas);
+	}
+
+	list_iterate(lista_tcb, (void*) mostrar);
 }
 

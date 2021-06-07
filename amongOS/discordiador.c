@@ -1,23 +1,13 @@
 #include "discordiador.h"
 
 //Creacion de las colas de planificacion. Son Globales en el discordiador
-t_queue* planificacion_cola_new = NULL;
-t_queue* planificacion_cola_ready = NULL;
-t_queue* planificacion_cola_exec = NULL;
-t_queue* planificacion_cola_bloq = NULL;
-t_queue* planificcion_cola_fin = NULL;
+
 
 unsigned int contador_hilos = 0;
 
 int main(void) {
-
-	//Inicia las colas de planificacion
-	planificacion_cola_new = queue_create();
-	planificacion_cola_ready = queue_create();
-
-
-
 	iniciar_logger();
+	//Inicia las colas de planificacion
 	iniciarEstructurasAdministrativasPlanificador();
 
 	t_config* config = leer_config();
@@ -25,8 +15,6 @@ int main(void) {
 	char* valor = config_get_string_value(config, "CLAVE");
 
 	char* ip = config_get_string_value(config, "IP");
-
-
 
 
 	char * valorip = "127.0.0.1";
@@ -38,40 +26,28 @@ int main(void) {
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
-
 	atenderLaRam();
+
+	planificar();
 
 	while(1){}
 
 	return terminar_programa(logger,config,NULL);
-
 }
-void atender_ram(){
-	uint32_t notificacion;
-	while(1){
 
-		notificacion = recibirUint(socketServerMiRam);
+void planificar(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloPlanificador , &attr1,(void*) planificar_tripulantes,NULL);
 
-		switch(notificacion){
-		case 22:
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloPlanificador;
 
-			log_info(logger,"pasar de new a ready");
-			int * patota = (int *) queue_pop(patotasNew);
-
-
-
-			queue_push(patotasReady, patota);
-			int * patota2 = (int *) queue_pop(patotasReady);
-			char * patotaString = string_itoa(*patota2);
-
-
-			log_info(logger,"Estoy logeando la cola de ready: ");
-			log_info(logger,patotaString);
-			log_info(logger,"fin log la cola de ready: ");
-
-		}
-	}
-
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
 }
 
 void atenderLaRam(){
@@ -93,7 +69,7 @@ void iniciarHiloConsola(){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);
 	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr2,(void*) leer_consola2,NULL);
+	pthread_create(&hiloConsola , &attr2,(void*) leer_consola,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -104,43 +80,37 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-void iniciarEstructurasAdministrativasPlanificador(){
-	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
-
-	hilosParaConexiones = list_create();
-
-	patotasNew = queue_create();
-	patotasReady = queue_create();
-
-	//ESI_EJECUTANDO = (infoESI*) malloc(sizeof(infoESI));
-
-	//Inicializo los semaforos
 
 
-	pthread_mutex_init(&mutexHilos,NULL);
+void atender_ram(){
+	uint32_t notificacion;
+	while(1){
 
-}
+		notificacion = recibirUint(socketServerMiRam);
 
-void iniciar_logger() {
+		switch(notificacion){
+		case 22:
+
+			log_info(logger,"pasar de new a ready");
+			int * patota = (int *) queue_pop(planificacion_cola_new);
 
 
-	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
-		printf("No se pudo crear el logger. Revise parametros\n");
-		exit(1);
+
+			queue_push(planificacion_cola_ready, patota);
+			int * patota2 = (int *) queue_pop(planificacion_cola_ready);
+			char * patotaString = string_itoa(*patota2);
+
+
+			log_info(logger,"Estoy logeando la cola de ready: ");
+			log_info(logger,patotaString);
+			log_info(logger,"fin log la cola de ready: ");
+
+		}
 	}
 
 }
 
-t_config* leer_config() {
-	t_config *config;
-	if((config = config_create("discordiador.config"))==NULL) {
-		printf("No se pudo leer de la config. Revise. \n");
-		exit(1);
-	}
-	return config;
-}
-
-void leer_consola2() {
+void leer_consola() {
 	char* leido = readline(">");
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
@@ -204,7 +174,7 @@ void leer_consola2() {
     	else{
     		log_info(logger,"creo patota y agrego a cola new");
 
-    		queue_push(patotasNew,&patotaId);
+    		queue_push(planificacion_cola_new,&patotaId);
     		log_info(logger,"se la envio a mi ram");
     		sendRemasterizado(socketServerMiRam, 4,tamanioGet,claveBloqueadaGet);
     	}
@@ -217,20 +187,33 @@ void leer_consola2() {
 	free(leido);
 }
 
+void pedir_tareas(){
 
-
-void leer_consola(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip) {
-	char* leido = readline(">");
-	realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
-	while(strncmp(leido, "", 1) != 0) {
-		log_info(logger, leido);
-		free(leido);
-		leido = readline(">");
-		realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
-	}
-
-	free(leido);
 }
+
+
+void planificar_tripulantes(){
+
+
+}
+
+
+
+void iniciarEstructurasAdministrativasPlanificador(){
+	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
+
+	planificacion_cola_new = queue_create();
+	planificacion_cola_ready = queue_create();
+
+	hilosParaConexiones = list_create();
+
+
+
+
+	pthread_mutex_init(&mutexHilos,NULL);
+
+}
+
 
 
 int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante) {
@@ -288,11 +271,38 @@ int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 	return 0;
 }
 
+void iniciar_logger() {
 
 
+	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
+		printf("No se pudo crear el logger. Revise parametros\n");
+		exit(1);
+	}
+
+}
+
+t_config* leer_config() {
+	t_config *config;
+	if((config = config_create("discordiador.config"))==NULL) {
+		printf("No se pudo leer de la config. Revise. \n");
+		exit(1);
+	}
+	return config;
+}
 
 
+void leer_consola2(t_log* logger,int conexion_ram,int conexion_fs,int conexion_trip) {
+	char* leido = readline(">");
+	realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
+	while(strncmp(leido, "", 1) != 0) {
+		log_info(logger, leido);
+		free(leido);
+		leido = readline(">");
+		realizar_operacion(leido,conexion_ram,conexion_fs,conexion_trip);
+	}
 
+	free(leido);
+}
 
 
 void *labor_tripulante (void* tripulante) {
