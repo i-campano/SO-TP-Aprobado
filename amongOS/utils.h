@@ -22,6 +22,7 @@
 #include<commons/collections/queue.h>
 #include<readline/readline.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 t_log* logger;
 int socketServerMiRam;	// PARA USUARIO
@@ -49,6 +50,8 @@ pthread_t hiloColaReady;
 
 //Semaforos
 pthread_mutex_t mutexHilos;
+
+sem_t iniciar_planificacion;
 
 typedef struct _infoHilos{
 	int socket;

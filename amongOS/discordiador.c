@@ -103,11 +103,8 @@ void atender_ram(){
 
 			log_info(logger,"PATOTA EN READY: ");
 			log_info(logger,patotaString);
-
-
 		}
 	}
-
 }
 
 void leer_consola() {
@@ -115,66 +112,65 @@ void leer_consola() {
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
 
-    	//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
-		uint32_t patotaId = 10;
-		uint32_t cantidad_tripulantes = 2;
+		if(string_length(leido)<5){
+			sem_post(&iniciar_planificacion);
+		}else{
 
-		char * tareas = string_new();
-		string_append(&tareas,leido);
-		int longitud_tareas = string_length(tareas);
+			//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
+			uint32_t patotaId = 10;
+			uint32_t cantidad_tripulantes = 2;
 
-		char * posiciones = string_new();
-		string_append(&posiciones,"#12-3|4&#16-5|6");
-		int longitud_posiciones = string_length(posiciones);
+			char * tareas = string_new();
+			string_append(&tareas,leido);
+			int longitud_tareas = string_length(tareas);
 
+			char * posiciones = string_new();
+			string_append(&posiciones,"#12-3|4&#16-5|6");
+			int longitud_posiciones = string_length(posiciones);
 
+			char * claveGet = string_new();
+			string_append(&claveGet,tareas);
+			string_append(&claveGet,posiciones);
 
+			//Serializo la clave a enviar.
 
-    	char * claveGet = string_new();
-    	string_append(&claveGet,tareas);
-    	string_append(&claveGet,posiciones);
+			int tamanioGet = 0;
 
-    	//Serializo la clave a enviar.
+			void * claveBloqueadaGet = malloc(longitud_tareas + longitud_posiciones  + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int)+ sizeof(int));
 
-    	int tamanioGet = 0;
+			memcpy(claveBloqueadaGet + tamanioGet, &longitud_tareas, sizeof(int));
 
-    	void * claveBloqueadaGet = malloc(longitud_tareas + longitud_posiciones  + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int)+ sizeof(int));
+			tamanioGet += sizeof(int);
 
+			memcpy(claveBloqueadaGet + tamanioGet, tareas, longitud_tareas);
 
-    	memcpy(claveBloqueadaGet + tamanioGet, &longitud_tareas, sizeof(int));
+			tamanioGet += longitud_tareas;
 
-    	tamanioGet += sizeof(int);
+			memcpy(claveBloqueadaGet + tamanioGet, &longitud_posiciones, sizeof(int));
 
-    	memcpy(claveBloqueadaGet + tamanioGet, tareas, longitud_tareas);
+			tamanioGet += sizeof(int);
 
-    	tamanioGet += longitud_tareas;
+			memcpy(claveBloqueadaGet + tamanioGet, posiciones, longitud_posiciones);
 
-    	memcpy(claveBloqueadaGet + tamanioGet, &longitud_posiciones, sizeof(int));
+			tamanioGet += longitud_posiciones;
 
-    	tamanioGet += sizeof(int);
+			memcpy(claveBloqueadaGet + tamanioGet, &patotaId, sizeof(uint32_t));
 
-    	memcpy(claveBloqueadaGet + tamanioGet, posiciones, longitud_posiciones);
+			tamanioGet += sizeof(uint32_t);
 
-    	tamanioGet += longitud_posiciones;
+			memcpy(claveBloqueadaGet + tamanioGet, &cantidad_tripulantes, sizeof(uint32_t));
 
-    	memcpy(claveBloqueadaGet + tamanioGet, &patotaId, sizeof(uint32_t));
+			tamanioGet += sizeof(uint32_t);
 
-    	tamanioGet += sizeof(uint32_t);
+			log_info(logger,"creo patota y agrego a cola new");
 
+			queue_push(planificacion_cola_new,&patotaId);
+			log_info(logger,"se la envio a mi ram");
+			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,claveBloqueadaGet);
+			free(leido);
+		}
 
-    	memcpy(claveBloqueadaGet + tamanioGet, &cantidad_tripulantes, sizeof(uint32_t));
-
-    	tamanioGet += sizeof(uint32_t);
-
-
-    		log_info(logger,"creo patota y agrego a cola new");
-
-    		queue_push(planificacion_cola_new,&patotaId);
-    		log_info(logger,"se la envio a mi ram");
-    		sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,claveBloqueadaGet);
-    	free(leido);
-    	//sleep(5);
-    	leido = readline(">");
+		leido = readline(">");
 
 	}
 
@@ -187,29 +183,24 @@ void pedir_tareas(){
 
 
 void planificar_tripulantes(){
+	sem_wait(&iniciar_planificacion);
+
 	hilo_cola_new();
 	hilo_cola_ready();
-
 }
-
-
 
 void iniciarEstructurasAdministrativasPlanificador(){
 	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
+
+	sem_init(&iniciar_planificacion, 0, 0);
 
 	planificacion_cola_new = queue_create();
 	planificacion_cola_ready = queue_create();
 
 	hilosParaConexiones = list_create();
 
-
-
-
 	pthread_mutex_init(&mutexHilos,NULL);
-
 }
-
-
 
 int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante) {
 	int codigo_operacion;
@@ -267,13 +258,10 @@ int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 }
 
 void iniciar_logger() {
-
-
 	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
 		printf("No se pudo crear el logger. Revise parametros\n");
 		exit(1);
 	}
-
 }
 
 t_config* leer_config() {
