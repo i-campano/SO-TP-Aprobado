@@ -113,13 +113,16 @@ void leer_consola() {
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
 
-		if(string_length(leido)==6){
+		if(strncmp(leido, "DETENER", 1) == 0){
+			log_info(logger,"PLANIFICACION DETENIDA !!!: ");
 			sem_wait(&sistemaEnEjecucion);
 		}
-		else if(string_length(leido)==7){
+		else if(strncmp(leido, "REANUDAR", 1) == 0){
+			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
 			sem_post(&sistemaEnEjecucion);
 		}
-		else if(string_length(leido)<5){
+		else if(strncmp(leido, "INICIAR", 1) == 0){
+			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
 		}else{
 
