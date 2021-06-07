@@ -103,6 +103,7 @@ void atender_ram(){
 
 			log_info(logger,"PATOTA EN READY: ");
 			log_info(logger,patotaString);
+			sem_post(&iniciar_cola_ready);
 		}
 	}
 }
@@ -112,7 +113,13 @@ void leer_consola() {
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
 
-		if(string_length(leido)<5){
+		if(string_length(leido)==6){
+			sem_wait(&sistemaEnEjecucion);
+		}
+		else if(string_length(leido)==7){
+			sem_post(&sistemaEnEjecucion);
+		}
+		else if(string_length(leido)<5){
 			sem_post(&iniciar_planificacion);
 		}else{
 
@@ -193,6 +200,12 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
 
 	sem_init(&iniciar_planificacion, 0, 0);
+	sem_init(&iniciar_cola_ready, 0, 0);
+	sem_init(&sistemaEnEjecucion, 0, 1);
+
+	pthread_mutex_init(&planificacion_mutex_new,NULL);
+	pthread_mutex_init(&planificacion_mutex_ready,NULL);
+
 
 	planificacion_cola_new = queue_create();
 	planificacion_cola_ready = queue_create();

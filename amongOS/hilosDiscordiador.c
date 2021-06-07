@@ -5,10 +5,7 @@
  *      Author: utnso
  */
 
-
-
 #include "hilosDiscordiador.h"
-
 
 
 void hilo_cola_ready(){
@@ -26,19 +23,19 @@ void hilo_cola_ready(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-
 void planificar_cola_ready(){
 
-
+	sem_wait(&iniciar_cola_ready);
 	while(1){
 		sleep(3);
+		sem_wait(&sistemaEnEjecucion);
+		sem_post(&sistemaEnEjecucion);
 		log_info(logger,"PLANIFICANDOO COLA READY");
-
+		//wait(planificacion_mutex_ready);
+		//hacer algo en la cola ready
 
 	}
-
 }
-
 
 void hilo_cola_new(){
 	pthread_attr_t attr1;
@@ -57,13 +54,10 @@ void hilo_cola_new(){
 
 
 void planificar_cola_new(){
-
-
 	while(1){
 		sleep(6);
+		sem_wait(&sistemaEnEjecucion);
+		sem_post(&sistemaEnEjecucion);
 		log_info(logger,"PLANIFICANDOO COLA NEW");
-
-
 	}
-
 }

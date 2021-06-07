@@ -1,10 +1,3 @@
-/*
- * conexiones.h
- *
- *  Created on: 2 mar. 2019
- *      Author: utnso
- */
-
 #ifndef UTILS_H_
 #define UTILS_H_
 
@@ -25,12 +18,12 @@
 #include <semaphore.h>
 
 t_log* logger;
-int socketServerMiRam;	// PARA USUARIO
 int socketListener,socketMaximo;	 // PARA SERVER
 fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
 
-t_list * hilosParaConexiones;
+int socketServerMiRam;
 
+t_list * hilosParaConexiones;
 
 t_queue* planificacion_cola_new;
 t_queue* planificacion_cola_ready;
@@ -38,20 +31,29 @@ t_queue* planificacion_cola_exec;
 t_queue* planificacion_cola_bloq;
 t_queue* planificcion_cola_fin;
 
-
 //HILOS
 pthread_t hiloConsola;
 pthread_t hiloCoordinador;
 pthread_t hiloPlanificador;
 
-
 //HILOS PARA COLAS
 pthread_t hiloColaReady;
+pthread_t hiloColaNew;
+
+//MUTEX PARA COLAS
+pthread_mutex_t planificacion_mutex_new;
+pthread_mutex_t planificacion_mutex_ready;
+pthread_mutex_t planificacion_mutex_exec;
+pthread_mutex_t planificacion_mutex_bloq;
+pthread_mutex_t planificcion_mutex_fin;
 
 //Semaforos
 pthread_mutex_t mutexHilos;
 
 sem_t iniciar_planificacion;
+sem_t iniciar_cola_ready;
+
+sem_t sistemaEnEjecucion;
 
 typedef struct _infoHilos{
 	int socket;
@@ -66,11 +68,6 @@ typedef struct {
 	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
 	pthread_t hilo_asociado;
 }t_nodo_tripulante;
-
-
-
-
-int socketServerMiRam;
 
 typedef struct
 {
