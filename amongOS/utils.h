@@ -16,6 +16,56 @@
 #include<netdb.h>
 #include<string.h>
 #include "mylibrary.h"
+#include<commons/log.h>
+#include<commons/string.h>
+#include<commons/config.h>
+#include<commons/collections/queue.h>
+#include<readline/readline.h>
+#include <pthread.h>
+
+t_log* logger;
+int socketServerMiRam;	// PARA USUARIO
+int socketListener,socketMaximo;	 // PARA SERVER
+fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
+
+t_list * hilosParaConexiones;
+
+
+t_queue* planificacion_cola_new;
+t_queue* planificacion_cola_ready;
+t_queue* planificacion_cola_exec;
+t_queue* planificacion_cola_bloq;
+t_queue* planificcion_cola_fin;
+
+
+//HILOS
+pthread_t hiloConsola;
+pthread_t hiloCoordinador;
+pthread_t hiloPlanificador;
+
+
+//HILOS PARA COLAS
+pthread_t hiloColaReady;
+
+//Semaforos
+pthread_mutex_t mutexHilos;
+
+typedef struct _infoHilos{
+	int socket;
+	pthread_t hiloAtendedor;
+} infoHilos;
+
+typedef struct {
+	int id;
+	char estado;
+	short int trabajando;
+	short int fin_tareas;
+	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
+	pthread_t hilo_asociado;
+}t_nodo_tripulante;
+
+
+
 
 int socketServerMiRam;
 

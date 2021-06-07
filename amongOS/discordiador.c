@@ -187,7 +187,8 @@ void pedir_tareas(){
 
 
 void planificar_tripulantes(){
-
+	hilo_cola_new();
+	hilo_cola_ready();
 
 }
 
