@@ -164,9 +164,10 @@ void *atenderNotificacion(void * paqueteSocket){
 	log_info(logger,"en el switch....");
 
 
-		case 2:{
+		case DISCORDIADOR:{
+			//Case para hacer HANDSHAKE = Chequear la conexion
 			log_info(logger,"Se ha conectado el DISCORDIADOR");
-			sendDeNotificacion(socket, 9);
+			sendDeNotificacion(socket, MIRAM);
 		}
 
 			break;
@@ -196,12 +197,7 @@ void mostrar_lista_patota(){
 	int i = 0;
 	void mostrar_patota(tcb2* tcb){
 		i++;
-		log_info(logger,"--------- ##### N: %d ---------", i);
-		log_info(logger, "patotaid: %d", (int) tcb->patotaid);
-		log_info(logger,"tareas: %s ",tcb->tareas);
-		log_info(logger, tcb->id_posicion);
-		log_info(logger, "cantidad tripulantes: %d", (int) tcb->cantidad_tripulantes);
-		log_info(logger, "estado: %c", tcb->estado);
+		log_info(logger,"# N: %d - PATOTA ID: %d - Tareas: %s - Posicion: %s - Cantidad trip: %d - Estado: %c", i,tcb->patotaid,tcb->tareas, tcb->id_posicion,tcb->cantidad_tripulantes,tcb->estado);
 	}
 
 	list_iterate(lista_tcb, (void*) mostrar_patota);

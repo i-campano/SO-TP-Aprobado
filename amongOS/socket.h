@@ -28,6 +28,9 @@
 
 #define BACKLOG 20
 
+#define DISCORDIADOR 2
+#define MIRAM 9
+
 #define PATOTA_CREADA 22
 
 #define CREAR_PATOTA 4

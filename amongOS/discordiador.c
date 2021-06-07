@@ -22,7 +22,8 @@ int main(void) {
 	iniciarHiloConsola();
 
 	socketServerMiRam = conectarAServer(valorip, 5002);
-	//realizarHandshake(socketServerMiRam, 2, 9);
+
+	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
