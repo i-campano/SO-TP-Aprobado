@@ -40,12 +40,7 @@ t_list * lista_tripulantes;
 t_log* logger;
 void mostrar_lista_patota();
 void crear_pcb();
-void* recibir_buffer(int*, int);
 void *atenderNotificacion(void * paqueteSocket);
-int iniciar_servidor(void);
-int esperar_cliente(int);
-t_list* recibir_paquete(int);
-void recibir_mensaje(int);
-int recibir_operacion(int);
+
 
 #endif /* CONEXIONES_H_ */

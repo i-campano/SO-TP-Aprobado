@@ -11,15 +11,11 @@
 #ifndef HILOSDISCORDIADOR_H_
 #define HILOSDISCORDIADOR_H_
 
-
-
 #include "utils.h"
-
-pthread_t hiloColaReady;
 
 void planificar_cola_new();
 void planificar_cola_ready();
 
-
-
+void hilo_cola_ready();
+void hilo_cola_new();
 #endif /* HILOSDISCORDIADOR_H_ */
