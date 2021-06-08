@@ -144,9 +144,9 @@ void *atenderNotificacion(void * paqueteSocket){
 				log_info(logger,"Se ha conectado el DISCORDIADOR");
 				sendDeNotificacion(socket, IMONGOSTORE);
 				while(1){
-					sleep(5);
+					sleep(10);
 					log_info(logger,"ENVIANDO TAREAS");
-					sendDeNotificacion(socket, ENVIO_TAREA);
+					sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
 				}
 			}
 				break;

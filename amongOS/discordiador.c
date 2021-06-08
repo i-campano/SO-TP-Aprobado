@@ -107,15 +107,86 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void crearHiloTripulante(int * id_tripulante){
+	pthread_attr_t attr2;
+	pthread_attr_init(&attr2);
+	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	log_info(logger,"id desde crearHiloTripulante: %d",*id_tripulante);
+	pthread_t hiloTripulante = malloc(sizeof(pthread_t));
+	pthread_create(&hiloTripulante , &attr2,(void*) labor_tripulante_new,(void*) id_tripulante);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = socket;
+	datosHilo->hiloAtendedor = hiloTripulante;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
+void *labor_tripulante_new(void * id_tripulante){
+
+
+	//¿ estructura estatica dentro del hilo? --- pensar
+
+	int id = *(int*)id_tripulante;
+
+	log_info(logger,"tripulante creado: %d",id);
+
+	sendDeNotificacion(socketServerMiRam, HANDSHAKE_TRIPULANTE);
+
+	log_info(logger,"tripulante se conecto con miram... %d", id);
+
+
+	sendDeNotificacion(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
+
+	log_info(logger,"tripulante se conecto con ImongoStore... %d", id);
+
+	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
+
+	while(1){
+
+		//sem_wait(&EXEC)
+		sleep(10);
+
+		log_info(logger,"TRIPULANTE EJECUTANDO... %d",id);
+
+		//pedir tareas..
+		//sendDeNotificacion(socketServerMiRam, PEDIR_TAREA);
+
+		//char * tarea = string_new();
+		//tarea = recibirString(socketServerMiRam);
+
+
+		//le aviso que quiero ejecutar
+		//sendDeNotificacion(socketServerIMongoStore, EJECUTAR_TAREA);
+
+		//le mando la instruccion
+
+		//sendRemasterizado(socketServerIMongoStore,)
+
+		//uint32_t ejecucion_response = recibirUint(socketServerIMongoStore);
+
+
+		// cosas que necesitemos
+
+
+
+	}
+
+
+}
+
 void atender_imongo_store(){
 	uint32_t notificacion;
 	while(1){
-
+		sem_wait(&activar_actualizaciones_mongo);
+		sem_post(&activar_actualizaciones_mongo);
 		notificacion = recibirUint(socketServerIMongoStore);
 
 		switch(notificacion){
-			case RECIBIR_TAREA:{
-				log_info(logger,"RECIBIO TAREA DE IMONGOSTORE");
+			case ACTUALIZACION_IMONGOSTORE:{
+				log_info(logger,"CONEXION VIVA IMONGO CON DISCORDIADOR (SLEEP 10 SEGS)");
 			}
 		}
 	}
@@ -135,6 +206,9 @@ void atender_ram(){
 
 				log_info(logger,"PATOTA ID: %d - CARGADA EN MIRAM", *patotaNew);
 				log_info(logger,"PATOTA ID: %d - MOVEMOS DE NEW A READY",*patotaNew);
+
+				//patota patota = malloc(sizeof(patota));
+
 
 				queue_push(planificacion_cola_ready, patotaNew);
 
@@ -180,6 +254,14 @@ void leer_consola() {
 			log_info(logger,"PLANIFICACION DETENIDA !!!: ");
 			sem_wait(&sistemaEnEjecucion);
 		}
+		else if(strncmp(leido, "ACTUALIZACIONES_MONGO", 1) == 0){
+			log_info(logger,"actualizaciones mongo activado !!!: ");
+			sem_post(&activar_actualizaciones_mongo);
+		}
+		else if(strncmp(leido, "MONGO_DETENER", 1) == 0){
+			log_info(logger,"actualizaciones mongo detenido!!!: ");
+			sem_wait(&activar_actualizaciones_mongo);
+		}
 		else if(strncmp(leido, "REANUDAR", 1) == 0){
 			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
 			sem_post(&sistemaEnEjecucion);
@@ -187,23 +269,27 @@ void leer_consola() {
 		else if(strncmp(leido, "INICIAR", 1) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
-		}else{
+		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
+			log_info(logger,"CARGAR DATOS PATOTA: ");
 
 			//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
 
 			//TODO: CREAR UNA FUNCION QUE CREE UNA PATOTA
 
 			//patota patota = crear_patota();
-
+			leido = readline(">");
 			uint32_t patotaId = 10;
 			uint32_t cantidad_tripulantes = 2;
 
 			char * tareas = string_new();
 			string_append(&tareas,leido);
+			free(leido);
 			int longitud_tareas = string_length(tareas);
 
 			char * posiciones = string_new();
-			string_append(&posiciones,"#12-3|4&#16-5|6");
+			leido = readline(">");
+			string_append(&posiciones,leido);
+			//string_append(&posiciones,"#12-3|4&#16-5|6");
 			int longitud_posiciones = string_length(posiciones);
 
 			char * claveGet = string_new();
@@ -220,12 +306,21 @@ void leer_consola() {
 
 			queue_push(planificacion_cola_new,&patotaId);
 
-			log_info(logger,"creo patota y agrego a cola new");
+			for(int i = 0 ; i<cantidad_tripulantes; i++){
+				//el proposito:
+					// tener los tripulantes para ponerlos en new
+					// poder hacer los handshakes de cada tripulante para que en los otros modulos se conserve el socket de estos
+					// guardar los hilos en el discordiador
+				int * id = malloc(sizeof(int));
+				*id = i;
+				crearHiloTripulante(id);
+			}
 
-			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
-			log_info(logger,"Patota enviada a MIRAM");
+
 
 			free(leido);
+		}else{
+			log_info(logger,"COMANDO INVALIDO");
 		}
 
 		leido = readline(">");
@@ -236,7 +331,7 @@ void leer_consola() {
 }
 
 //TODO : FIX
-patota crear_patota(){
+patota crear_pcb(){
 	//revisar referencias... seguro va un malloc o algo asi aca..
 	patota patota;
 //	patota.cantidad_tripulantes = cant_trip;
@@ -286,6 +381,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	sem_init(&iniciar_planificacion, 0, 0);
 	sem_init(&iniciar_cola_ready, 0, 0);
 	sem_init(&sistemaEnEjecucion, 0, 1);
+	sem_init(&activar_actualizaciones_mongo, 0, 0);
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);

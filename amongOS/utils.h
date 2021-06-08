@@ -57,6 +57,8 @@ sem_t iniciar_cola_ready;
 
 sem_t sistemaEnEjecucion;
 
+sem_t activar_actualizaciones_mongo;
+
 typedef struct _infoHilos{
 	int socket;
 	pthread_t hiloAtendedor;

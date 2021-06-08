@@ -32,10 +32,14 @@ typedef enum
 
 t_list * lista_tcb;
 
+t_list * lista_pcb;
+
+t_list * lista_tripulantes;
+
 
 t_log* logger;
 void mostrar_lista_patota();
-void crear_patota();
+void crear_pcb();
 void* recibir_buffer(int*, int);
 void *atenderNotificacion(void * paqueteSocket);
 int iniciar_servidor(void);

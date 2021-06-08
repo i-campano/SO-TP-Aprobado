@@ -37,6 +37,10 @@
 
 #define CREAR_PATOTA 4
 
+#define HANDSHAKE_TRIPULANTE 5
+
+#define TRIPULANTE 6
+
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

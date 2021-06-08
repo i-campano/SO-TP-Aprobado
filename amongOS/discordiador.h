@@ -7,8 +7,14 @@
 
 
 #define PATOTA_CREADA 22
-#define RECIBIR_TAREA 15
+#define ACTUALIZACION_IMONGOSTORE 15
 #define CREAR_PATOTA 4
+
+#define HANDSHAKE_TRIPULANTE 5
+
+#define PEDIR_TAREA 7
+
+#define EJECUTAR_TAREA 8
 
 typedef struct patota{
 	uint32_t patota_id;
@@ -17,6 +23,7 @@ typedef struct patota{
     int longitud_tareas;
     int longitud_posiciones;
     char * posiciones;
+    int socketMIRAM;
 
 } patota;
 
@@ -43,12 +50,13 @@ t_paquete* armar_paquete();
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
 
 
-patota crear_patota();
+patota crear_pcb();
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones);
 
 void * crear_buffer_with_struct(patota patota,int * tamanio);
 
+void *labor_tripulante_new(void * id_tripulante);
 
 //Funciones PARA REVISAR o PARA IMPLEMENTAR (NO SE USAN)
 int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante);
