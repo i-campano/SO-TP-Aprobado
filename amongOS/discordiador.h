@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "socket.h"
+#include "hilosDiscordiador.h"
 
 
 
@@ -26,6 +27,8 @@ typedef struct patota{
     int socketMIRAM;
 
 } patota;
+
+int tripulantes_creados;
 
 void iniciarEstructurasAdministrativasPlanificador();
 

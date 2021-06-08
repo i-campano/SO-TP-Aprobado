@@ -246,6 +246,7 @@ void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t
 }
 
 void leer_consola() {
+	tripulantes_creados = 0;
 	char* leido = readline(">");
 	while(strncmp(leido, "", 1) != 0) {
 		log_info(logger, leido);
@@ -277,7 +278,7 @@ void leer_consola() {
 			//TODO: CREAR UNA FUNCION QUE CREE UNA PATOTA
 
 			//patota patota = crear_patota();
-			leido = readline(">");
+			leido = readline("INGRESAR TAREAS>");
 			uint32_t patotaId = 10;
 			uint32_t cantidad_tripulantes = 2;
 
@@ -287,7 +288,7 @@ void leer_consola() {
 			int longitud_tareas = string_length(tareas);
 
 			char * posiciones = string_new();
-			leido = readline(">");
+			leido = readline("INGRESAR POSICIONES>");
 			string_append(&posiciones,leido);
 			//string_append(&posiciones,"#12-3|4&#16-5|6");
 			int longitud_posiciones = string_length(posiciones);
@@ -307,12 +308,13 @@ void leer_consola() {
 			queue_push(planificacion_cola_new,&patotaId);
 
 			for(int i = 0 ; i<cantidad_tripulantes; i++){
+				tripulantes_creados++;
 				//el proposito:
 					// tener los tripulantes para ponerlos en new
 					// poder hacer los handshakes de cada tripulante para que en los otros modulos se conserve el socket de estos
 					// guardar los hilos en el discordiador
 				int * id = malloc(sizeof(int));
-				*id = i;
+				*id = tripulantes_creados;
 				crearHiloTripulante(id);
 			}
 
@@ -406,28 +408,22 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 	switch (codigo_operacion) {
 		case INICIAR_PLANIFICACION: {
 			//Accion iniciar
-			enviar_mensaje("Inicio_Planificacion\0",conexion_mi_ram);
 			break;
 		}
 		case PAUSAR_PLANIFICACION: {
 			//Realizar Tarea acorde a INICIAR
-			enviar_mensaje("Pausar_Planificacion",conexion_mi_ram);
 			break;
 		}
 		case REANUDAR_PLANIFICACION: {
-			enviar_mensaje("Reanudar_planificacion",conexion_mi_ram);
 			break;
 		}
 		case LISTAR_TRIPULANTES: {
-			enviar_mensaje("Listar_Trip",conexion_file_system);
 			break;
 		}
 		case EXPULSAR_TRIPULANTE: {
-			enviar_mensaje("Hay_que_rajar_a_1",conexion_mi_ram);
 			break;
 		}
 		case BITACORA_TRIPULANTE :{
-			enviar_mensaje("Quiero_la_bitacora",conexion_file_system);
 			break;
 		}
 		case INICIAR_PATOTA :{
