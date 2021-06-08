@@ -23,11 +23,22 @@ int main(void) {
 
 	socketServerMiRam = conectarAServer(valorip, 5002);
 
+
+
 	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
+
+	socketServerIMongoStore = conectarAServer(valorip, 5003);
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
+	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
+
+	log_info(logger, "Planificador se conecto a IMONGOSTORE");
+
 	atenderLaRam();
+
+	atenderIMongoStore();
+
 
 	planificar();
 
@@ -66,6 +77,21 @@ void atenderLaRam(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void atenderIMongoStore(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , &attr1,(void*) atender_imongo_store,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloConsola;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
 void iniciarHiloConsola(){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);
@@ -81,7 +107,19 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void atender_imongo_store(){
+	uint32_t notificacion;
+	while(1){
 
+		notificacion = recibirUint(socketServerIMongoStore);
+
+		switch(notificacion){
+			case RECIBIR_TAREA:{
+				log_info(logger,"RECIBIO TAREA DE IMONGOSTORE");
+			}
+		}
+	}
+}
 
 void atender_ram(){
 	uint32_t notificacion;
@@ -90,22 +128,47 @@ void atender_ram(){
 		notificacion = recibirUint(socketServerMiRam);
 
 		switch(notificacion){
-		case PATOTA_CREADA:
-			log_info(logger,"PATOTA CREADA EN MI RAM");
-			log_info(logger,"PASAMOS PATOTA DE NEW A READY");
+			case PATOTA_CREADA:{
 
-			int * patota = (int *) queue_pop(planificacion_cola_new);
 
-			queue_push(planificacion_cola_ready, patota);
+				int * patotaNew = (int *) queue_pop(planificacion_cola_new);
 
-			int * patota2 = (int *) queue_pop(planificacion_cola_ready);
-			char * patotaString = string_itoa(*patota2);
+				log_info(logger,"PATOTA ID: %d - CARGADA EN MIRAM", *patotaNew);
+				log_info(logger,"PATOTA ID: %d - MOVEMOS DE NEW A READY",*patotaNew);
 
-			log_info(logger,"PATOTA EN READY: ");
-			log_info(logger,patotaString);
-			sem_post(&iniciar_cola_ready);
+				queue_push(planificacion_cola_ready, patotaNew);
+
+				int * patotaReady = (int *) queue_pop(planificacion_cola_ready);
+
+				log_info(logger,"PATOTA ID: %d  - EN READY", *patotaReady);
+				sem_post(&iniciar_cola_ready);
+			}
 		}
 	}
+}
+
+void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
+	void* buffer_patota = malloc(longitud_tareas + longitud_posiciones + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int) + sizeof(int));
+
+	memcpy(buffer_patota + *tamanioGet, &longitud_tareas, sizeof(int));
+	*tamanioGet += sizeof(int);
+
+	memcpy(buffer_patota + *tamanioGet, tareas, longitud_tareas);
+	*tamanioGet += longitud_tareas;
+
+	memcpy(buffer_patota + *tamanioGet, &longitud_posiciones, sizeof(int));
+	*tamanioGet += sizeof(int);
+
+	memcpy(buffer_patota + *tamanioGet, posiciones, longitud_posiciones);
+	*tamanioGet += longitud_posiciones;
+
+	memcpy(buffer_patota + *tamanioGet, &patotaId, sizeof(uint32_t));
+	*tamanioGet += sizeof(uint32_t);
+
+	memcpy(buffer_patota + *tamanioGet, &cantidad_tripulantes,
+			sizeof(uint32_t));
+	*tamanioGet += sizeof(uint32_t);
+	return buffer_patota;
 }
 
 void leer_consola() {
@@ -127,6 +190,11 @@ void leer_consola() {
 		}else{
 
 			//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
+
+			//TODO: CREAR UNA FUNCION QUE CREE UNA PATOTA
+
+			//patota patota = crear_patota();
+
 			uint32_t patotaId = 10;
 			uint32_t cantidad_tripulantes = 2;
 
@@ -142,41 +210,21 @@ void leer_consola() {
 			string_append(&claveGet,tareas);
 			string_append(&claveGet,posiciones);
 
-			//Serializo la clave a enviar.
-
 			int tamanioGet = 0;
 
-			void * claveBloqueadaGet = malloc(longitud_tareas + longitud_posiciones  + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int)+ sizeof(int));
 
-			memcpy(claveBloqueadaGet + tamanioGet, &longitud_tareas, sizeof(int));
 
-			tamanioGet += sizeof(int);
+			void* buffer_patota = crear_buffer_patota(longitud_tareas,
+					longitud_posiciones, patotaId, cantidad_tripulantes,
+					&tamanioGet, tareas, posiciones);
 
-			memcpy(claveBloqueadaGet + tamanioGet, tareas, longitud_tareas);
-
-			tamanioGet += longitud_tareas;
-
-			memcpy(claveBloqueadaGet + tamanioGet, &longitud_posiciones, sizeof(int));
-
-			tamanioGet += sizeof(int);
-
-			memcpy(claveBloqueadaGet + tamanioGet, posiciones, longitud_posiciones);
-
-			tamanioGet += longitud_posiciones;
-
-			memcpy(claveBloqueadaGet + tamanioGet, &patotaId, sizeof(uint32_t));
-
-			tamanioGet += sizeof(uint32_t);
-
-			memcpy(claveBloqueadaGet + tamanioGet, &cantidad_tripulantes, sizeof(uint32_t));
-
-			tamanioGet += sizeof(uint32_t);
+			queue_push(planificacion_cola_new,&patotaId);
 
 			log_info(logger,"creo patota y agrego a cola new");
 
-			queue_push(planificacion_cola_new,&patotaId);
-			log_info(logger,"se la envio a mi ram");
-			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,claveBloqueadaGet);
+			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
+			log_info(logger,"Patota enviada a MIRAM");
+
 			free(leido);
 		}
 
@@ -186,6 +234,39 @@ void leer_consola() {
 
 	free(leido);
 }
+
+//TODO : FIX
+patota crear_patota(){
+	//revisar referencias... seguro va un malloc o algo asi aca..
+	patota patota;
+//	patota.cantidad_tripulantes = cant_trip;
+	//patota.patota_id = patota_id;
+
+	uint32_t patotaId = 10;
+	uint32_t cantidad_tripulantes = 2;
+
+	patota.patota_id = patotaId;
+	patota.cantidad_tripulantes = cantidad_tripulantes;
+
+	patota.tareas = string_new();
+	string_append(&patota.tareas,"oxigenoo");
+	int longitud_tareas = string_length(patota.tareas);
+
+	patota.posiciones = string_new();
+	string_append(&patota.posiciones,"#12-3|4&#16-5|6");
+	int longitud_posiciones = string_length(patota.posiciones);
+	patota.longitud_posiciones = longitud_posiciones;
+
+	char * claveGet = string_new();
+	string_append(&claveGet,patota.tareas);
+	string_append(&claveGet,patota.posiciones);
+
+
+
+	return patota;
+
+}
+
 
 void pedir_tareas(){
 
@@ -268,8 +349,6 @@ int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_syste
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 	log_destroy(logger);
 	config_destroy(config);
-	close(conexion[RAM]);
-	close(conexion[FILE_SYSTEM]);
 	return 0;
 }
 
@@ -302,6 +381,19 @@ void leer_consola2(t_log* logger,int conexion_ram,int conexion_fs,int conexion_t
 
 	free(leido);
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------SIN USO - REVISAR----------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 void *labor_tripulante (void* tripulante) {

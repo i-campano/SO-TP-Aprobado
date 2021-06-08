@@ -23,6 +23,8 @@ fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
 
 int socketServerMiRam;
 
+int socketServerIMongoStore;
+
 t_list * hilosParaConexiones;
 
 t_queue* planificacion_cola_new;

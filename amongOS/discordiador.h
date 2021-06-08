@@ -2,37 +2,36 @@
 #define DISCORDIADOR_H_
 
 #include "utils.h"
-
-#define RAM 0
-#define FILE_SYSTEM 1
+#include "socket.h"
 
 
-#define DISCORDIADOR 2
-#define MIRAM 9
 
 #define PATOTA_CREADA 22
-
+#define RECIBIR_TAREA 15
 #define CREAR_PATOTA 4
 
+typedef struct patota{
+	uint32_t patota_id;
+    uint32_t cantidad_tripulantes;
+    char * tareas;
+    int longitud_tareas;
+    int longitud_posiciones;
+    char * posiciones;
 
-
-
-
+} patota;
 
 void iniciarEstructurasAdministrativasPlanificador();
-
 
 //Funciones para los hilos
 void planificar_tripulantes();
 void leer_consola();
 void atender_ram();
+void atender_imongo_store();
 
 //Funciones que crean hilos
 void atenderLaRam();
 void iniciarHiloConsola();
-
-
-
+void atenderIMongoStore();
 
 //Funciones administrativas - loggeo - configuracion
 void iniciarEstructurasAdministrativasPlanificador();
@@ -44,6 +43,11 @@ t_paquete* armar_paquete();
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
 
 
+patota crear_patota();
+
+void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones);
+
+void * crear_buffer_with_struct(patota patota,int * tamanio);
 
 
 //Funciones PARA REVISAR o PARA IMPLEMENTAR (NO SE USAN)

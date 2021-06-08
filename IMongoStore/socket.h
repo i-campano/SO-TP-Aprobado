@@ -25,16 +25,20 @@
 #include <semaphore.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include<commons/string.h>
 
-#define BACKLOG 20
 
 #define DISCORDIADOR 1
-#define MIRAM 2
 #define IMONGOSTORE 3
 
-#define PATOTA_CREADA 22
 
+#define ENVIO_TAREA 15
+
+
+#define PATOTA_CREADA 22
 #define CREAR_PATOTA 4
+
+#define BACKLOG 20
 
 int iniciarServidor(int);
 void verificarErrorSocket(int);
@@ -51,7 +55,6 @@ char* recibirString(int);
 int recvDeNotificacion(int);
 int conectarAServer(char*, int);
 void realizarHandshake(int, uint32_t,uint32_t);
-
 
 
 #endif /* SOCKET_H_ */

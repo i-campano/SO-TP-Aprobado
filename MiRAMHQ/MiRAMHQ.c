@@ -20,6 +20,4 @@ int main(void)
 
 	log_info(logger, "Servidor listo para recibir al clientexxxxx");
 	manejadorDeHilos();
-
-
 }

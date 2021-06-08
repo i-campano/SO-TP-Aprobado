@@ -30,8 +30,8 @@
 
 #define BACKLOG 20
 
-#define DISCORDIADOR 2
-#define MIRAM 9
+#define DISCORDIADOR 1
+#define MIRAM 2
 
 #define PATOTA_CREADA 22
 
@@ -52,7 +52,6 @@ char* recibirString(int);
 int recvDeNotificacion(int);
 int conectarAServer(char*, int);
 void realizarHandshake(int, uint32_t,uint32_t);
-
 
 
 #endif /* SOCKET_H_ */
