@@ -1,8 +1,5 @@
 #include "discordiador.h"
 
-//Creacion de las colas de planificacion. Son Globales en el discordiador
-
-
 unsigned int contador_hilos = 0;
 
 int main(void) {
@@ -16,14 +13,11 @@ int main(void) {
 
 	char* ip = config_get_string_value(config, "IP");
 
-
 	char * valorip = "127.0.0.1";
 
 	iniciarHiloConsola();
 
 	socketServerMiRam = conectarAServer(valorip, 5002);
-
-
 
 	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
@@ -35,9 +29,9 @@ int main(void) {
 
 	log_info(logger, "Planificador se conecto a IMONGOSTORE");
 
-	atenderLaRam();
+	//atenderLaRam();
 
-	atenderIMongoStore();
+	//atenderIMongoStore();
 
 
 	planificar();
@@ -125,56 +119,34 @@ void crearHiloTripulante(int * id_tripulante){
 }
 
 void *labor_tripulante_new(void * id_tripulante){
-
-
 	//¿ estructura estatica dentro del hilo? --- pensar
 
 	int id = *(int*)id_tripulante;
 
-	log_info(logger,"tripulante creado: %d",id);
-
-	sendDeNotificacion(socketServerMiRam, HANDSHAKE_TRIPULANTE);
-
-	log_info(logger,"tripulante se conecto con miram... %d", id);
+	int socketRam = conectarAServer("127.0.0.1", 5002);
+	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
 
-	sendDeNotificacion(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
+	sendDeNotificacion(socketRam, PEDIR_TAREA);
 
-	log_info(logger,"tripulante se conecto con ImongoStore... %d", id);
+	sendDeNotificacion(socketRam,(uint32_t)id);
+	log_info(logger,"tripulante: %d pidio tareas a miram...", id);
 
-	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
+	uint32_t OPERACION = recvDeNotificacion(socketRam);
 
-	while(1){
-
-		//sem_wait(&EXEC)
-		sleep(10);
-
-		log_info(logger,"TRIPULANTE EJECUTANDO... %d",id);
-
-		//pedir tareas..
-		//sendDeNotificacion(socketServerMiRam, PEDIR_TAREA);
-
-		//char * tarea = string_new();
-		//tarea = recibirString(socketServerMiRam);
-
-
-		//le aviso que quiero ejecutar
-		//sendDeNotificacion(socketServerIMongoStore, EJECUTAR_TAREA);
-
-		//le mando la instruccion
-
-		//sendRemasterizado(socketServerIMongoStore,)
-
-		//uint32_t ejecucion_response = recibirUint(socketServerIMongoStore);
-
-
-		// cosas que necesitemos
-
-
+	log_info(logger,"OPERACION %d",OPERACION);
+	if(OPERACION==ENVIAR_TAREA){
+		char * tarea = recibirString(socketRam);
+		log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
 
 	}
 
+	//int socketMongo = conectarAServer("127.0.0.1", 5003);
 
+
+
+
+	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
 }
 
 void atender_imongo_store(){
@@ -280,7 +252,7 @@ void leer_consola() {
 			//patota patota = crear_patota();
 			leido = readline("INGRESAR TAREAS>");
 			uint32_t patotaId = 10;
-			uint32_t cantidad_tripulantes = 2;
+			uint32_t cantidad_tripulantes = 15;
 
 			char * tareas = string_new();
 			string_append(&tareas,leido);
@@ -318,7 +290,7 @@ void leer_consola() {
 				crearHiloTripulante(id);
 			}
 
-
+			//sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
 
 			free(leido);
 		}else{
@@ -387,6 +359,9 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
+
+	pthread_mutex_init(&comuni,NULL);
+
 
 
 	planificacion_cola_new = queue_create();

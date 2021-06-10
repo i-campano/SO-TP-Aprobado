@@ -15,7 +15,11 @@
 
 #define PEDIR_TAREA 7
 
-#define EJECUTAR_TAREA 8
+#define ENVIAR_TAREA 8
+
+#define EJECUTAR_TAREA 9
+
+pthread_mutex_t comuni;
 
 typedef struct patota{
 	uint32_t patota_id;

@@ -14,17 +14,34 @@ void manejadorDeHilos(){
 
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
-
-		pthread_t thread_id;
+		log_info(logger,"se conecto: %d", socketCliente);
+		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
     	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    	int * pcclient = malloc(sizeof(int));
+    	*pcclient = socketCliente;
 		//Creo hilo atendedor
-		pthread_create( &thread_id , &attr, (void*) atenderNotificacion , (void*) &socketCliente);
+		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
+		pthread_detach(thread_id);
 
 	}
 
 	//Chequeo que no falle el accept
+}
+
+void enviar_tarea(int socket) {
+	log_info(logger, "entro a  pedir TAREA");
+	char* claveNueva = "CREAR OXIGENOOOO";
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socket, ENVIAR_TAREA, tamanio, (void*) buffer);
 }
 
 void *atenderNotificacion(void * paqueteSocket){
@@ -63,8 +80,12 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger, "----------------tcb creado----------------");
 			break;
 		}
-		case HANDSHAKE_TRIPULANTE:{
-			crear_tcb(socket);
+		case PEDIR_TAREA:{
+			uint32_t id_trip = recvDeNotificacion(socket);
+			log_info(logger,"id_tripulante: %d",id_trip);
+			log_info(logger,"se conecto socket: %d",socket);
+			enviar_tarea(socket);
+			//sendDeNotificacion(socket,85);
 
 
 			log_info(logger, "----------------tcb creado----------------");
@@ -110,7 +131,8 @@ void crear_pcb(int socket) {
 }
 
 void crear_tcb(int socket) {
-	list_add(lista_tcb, socket);
+
+
 	//uint32_t patotaid = recibirUint(socket);
 	//log_info(logger, "patotaid: %d", (int) patotaid);
 	//uint32_t cantidad_patota = recibirUint(socket);

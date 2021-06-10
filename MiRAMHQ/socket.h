@@ -41,6 +41,10 @@
 
 #define TRIPULANTE 6
 
+#define PEDIR_TAREA 7
+
+#define ENVIAR_TAREA 8
+
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);
