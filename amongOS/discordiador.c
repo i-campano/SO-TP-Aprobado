@@ -130,39 +130,56 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 
 void *labor_tripulante_new(void * id_tripulante){
 	//¿ estructura estatica dentro del hilo? --- pensar
-
 	//add a lista de sem ??
+
+
 
 	int id = *(int*)id_tripulante;
 
 	int socketRam = conectarAServer("127.0.0.1", 5002);
 	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
+	//sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 
-	sendDeNotificacion(socketRam, PEDIR_TAREA);
+	//int creado = recvDeNotificacion(socketServerMiRam);
+	//log_info(logger,"TRIPUALNTE CREADO");
 
-	sendDeNotificacion(socketRam,(uint32_t)id);
-	log_info(logger,"tripulante: %d pidio tareas a miram...", id);
+	//while(tengaTareas)
 
-	uint32_t OPERACION = recvDeNotificacion(socketRam);
+		//sem_wait(&ready)
 
-	log_info(logger,"OPERACION %d",OPERACION);
-	char * tarea = string_new();
-	if(OPERACION==ENVIAR_TAREA){
-		tarea = recibirString(socketRam);
-		log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+		sendDeNotificacion(socketRam, PEDIR_TAREA);
 
-	}
-	log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
+		sendDeNotificacion(socketRam,(uint32_t)id);
+		log_info(logger,"tripulante: %d pidio tareas a miram...", id);
 
-	int socketMongo = conectarAServer("127.0.0.1", 5003);
+		uint32_t OPERACION = recvDeNotificacion(socketRam);
+
+		//sem_wait(&EXEC)
+
+		log_info(logger,"OPERACION %d",OPERACION);
+		char * tarea = string_new();
+		if(OPERACION==ENVIAR_TAREA){
+			tarea = recibirString(socketRam);
+			log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+
+		}
+		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
+
+		int socketMongo = conectarAServer("127.0.0.1", 5003);
 
 
-	char* claveNueva = string_new();
+		char* claveNueva = string_new();
 
-	string_append(&claveNueva,tarea);
+		string_append(&claveNueva,tarea);
 
-	enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
+		enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
+
+
+		//recvDeNotificacion(socketMongo);
+		//log_info(logger,"TAREA EJECUTADA CORRECTAMENTE");
+
+	//fin WHILE(tengaTareas)
 }
 
 void atender_imongo_store(){
