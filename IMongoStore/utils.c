@@ -11,7 +11,6 @@ void manejadorDeHilos(){
 
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
-		log_info(logger,"se conecto: %d", socketCliente);
 		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
@@ -19,7 +18,7 @@ void manejadorDeHilos(){
     	int * pcclient = malloc(sizeof(int));
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
-    	//sleep(2);
+    	sleep(4);
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
 		pthread_detach(thread_id);
 

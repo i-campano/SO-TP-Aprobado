@@ -19,15 +19,15 @@ int main(void) {
 
 	socketServerMiRam = conectarAServer(valorip, 5002);
 
-	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
+	//realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
 	socketServerIMongoStore = conectarAServer(valorip, 5003);
 
-	log_info(logger, "Planificador se conecto a MIRAM");
+	//log_info(logger, "Planificador se conecto a MIRAM");
 
-	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
+	//realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
 
-	log_info(logger, "Planificador se conecto a IMONGOSTORE");
+	//log_info(logger, "Planificador se conecto a IMONGOSTORE");
 
 	//atenderIMongoStore();
 
@@ -251,6 +251,7 @@ void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t
 }
 
 void leer_consola() {
+	log_info(logger,"INGRESE UN COMANDO: ");
 	tripulantes_creados = 0;
 	char* leido = readline(">");
 	while(strncmp(leido, "", 1) != 0) {
@@ -284,13 +285,20 @@ void leer_consola() {
 
 			//patota patota = crear_patota();
 			leido = readline("INGRESAR TAREAS>");
-			uint32_t patotaId = 10;
-			uint32_t cantidad_tripulantes = 3;
 
 			char * tareas = string_new();
 			string_append(&tareas,leido);
 			free(leido);
 			int longitud_tareas = string_length(tareas);
+
+			leido = readline("CANTIDAD TRIPULANTES>");
+			uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
+			free(leido);
+
+			leido = readline("ID PATOTA>");
+			uint32_t patotaId = (uint32_t)atoi(leido);
+			free(leido);
+
 
 			char * posiciones = string_new();
 			leido = readline("INGRESAR POSICIONES>");
@@ -321,7 +329,8 @@ void leer_consola() {
 				tripulantes_creados++;
 				int * id = malloc(sizeof(int));
 				*id = tripulantes_creados;
-				//sleep(2);
+				log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
+				sleep(4);
 				crearHiloTripulante(id);
 			}
 
