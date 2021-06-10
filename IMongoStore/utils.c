@@ -58,7 +58,6 @@ void *atenderNotificacion(void * paqueteSocket){
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
 
-
 				uint32_t id_trip = recvDeNotificacion(socket);
 
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);

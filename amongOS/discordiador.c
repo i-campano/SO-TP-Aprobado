@@ -118,6 +118,19 @@ void crearHiloTripulante(int * id_tripulante){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
+	sendDeNotificacion(socketMongo, (uint32_t) id);
+}
+
 void *labor_tripulante_new(void * id_tripulante){
 	//¿ estructura estatica dentro del hilo? --- pensar
 
@@ -148,19 +161,11 @@ void *labor_tripulante_new(void * id_tripulante){
 	//sendDeNotificacion(socketMongo, EJECUTAR_TAREA);
 
 
-	char* claveNueva = "CREAR OXIGENOOOO";
-	int largoClave = string_length(claveNueva);
-	int tamanio = 0;
-	//En el buffer mando clave y luego valor
-	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
-	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
-	tamanio += sizeof(uint32_t);
-	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
-	tamanio += largoClave;
-	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
-	sendDeNotificacion(socketMongo,(uint32_t)id);
+	char* claveNueva = string_new();
 
+	string_append(&claveNueva,tarea);
 
+	enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
 	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
 }
 
