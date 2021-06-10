@@ -7,6 +7,28 @@
 
 #include "hilosDiscordiador.h"
 
+void planificar(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloPlanificador , &attr1,(void*) planificar_tripulantes,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloPlanificador;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
+
+void planificar_tripulantes(){
+	sem_wait(&iniciar_planificacion);
+
+	hilo_cola_new();
+	hilo_cola_ready();
+}
 
 void hilo_cola_ready(){
 	pthread_attr_t attr1;

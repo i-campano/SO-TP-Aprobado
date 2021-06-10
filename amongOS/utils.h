@@ -17,6 +17,24 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+
+#define PATOTA_CREADA 22
+#define ACTUALIZACION_IMONGOSTORE 15
+#define CREAR_PATOTA 4
+
+#define HANDSHAKE_TRIPULANTE 5
+
+#define PEDIR_TAREA 7
+
+#define CREAR_TRIPULANTE 10
+
+#define TRIPULANTE_CREADO 11
+
+#define ENVIAR_TAREA 8
+
+#define EJECUTAR_TAREA 9
+
+
 t_log* logger;
 int socketListener,socketMaximo;	 // PARA SERVER
 fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
@@ -24,6 +42,8 @@ fd_set socketClientes, socketClientesAuxiliares; // PARA SERVER
 int socketServerMiRam;
 
 int socketServerIMongoStore;
+
+pthread_mutex_t comuni;
 
 t_list * hilosParaConexiones;
 
@@ -85,6 +105,14 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+
+
+void iniciarEstructurasAdministrativasPlanificador();
+
+
+void atender_imongo_store();
+
+void atender_ram();
 
 
 #endif /* UTILS_H_ */

@@ -13,6 +13,9 @@
 
 #include "utils.h"
 
+void planificar();
+void planificar_tripulantes();
+
 void planificar_cola_new();
 void planificar_cola_ready();
 

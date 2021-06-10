@@ -21,7 +21,6 @@ void manejadorDeHilos(){
     	int * pcclient = malloc(sizeof(int));
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
-    	sleep(4);
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
 		pthread_detach(thread_id);
 
@@ -31,7 +30,6 @@ void manejadorDeHilos(){
 }
 
 void enviar_tarea(int socket, char * tarea) {
-	log_info(logger, "entro a  pedir TAREA");
 	char* claveNueva = tarea;
 	int largoClave = string_length(claveNueva);
 	int tamanio = 0;
@@ -49,12 +47,11 @@ void *atenderNotificacion(void * paqueteSocket){
 	int socket = *(int*)paqueteSocket;
 	while(1){
 
-	log_info(logger,"espero mas notificaciones....");
 	uint32_t nroNotificacion = recvDeNotificacion(socket);
+	log_info(logger,"recibo notificacion n# %d de socket %d",nroNotificacion, socket);
 
 	switch(nroNotificacion){
 
-	log_info(logger,"en el switch....");
 
 
 		case DISCORDIADOR:{
@@ -77,13 +74,11 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 
 		case TRIPULANTE:{
-			log_info(logger, "----------------tcb creado----------------");
 			break;
 		}
 		case PEDIR_TAREA:{
 			uint32_t id_trip = recvDeNotificacion(socket);
-			log_info(logger,"id_tripulante: %d",id_trip);
-			log_info(logger,"se conecto socket: %d",socket);
+			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
 
 			char * tarea = obtener_tarea(id_trip);
 
@@ -96,9 +91,7 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 		case CREAR_TRIPULANTE:{
 			sendDeNotificacion(socket, TRIPULANTE_CREADO);
-			log_info(logger,"se conecto desde socket: %d",socket);
-
-			log_info(logger, "----------------tcb creado----------------");
+			log_info(logger, "tcb creado");
 
 			break;
 
@@ -122,13 +115,9 @@ char * obtener_tarea(int id_tripulante){
 
 void crear_pcb(int socket) {
 	char* tareas = recibirString(socket);
-	log_info(logger, tareas);
 	char* id_posiciones = recibirString(socket);
-	log_info(logger, id_posiciones);
 	uint32_t patotaid = recibirUint(socket);
-	log_info(logger, "patotaid: %d", (int) patotaid);
 	uint32_t cantidad_patota = recibirUint(socket);
-	log_info(logger, "cantidad tripulantes: %d", (int) cantidad_patota);
 	tcb2* tcb = malloc(sizeof(tcb2));
 	tcb->id_posicion = string_new();
 	tcb->tareas = string_new();

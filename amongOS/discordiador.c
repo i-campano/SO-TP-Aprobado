@@ -38,20 +38,6 @@ int main(void) {
 	return terminar_programa(logger,config,NULL);
 }
 
-void planificar(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloPlanificador , &attr1,(void*) planificar_tripulantes,NULL);
-
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = 0;
-	datosHilo->hiloAtendedor = hiloPlanificador;
-
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
-}
 
 void atenderLaRam(){
 	pthread_attr_t attr1;
@@ -115,146 +101,6 @@ void crearHiloTripulante(int * id_tripulante){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
-	int largoClave = string_length(claveNueva);
-	int tamanio = 0;
-	//En el buffer mando clave y luego valor
-	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
-	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
-	tamanio += sizeof(uint32_t);
-	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
-	tamanio += largoClave;
-	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
-	sendDeNotificacion(socketMongo, (uint32_t) id);
-}
-
-void *labor_tripulante_new(void * id_tripulante){
-	//¿ estructura estatica dentro del hilo? --- pensar
-	//add a lista de sem ??
-
-
-
-	int id = *(int*)id_tripulante;
-
-	int socketRam = conectarAServer("127.0.0.1", 5002);
-	log_info(logger,"tripulante: %d  se conecto con miram...", id);
-
-	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
-
-
-	int creado = recvDeNotificacion(socketRam);
-
-	if(creado==TRIPULANTE_CREADO){
-
-		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
-	}
-
-	//while(tengaTareas)
-
-		//sem_wait(&ready)
-
-		sendDeNotificacion(socketRam, PEDIR_TAREA);
-
-		sendDeNotificacion(socketRam,(uint32_t)id);
-		log_info(logger,"tripulante: %d pidio tareas a miram...", id);
-
-		uint32_t OPERACION = recvDeNotificacion(socketRam);
-
-		//sem_wait(&EXEC)
-
-		log_info(logger,"OPERACION %d",OPERACION);
-		char * tarea = string_new();
-		if(OPERACION==ENVIAR_TAREA){
-			tarea = recibirString(socketRam);
-			log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
-
-		}
-		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
-
-		int socketMongo = conectarAServer("127.0.0.1", 5003);
-
-
-		char* claveNueva = string_new();
-
-		string_append(&claveNueva,tarea);
-
-		enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
-
-
-		//recvDeNotificacion(socketMongo);
-		//log_info(logger,"TAREA EJECUTADA CORRECTAMENTE");
-
-	//fin WHILE(tengaTareas)
-}
-
-void atender_imongo_store(){
-	uint32_t notificacion;
-	while(1){
-		sem_wait(&activar_actualizaciones_mongo);
-		sem_post(&activar_actualizaciones_mongo);
-		notificacion = recibirUint(socketServerIMongoStore);
-
-		switch(notificacion){
-			case ACTUALIZACION_IMONGOSTORE:{
-				log_info(logger,"CONEXION VIVA IMONGO CON DISCORDIADOR (SLEEP 10 SEGS)");
-			}
-		}
-	}
-}
-
-void atender_ram(){
-	uint32_t notificacion;
-	while(1){
-
-		notificacion = recibirUint(socketServerMiRam);
-
-		switch(notificacion){
-			case PATOTA_CREADA:{
-
-
-				int * patotaNew = (int *) queue_pop(planificacion_cola_new);
-
-				log_info(logger,"PATOTA ID: %d - CARGADA EN MIRAM", *patotaNew);
-				log_info(logger,"PATOTA ID: %d - MOVEMOS DE NEW A READY",*patotaNew);
-
-				//patota patota = malloc(sizeof(patota));
-
-
-				queue_push(planificacion_cola_ready, patotaNew);
-
-				int * patotaReady = (int *) queue_pop(planificacion_cola_ready);
-
-				log_info(logger,"PATOTA ID: %d  - EN READY", *patotaReady);
-				sem_post(&iniciar_cola_ready);
-			}
-		}
-	}
-}
-
-void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
-	void* buffer_patota = malloc(longitud_tareas + longitud_posiciones + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int) + sizeof(int));
-
-	memcpy(buffer_patota + *tamanioGet, &longitud_tareas, sizeof(int));
-	*tamanioGet += sizeof(int);
-
-	memcpy(buffer_patota + *tamanioGet, tareas, longitud_tareas);
-	*tamanioGet += longitud_tareas;
-
-	memcpy(buffer_patota + *tamanioGet, &longitud_posiciones, sizeof(int));
-	*tamanioGet += sizeof(int);
-
-	memcpy(buffer_patota + *tamanioGet, posiciones, longitud_posiciones);
-	*tamanioGet += longitud_posiciones;
-
-	memcpy(buffer_patota + *tamanioGet, &patotaId, sizeof(uint32_t));
-	*tamanioGet += sizeof(uint32_t);
-
-	memcpy(buffer_patota + *tamanioGet, &cantidad_tripulantes,
-			sizeof(uint32_t));
-	*tamanioGet += sizeof(uint32_t);
-	return buffer_patota;
-}
-
 void leer_consola() {
 	log_info(logger,"INGRESE UN COMANDO: ");
 	tripulantes_creados = 0;
@@ -283,18 +129,12 @@ void leer_consola() {
 			sem_post(&iniciar_planificacion);
 		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
 			log_info(logger,"CARGAR DATOS PATOTA: ");
-
 			crear_patota();
-
-			free(leido);
 		}else{
 			log_info(logger,"COMANDO INVALIDO");
 		}
-
 		leido = readline(">");
-
 	}
-
 	free(leido);
 }
 
@@ -348,119 +188,110 @@ void crear_patota(){
 		int * id = malloc(sizeof(int));
 		*id = tripulantes_creados;
 		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
-		sleep(4);
 		crearHiloTripulante(id);
 	}
 
 
 }
 
-//TODO : FIX
-patota crear_pcb(){
-	//revisar referencias... seguro va un malloc o algo asi aca..
-	patota patota;
-//	patota.cantidad_tripulantes = cant_trip;
-	//patota.patota_id = patota_id;
+void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
+	void* buffer_patota = malloc(longitud_tareas + longitud_posiciones + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int) + sizeof(int));
 
-	uint32_t patotaId = 10;
-	uint32_t cantidad_tripulantes = 2;
+	memcpy(buffer_patota + *tamanioGet, &longitud_tareas, sizeof(int));
+	*tamanioGet += sizeof(int);
 
-	patota.patota_id = patotaId;
-	patota.cantidad_tripulantes = cantidad_tripulantes;
+	memcpy(buffer_patota + *tamanioGet, tareas, longitud_tareas);
+	*tamanioGet += longitud_tareas;
 
-	patota.tareas = string_new();
-	string_append(&patota.tareas,"oxigenoo");
-	int longitud_tareas = string_length(patota.tareas);
+	memcpy(buffer_patota + *tamanioGet, &longitud_posiciones, sizeof(int));
+	*tamanioGet += sizeof(int);
 
-	patota.posiciones = string_new();
-	string_append(&patota.posiciones,"#12-3|4&#16-5|6");
-	int longitud_posiciones = string_length(patota.posiciones);
-	patota.longitud_posiciones = longitud_posiciones;
+	memcpy(buffer_patota + *tamanioGet, posiciones, longitud_posiciones);
+	*tamanioGet += longitud_posiciones;
 
-	char * claveGet = string_new();
-	string_append(&claveGet,patota.tareas);
-	string_append(&claveGet,patota.posiciones);
+	memcpy(buffer_patota + *tamanioGet, &patotaId, sizeof(uint32_t));
+	*tamanioGet += sizeof(uint32_t);
 
-
-
-	return patota;
-
+	memcpy(buffer_patota + *tamanioGet, &cantidad_tripulantes,
+			sizeof(uint32_t));
+	*tamanioGet += sizeof(uint32_t);
+	return buffer_patota;
 }
 
 
-void pedir_tareas(){
+void *labor_tripulante_new(void * id_tripulante){
+	//¿ estructura estatica dentro del hilo? --- pensar
+	//add a lista de sem ??
 
-}
 
 
-void planificar_tripulantes(){
-	sem_wait(&iniciar_planificacion);
+	int id = *(int*)id_tripulante;
 
-	hilo_cola_new();
-	hilo_cola_ready();
-}
+	int socketRam = conectarAServer("127.0.0.1", 5002);
+	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
-void iniciarEstructurasAdministrativasPlanificador(){
-	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
+	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 
-	sem_init(&iniciar_planificacion, 0, 0);
-	sem_init(&iniciar_cola_ready, 0, 0);
-	sem_init(&sistemaEnEjecucion, 0, 1);
-	sem_init(&activar_actualizaciones_mongo, 0, 0);
 
-	pthread_mutex_init(&planificacion_mutex_new,NULL);
-	pthread_mutex_init(&planificacion_mutex_ready,NULL);
+	int creado = recvDeNotificacion(socketRam);
 
-	pthread_mutex_init(&comuni,NULL);
+	if(creado==TRIPULANTE_CREADO){
 
-	planificacion_cola_new = queue_create();
-	planificacion_cola_ready = queue_create();
-
-	hilosParaConexiones = list_create();
-
-	pthread_mutex_init(&mutexHilos,NULL);
-}
-
-int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante) {
-	int codigo_operacion;
-
-	if(mensaje == NULL) {
-		return -1;
+		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
 	}
-	codigo_operacion = reconocer_op_code(mensaje);
-	printf("Cod OP %d \n",codigo_operacion);
-	switch (codigo_operacion) {
-		case INICIAR_PLANIFICACION: {
-			//Accion iniciar
-			break;
-		}
-		case PAUSAR_PLANIFICACION: {
-			//Realizar Tarea acorde a INICIAR
-			break;
-		}
-		case REANUDAR_PLANIFICACION: {
-			break;
-		}
-		case LISTAR_TRIPULANTES: {
-			break;
-		}
-		case EXPULSAR_TRIPULANTE: {
-			break;
-		}
-		case BITACORA_TRIPULANTE :{
-			break;
-		}
-		case INICIAR_PATOTA :{
-			//inicializar_patota(mensaje);
-			break;
-		}
-		default: {
-			return -1;
-		}
-	}
-	return 0;
 
+	//while(tengaTareas)
+
+		//sem_wait(&ready)
+
+		sendDeNotificacion(socketRam, PEDIR_TAREA);
+
+		sendDeNotificacion(socketRam,(uint32_t)id);
+		log_info(logger,"tripulante: %d pidio tareas a miram...", id);
+
+		uint32_t OPERACION = recvDeNotificacion(socketRam);
+
+		//sem_wait(&EXEC)
+
+		log_info(logger,"OPERACION %d",OPERACION);
+		char * tarea = string_new();
+		if(OPERACION==ENVIAR_TAREA){
+			tarea = recibirString(socketRam);
+			log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+
+		}
+		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
+
+		int socketMongo = conectarAServer("127.0.0.1", 5003);
+
+
+		char* claveNueva = string_new();
+
+		string_append(&claveNueva,tarea);
+
+		//enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
+
+
+		//recvDeNotificacion(socketMongo);
+		//log_info(logger,"TAREA EJECUTADA CORRECTAMENTE");
+
+	//fin WHILE(tengaTareas)
 }
+
+void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
+	sendDeNotificacion(socketMongo, (uint32_t) id);
+}
+
+
 
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
 	log_destroy(logger);
@@ -510,6 +341,48 @@ void leer_consola2(t_log* logger,int conexion_ram,int conexion_fs,int conexion_t
 //------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+int realizar_operacion(char* mensaje,int conexion_mi_ram,int conexion_file_system,int conexion_tripulante) {
+	int codigo_operacion;
+
+	if(mensaje == NULL) {
+		return -1;
+	}
+	codigo_operacion = reconocer_op_code(mensaje);
+	printf("Cod OP %d \n",codigo_operacion);
+	switch (codigo_operacion) {
+		case INICIAR_PLANIFICACION: {
+			//Accion iniciar
+			break;
+		}
+		case PAUSAR_PLANIFICACION: {
+			//Realizar Tarea acorde a INICIAR
+			break;
+		}
+		case REANUDAR_PLANIFICACION: {
+			break;
+		}
+		case LISTAR_TRIPULANTES: {
+			break;
+		}
+		case EXPULSAR_TRIPULANTE: {
+			break;
+		}
+		case BITACORA_TRIPULANTE :{
+			break;
+		}
+		case INICIAR_PATOTA :{
+			//inicializar_patota(mensaje);
+			break;
+		}
+		default: {
+			return -1;
+		}
+	}
+	return 0;
+
+}
 
 
 void *labor_tripulante (void* tripulante) {

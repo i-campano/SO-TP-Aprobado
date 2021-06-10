@@ -7,23 +7,8 @@
 
 
 
-#define PATOTA_CREADA 22
-#define ACTUALIZACION_IMONGOSTORE 15
-#define CREAR_PATOTA 4
 
-#define HANDSHAKE_TRIPULANTE 5
 
-#define PEDIR_TAREA 7
-
-#define CREAR_TRIPULANTE 10
-
-#define TRIPULANTE_CREADO 11
-
-#define ENVIAR_TAREA 8
-
-#define EJECUTAR_TAREA 9
-
-pthread_mutex_t comuni;
 
 typedef struct patota{
 	uint32_t patota_id;
@@ -41,7 +26,6 @@ int tripulantes_creados;
 void iniciarEstructurasAdministrativasPlanificador();
 
 //Funciones para los hilos
-void planificar_tripulantes();
 void leer_consola();
 void atender_ram();
 void atender_imongo_store();
@@ -61,7 +45,7 @@ t_paquete* armar_paquete();
 int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
 
 
-patota crear_pcb();
+void crear_patota();
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones);
 
