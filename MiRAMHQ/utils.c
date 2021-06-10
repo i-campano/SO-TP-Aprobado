@@ -31,9 +31,9 @@ void manejadorDeHilos(){
 	//Chequeo que no falle el accept
 }
 
-void enviar_tarea(int socket) {
+void enviar_tarea(int socket, char * tarea) {
 	log_info(logger, "entro a  pedir TAREA");
-	char* claveNueva = "CREAR OXIGENOOOO";
+	char* claveNueva = tarea;
 	int largoClave = string_length(claveNueva);
 	int tamanio = 0;
 	//En el buffer mando clave y luego valor
@@ -85,7 +85,10 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_trip = recvDeNotificacion(socket);
 			log_info(logger,"id_tripulante: %d",id_trip);
 			log_info(logger,"se conecto socket: %d",socket);
-			enviar_tarea(socket);
+
+			char * tarea = obtener_tarea(id_trip);
+
+			enviar_tarea(socket,tarea);
 			//sendDeNotificacion(socket,85);
 
 
@@ -103,6 +106,11 @@ void *atenderNotificacion(void * paqueteSocket){
 
 	return 0;
 
+}
+
+char * obtener_tarea(int id_tripulante){
+	char * tarea = "GENERAR_OXIGENO 12;2;3;5";
+	return tarea;
 }
 
 
@@ -156,6 +164,6 @@ void mostrar_lista_patota(){
 		log_info(logger,"# N: %d - PATOTA ID: %d - Tareas: %s - Posicion: %s - Cantidad trip: %d - Estado: %c", i,tcb->patotaid,tcb->tareas, tcb->id_posicion,tcb->cantidad_tripulantes,tcb->estado);
 	}
 
-	list_iterate(lista_tcb, (void*) mostrar_patota);
+	list_iterate(lista_pcb, (void*) mostrar_patota);
 }
 

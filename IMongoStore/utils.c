@@ -60,6 +60,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				//Case para hacer HANDSHAKE = Chequear la conexion
 
 				uint32_t id_trip = recvDeNotificacion(socket);
+				ejecutar_tarea(tarea);
 
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
 
@@ -71,5 +72,13 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 	}
 	return 0;
+}
+
+void ejecutar_tarea(char * tarea){
+	if(strcmp(tarea,"GENERAR_OXIGENO 12;2;3;5")==0){
+		log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO:");
+		log_info(logger,"OOOOOOOOOOO");
+	}
+
 }
 

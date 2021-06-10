@@ -38,6 +38,7 @@ t_list * lista_tripulantes;
 
 
 t_log* logger;
+char * obtener_tarea();
 void mostrar_lista_patota();
 void crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);
