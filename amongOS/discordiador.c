@@ -268,7 +268,7 @@ void leer_consola() {
 			//patota patota = crear_patota();
 			leido = readline("INGRESAR TAREAS>");
 			uint32_t patotaId = 10;
-			uint32_t cantidad_tripulantes = 1;
+			uint32_t cantidad_tripulantes = 3;
 
 			char * tareas = string_new();
 			string_append(&tareas,leido);
@@ -293,21 +293,22 @@ void leer_consola() {
 					longitud_posiciones, patotaId, cantidad_tripulantes,
 					&tamanioGet, tareas, posiciones);
 
+			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
+
+			recvDeNotificacion(socketServerMiRam);
+			log_info(logger,"PATOTA CREADA OK");
+
 			queue_push(planificacion_cola_new,&patotaId);
 
 			for(int i = 0 ; i<cantidad_tripulantes; i++){
 				tripulantes_creados++;
-				//el proposito:
-					// tener los tripulantes para ponerlos en new
-					// poder hacer los handshakes de cada tripulante para que en los otros modulos se conserve el socket de estos
-					// guardar los hilos en el discordiador
 				int * id = malloc(sizeof(int));
 				*id = tripulantes_creados;
 				//sleep(2);
 				crearHiloTripulante(id);
 			}
 
-			//sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
+
 
 			free(leido);
 		}else{
