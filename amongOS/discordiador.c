@@ -279,62 +279,7 @@ void leer_consola() {
 		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
 			log_info(logger,"CARGAR DATOS PATOTA: ");
 
-			//ID PATOTA (UINT) | CANTIDAD TRIPULANTE (UINT) | LONGITUD ->|STRING (IDS TRIPULANTES)|LONGITUD -> |STRING(X|Y-X|Y) | LONGITUD->|STRING(TAREAS)
-
-			//TODO: CREAR UNA FUNCION QUE CREE UNA PATOTA
-
-			//patota patota = crear_patota();
-			leido = readline("INGRESAR TAREAS>");
-
-			char * tareas = string_new();
-			string_append(&tareas,leido);
-			free(leido);
-			int longitud_tareas = string_length(tareas);
-
-			leido = readline("CANTIDAD TRIPULANTES>");
-			uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
-			free(leido);
-
-			leido = readline("ID PATOTA>");
-			uint32_t patotaId = (uint32_t)atoi(leido);
-			free(leido);
-
-
-			char * posiciones = string_new();
-			leido = readline("INGRESAR POSICIONES>");
-			string_append(&posiciones,leido);
-			//string_append(&posiciones,"#12-3|4&#16-5|6");
-			int longitud_posiciones = string_length(posiciones);
-
-			char * claveGet = string_new();
-			string_append(&claveGet,tareas);
-			string_append(&claveGet,posiciones);
-
-			int tamanioGet = 0;
-
-
-
-			void* buffer_patota = crear_buffer_patota(longitud_tareas,
-					longitud_posiciones, patotaId, cantidad_tripulantes,
-					&tamanioGet, tareas, posiciones);
-
-			sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
-
-			recvDeNotificacion(socketServerMiRam);
-			log_info(logger,"PATOTA CREADA OK");
-
-			queue_push(planificacion_cola_new,&patotaId);
-
-			for(int i = 0 ; i<cantidad_tripulantes; i++){
-				tripulantes_creados++;
-				int * id = malloc(sizeof(int));
-				*id = tripulantes_creados;
-				log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
-				sleep(4);
-				crearHiloTripulante(id);
-			}
-
-
+			crear_patota();
 
 			free(leido);
 		}else{
@@ -346,6 +291,63 @@ void leer_consola() {
 	}
 
 	free(leido);
+}
+
+void crear_patota(){
+
+	char * leido = readline("INGRESAR TAREAS>");
+
+	char * tareas = string_new();
+	string_append(&tareas,leido);
+	free(leido);
+	int longitud_tareas = string_length(tareas);
+
+	leido = readline("CANTIDAD TRIPULANTES>");
+	uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
+	free(leido);
+
+	leido = readline("ID PATOTA>");
+	uint32_t patotaId = (uint32_t)atoi(leido);
+	free(leido);
+
+
+	char * posiciones = string_new();
+	leido = readline("INGRESAR POSICIONES>");
+	string_append(&posiciones,leido);
+
+	free(leido);
+	//string_append(&posiciones,"#12-3|4&#16-5|6");
+	int longitud_posiciones = string_length(posiciones);
+
+	char * claveGet = string_new();
+	string_append(&claveGet,tareas);
+	string_append(&claveGet,posiciones);
+
+	int tamanioGet = 0;
+
+
+
+	void* buffer_patota = crear_buffer_patota(longitud_tareas,
+			longitud_posiciones, patotaId, cantidad_tripulantes,
+			&tamanioGet, tareas, posiciones);
+
+	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
+
+	recvDeNotificacion(socketServerMiRam);
+	log_info(logger,"PATOTA CREADA OK");
+
+	queue_push(planificacion_cola_new,&patotaId);
+
+	for(int i = 0 ; i<cantidad_tripulantes; i++){
+		tripulantes_creados++;
+		int * id = malloc(sizeof(int));
+		*id = tripulantes_creados;
+		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
+		sleep(4);
+		crearHiloTripulante(id);
+	}
+
+
 }
 
 //TODO : FIX
