@@ -15,6 +15,10 @@
 
 #define PEDIR_TAREA 7
 
+#define CREAR_TRIPULANTE 10
+
+#define TRIPULANTE_CREADO 11
+
 #define ENVIAR_TAREA 8
 
 #define EJECUTAR_TAREA 9

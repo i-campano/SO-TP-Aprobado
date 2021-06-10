@@ -139,10 +139,15 @@ void *labor_tripulante_new(void * id_tripulante){
 	int socketRam = conectarAServer("127.0.0.1", 5002);
 	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
-	//sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
+	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 
-	//int creado = recvDeNotificacion(socketServerMiRam);
-	//log_info(logger,"TRIPUALNTE CREADO");
+
+	int creado = recvDeNotificacion(socketRam);
+
+	if(creado==TRIPULANTE_CREADO){
+
+		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
+	}
 
 	//while(tengaTareas)
 

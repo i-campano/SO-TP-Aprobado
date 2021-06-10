@@ -91,6 +91,13 @@ void *atenderNotificacion(void * paqueteSocket){
 			//sendDeNotificacion(socket,85);
 
 
+			break;
+
+		}
+		case CREAR_TRIPULANTE:{
+			sendDeNotificacion(socket, TRIPULANTE_CREADO);
+			log_info(logger,"se conecto desde socket: %d",socket);
+
 			log_info(logger, "----------------tcb creado----------------");
 
 			break;
