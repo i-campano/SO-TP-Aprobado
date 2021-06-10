@@ -135,15 +135,30 @@ void *labor_tripulante_new(void * id_tripulante){
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 
 	log_info(logger,"OPERACION %d",OPERACION);
+	char * tarea = string_new();
 	if(OPERACION==ENVIAR_TAREA){
-		char * tarea = recibirString(socketRam);
+		tarea = recibirString(socketRam);
 		log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
 
 	}
+	log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
-	//int socketMongo = conectarAServer("127.0.0.1", 5003);
+	int socketMongo = conectarAServer("127.0.0.1", 5003);
+
+	//sendDeNotificacion(socketMongo, EJECUTAR_TAREA);
 
 
+	char* claveNueva = "CREAR OXIGENOOOO";
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
+	sendDeNotificacion(socketMongo,(uint32_t)id);
 
 
 	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);

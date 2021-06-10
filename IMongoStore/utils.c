@@ -11,13 +11,16 @@ void manejadorDeHilos(){
 
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
-
-		pthread_t thread_id;
+		log_info(logger,"se conecto: %d", socketCliente);
+		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
     	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    	int * pcclient = malloc(sizeof(int));
+    	*pcclient = socketCliente;
 		//Creo hilo atendedor
-		pthread_create( &thread_id , &attr, (void*) atenderNotificacion , (void*) &socketCliente);
+		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
+		pthread_detach(thread_id);
 
 	}
 
@@ -48,6 +51,18 @@ void *atenderNotificacion(void * paqueteSocket){
 					log_info(logger,"ENVIANDO TAREAS");
 					sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
 				}
+			}
+				break;
+
+			case EJECUTAR_TAREA:{
+				char * tarea = recibirString(socket);
+				//Case para hacer HANDSHAKE = Chequear la conexion
+
+
+				uint32_t id_trip = recvDeNotificacion(socket);
+
+				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
+
 			}
 				break;
 			default:
