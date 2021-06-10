@@ -29,10 +29,7 @@ int main(void) {
 
 	log_info(logger, "Planificador se conecto a IMONGOSTORE");
 
-	//atenderLaRam();
-
 	//atenderIMongoStore();
-
 
 	planificar();
 
@@ -134,6 +131,8 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 void *labor_tripulante_new(void * id_tripulante){
 	//¿ estructura estatica dentro del hilo? --- pensar
 
+	//add a lista de sem ??
+
 	int id = *(int*)id_tripulante;
 
 	int socketRam = conectarAServer("127.0.0.1", 5002);
@@ -158,15 +157,12 @@ void *labor_tripulante_new(void * id_tripulante){
 
 	int socketMongo = conectarAServer("127.0.0.1", 5003);
 
-	//sendDeNotificacion(socketMongo, EJECUTAR_TAREA);
-
 
 	char* claveNueva = string_new();
 
 	string_append(&claveNueva,tarea);
 
 	enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
-	//sendRemasterizado(socketServerIMongoStore, HANDSHAKE_TRIPULANTE);
 }
 
 void atender_imongo_store(){
@@ -272,7 +268,7 @@ void leer_consola() {
 			//patota patota = crear_patota();
 			leido = readline("INGRESAR TAREAS>");
 			uint32_t patotaId = 10;
-			uint32_t cantidad_tripulantes = 15;
+			uint32_t cantidad_tripulantes = 1;
 
 			char * tareas = string_new();
 			string_append(&tareas,leido);
@@ -307,6 +303,7 @@ void leer_consola() {
 					// guardar los hilos en el discordiador
 				int * id = malloc(sizeof(int));
 				*id = tripulantes_creados;
+				//sleep(2);
 				crearHiloTripulante(id);
 			}
 
@@ -381,8 +378,6 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
 
 	pthread_mutex_init(&comuni,NULL);
-
-
 
 	planificacion_cola_new = queue_create();
 	planificacion_cola_ready = queue_create();

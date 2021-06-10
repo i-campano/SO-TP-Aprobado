@@ -19,6 +19,7 @@ void manejadorDeHilos(){
     	int * pcclient = malloc(sizeof(int));
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
+    	//sleep(2);
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
 		pthread_detach(thread_id);
 
@@ -46,11 +47,11 @@ void *atenderNotificacion(void * paqueteSocket){
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				log_info(logger,"Se ha conectado el DISCORDIADOR");
 				sendDeNotificacion(socket, IMONGOSTORE);
-				while(1){
-					sleep(10);
-					log_info(logger,"ENVIANDO TAREAS");
-					sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
-				}
+				//while(1){
+					//sleep(10);
+					//log_info(logger,"ENVIANDO TAREAS");
+					//sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
+				//}
 			}
 				break;
 

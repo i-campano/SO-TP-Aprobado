@@ -22,6 +22,7 @@ void manejadorDeHilos(){
     	int * pcclient = malloc(sizeof(int));
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
+    	//sleep(2);
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
 		pthread_detach(thread_id);
 
