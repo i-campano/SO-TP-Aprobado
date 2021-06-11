@@ -125,7 +125,8 @@ void leer_consola() {
 		}
 		else if(strncmp(leido, "XMOSTRAR_NEW", 5) == 0){
 			log_info(logger,"TRIPULANTES EN NEW!!!: ");
-			mostrar_tripulantes_new();
+
+			hilo_mostrar_tripulantes();
 		}
 		else if(strncmp(leido, "INICIAR", 1) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
