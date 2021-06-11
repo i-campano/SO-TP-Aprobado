@@ -62,6 +62,10 @@ pthread_t hiloPlanificador;
 pthread_t hiloColaReady;
 pthread_t hiloColaNew;
 
+//SEMAFORO CONSUMIDOR PRODUCTOR
+sem_t cola_ready;
+sem_t cola_new;
+
 //MUTEX PARA COLAS
 pthread_mutex_t planificacion_mutex_new;
 pthread_mutex_t planificacion_mutex_ready;

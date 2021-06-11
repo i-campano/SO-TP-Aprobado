@@ -60,7 +60,7 @@ void *atenderNotificacion(void * paqueteSocket){
 
 				uint32_t id_trip = recvDeNotificacion(socket);
 				ejecutar_tarea(tarea);
-
+				sendDeNotificacion(socket,198);
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
 
 			}

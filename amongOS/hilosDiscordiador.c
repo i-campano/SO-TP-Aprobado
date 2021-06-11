@@ -45,17 +45,23 @@ void hilo_cola_ready(){
 }
 
 void planificar_cola_ready(){
+	sem_wait(&iniciar_cola_ready);
 	while(1){
-		sem_wait(&iniciar_cola_ready);
+		sem_wait(&sistemaEnEjecucion);
+		sem_post(&sistemaEnEjecucion);
 
+		sem_wait(&cola_new);
 		pthread_mutex_lock(&planificacion_mutex_new);
 		//quizas ademas deberia hacer un consumidor productor para asegurarme que el pop tenga algo
+		sleep(3);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
 		log_info(logger,"saco de new tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
+		sleep(1);
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		queue_push(&planificacion_cola_ready,tripulante);
 		sem_post(&tripulante->ready);
+		sem_post(&cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 		log_info(logger,"PLANIFICANDOO COLA READY");
@@ -97,9 +103,11 @@ void planificar_cola_new(){
 
 
 void mostrar_tripulantes_new(){
+	sem_wait(&cola_new);
 	pthread_mutex_lock(&planificacion_mutex_new);
 	mostrar_lista_tripulantes();
 	pthread_mutex_unlock(&planificacion_mutex_new);
+	sem_post(&cola_new);
 }
 
 void mostrar_lista_tripulantes(){

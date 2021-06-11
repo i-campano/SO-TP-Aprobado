@@ -237,6 +237,7 @@ void *labor_tripulante_new(void * id_tripulante){
 
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
+	sem_post(&cola_new);
 	pthread_mutex_unlock(&planificacion_mutex_new);
 
 	log_info(logger,"AGREGUE A LA COLA DE NEW");
@@ -282,7 +283,7 @@ void *labor_tripulante_new(void * id_tripulante){
 			}
 
 		}
-
+		sem_wait(&cola_ready);
 		sem_wait(&exec);
 		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
@@ -293,11 +294,14 @@ void *labor_tripulante_new(void * id_tripulante){
 
 		string_append(&claveNueva,tarea);
 
-		//enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
+		enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
 
 
-		//recvDeNotificacion(socketMongo);
-		//log_info(logger,"TAREA EJECUTADA CORRECTAMENTE");
+		recvDeNotificacion(socketMongo);
+		sleep(2);
+		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",id);
+		sem_post(&exec);
+
 
 	//fin WHILE(tengaTareas)
 }

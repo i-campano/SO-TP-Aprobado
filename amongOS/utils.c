@@ -11,10 +11,14 @@
 void iniciarEstructurasAdministrativasPlanificador(){
 	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
 
+
+	sem_init(&cola_new, 0, 0);
+	sem_init(&cola_ready, 0, 0);
 	sem_init(&iniciar_planificacion, 0, 0);
 	sem_init(&iniciar_cola_ready, 0, 0);
 	sem_init(&sistemaEnEjecucion, 0, 1);
 	sem_init(&activar_actualizaciones_mongo, 0, 0);
+	sem_init(&exec, 0, 1);
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
