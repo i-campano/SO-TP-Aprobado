@@ -8,6 +8,9 @@
 #include<commons/string.h>
 #include<commons/config.h>
 #include<readline/readline.h>
+#include "utils.h"
+
+int tripulantes_creados;
 
 //BOOL
 #define TRUE 1
@@ -31,17 +34,16 @@
 
 typedef struct {
 	int id;
-	char estado;
-	short int trabajando;
-	short int fin_tareas;
+	int patota_id;
 	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
 	pthread_t hilo_asociado;
-}tripulante_t;
+	int socket;
+	sem_t ready;
+	sem_t new;
+	sem_t exec;
+}t_tripulante;
 
-typedef struct {
-	tripulante_t* dato;
-	tripulante_t* sig;
-}nodo_tripulante_t;
+
 
 typedef struct {
 
@@ -50,4 +52,12 @@ typedef struct {
 	short int modo_planificacion; //FIFO = 0 RR = 1
 
 } config_planif;
+
+
+void *labor_tripulante_new(void * id_tripulante);
+
+void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva);
+
+
+
 #endif

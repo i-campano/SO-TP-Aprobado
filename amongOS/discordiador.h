@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "socket.h"
 #include "hilosDiscordiador.h"
+#include "tripulante.h"
 
 
 
@@ -21,7 +22,7 @@ typedef struct patota{
 
 } patota;
 
-int tripulantes_creados;
+
 
 void iniciarEstructurasAdministrativasPlanificador();
 
@@ -31,9 +32,6 @@ void atender_ram();
 void atender_imongo_store();
 
 //Funciones que crean hilos
-void atenderLaRam();
-void iniciarHiloConsola();
-void atenderIMongoStore();
 
 //Funciones administrativas - loggeo - configuracion
 void iniciarEstructurasAdministrativasPlanificador();

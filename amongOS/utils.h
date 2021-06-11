@@ -104,16 +104,6 @@ typedef struct {
 	sem_t exec;
 }t_nodo_tripulante;
 
-typedef struct {
-	int id;
-	int patota_id;
-	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
-	pthread_t hilo_asociado;
-	int socket;
-	sem_t ready;
-	sem_t new;
-	sem_t exec;
-}t_tripulante;
 
 
 typedef struct
