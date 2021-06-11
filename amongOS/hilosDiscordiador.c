@@ -24,7 +24,7 @@ void planificar(){
 
 
 void planificar_tripulantes(){
-	//sem_wait(&iniciar_planificacion);
+	sem_wait(&iniciar_planificacion);
 
 	hilo_cola_ready();
 }
@@ -45,10 +45,9 @@ void hilo_cola_ready(){
 }
 
 void planificar_cola_ready(){
-	sem_wait(&iniciar_cola_ready);
 	while(1){
-		sem_wait(&sistemaEnEjecucion);
-		sem_post(&sistemaEnEjecucion);
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 
 		sem_wait(&cola_new);
 		pthread_mutex_lock(&planificacion_mutex_new);
@@ -89,7 +88,6 @@ void hilo_cola_new(){
 
 
 void planificar_cola_new(){
-	sem_wait(&iniciar_planificacion);
 	log_info(logger,"PLANIFICANDOO COLA NEW");
 		while(1){
 			sleep(10);

@@ -109,7 +109,7 @@ void leer_consola() {
 
 		if(strncmp(leido, "DETENER", 1) == 0){
 			log_info(logger,"PLANIFICACION DETENIDA !!!: ");
-			sem_wait(&sistemaEnEjecucion);
+			sem_wait(&detenerReaunudarEjecucion);
 		}
 		else if(strncmp(leido, "ACTUALIZACIONES_MONGO", 1) == 0){
 			log_info(logger,"actualizaciones mongo activado !!!: ");
@@ -121,16 +121,15 @@ void leer_consola() {
 		}
 		else if(strncmp(leido, "REANUDAR", 1) == 0){
 			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
-			sem_post(&sistemaEnEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
 		}
 		else if(strncmp(leido, "XMOSTRAR_NEW", 5) == 0){
 			log_info(logger,"TRIPULANTES EN NEW!!!: ");
-
 			hilo_mostrar_tripulantes();
 		}
 		else if(strncmp(leido, "INICIAR", 1) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
-			sem_post(&iniciar_cola_ready);
+			sem_post(&iniciar_planificacion);
 		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
 			log_info(logger,"CARGAR DATOS PATOTA: ");
 			crear_patota();
@@ -257,10 +256,13 @@ void *labor_tripulante_new(void * id_tripulante){
 
 		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
 	}
-	sem_wait(&tripulante->ready);
+
+
 	//while(tengaTareas)
 
-
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
+		sem_wait(&tripulante->ready);
 		//sem_wait(&ready)
 
 		sendDeNotificacion(socketRam, PEDIR_TAREA);

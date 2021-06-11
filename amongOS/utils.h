@@ -77,9 +77,7 @@ pthread_mutex_t planificcion_mutex_fin;
 pthread_mutex_t mutexHilos;
 
 sem_t iniciar_planificacion;
-sem_t iniciar_cola_ready;
-
-sem_t sistemaEnEjecucion;
+sem_t detenerReaunudarEjecucion;
 
 
 //sem de tipo cola, N = grado multiprogramacion
