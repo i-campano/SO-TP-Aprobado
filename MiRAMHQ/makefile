@@ -2,8 +2,8 @@
 # Primero podemos definir algunas constantes que vamos a usar muchas veces
 # Como por ejemplo, bibliotecas, flags, el compilador (el "CC")
 
-TARGET = sdiscordiador # Definimos la tarea que va a ejecutar make por defecto Y el nombre del binario final
-LIBS = -lreadline -lcommons # Incluimos las bibliotecas que necesitamos, las commons y readline
+TARGET = smiramhq # Definimos la tarea que va a ejecutar make por defecto Y el nombre del binario final
+LIBS = -lreadline -lcommons -lpthread # Incluimos las bibliotecas que necesitamos, las commons y readline
 CC = gcc # Vamos a usar gcc como compilador, porque nos encanta!
 CFLAGS = -g -Wall -lpthread # Compilamos con los flags -g (con simbolos de debug) y -Wall (que nos muestre todos los warnings)
 

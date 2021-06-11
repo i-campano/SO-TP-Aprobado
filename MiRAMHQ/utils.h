@@ -16,9 +16,13 @@
 #include<commons/log.h>
 #include<commons/collections/list.h>
 #include<string.h>
+#include<pthread.h>
+#include"estructuras.h"
 
 #define IP "127.0.0.1"
 #define PUERTO "5002"
+
+int server_fd;
 
 typedef enum
 {
@@ -26,14 +30,18 @@ typedef enum
 	PAQUETE = 8
 }op_code;
 
+t_list * lista_tcb;
+
+t_list * lista_pcb;
+
+t_list * lista_tripulantes;
+
+
 t_log* logger;
+char * obtener_tarea();
+void mostrar_lista_patota();
+void crear_pcb();
+void *atenderNotificacion(void * paqueteSocket);
 
-void* recibir_buffer(int*, int);
-
-int iniciar_servidor(void);
-int esperar_cliente(int);
-t_list* recibir_paquete(int);
-void recibir_mensaje(int);
-int recibir_operacion(int);
 
 #endif /* CONEXIONES_H_ */
