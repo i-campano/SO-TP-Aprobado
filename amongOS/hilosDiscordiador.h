@@ -13,6 +13,8 @@
 
 #include "utils.h"
 
+void mostrar_tripulantes_new();
+
 void planificar();
 void planificar_tripulantes();
 

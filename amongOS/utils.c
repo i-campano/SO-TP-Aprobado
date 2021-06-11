@@ -19,6 +19,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
 
+
 	pthread_mutex_init(&comuni,NULL);
 
 	planificacion_cola_new = queue_create();

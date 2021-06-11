@@ -88,7 +88,6 @@ void crearHiloTripulante(int * id_tripulante){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);
 	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	log_info(logger,"id desde crearHiloTripulante: %d",*id_tripulante);
 	pthread_t hiloTripulante = malloc(sizeof(pthread_t));
 	pthread_create(&hiloTripulante , &attr2,(void*) labor_tripulante_new,(void*) id_tripulante);
 
@@ -116,7 +115,7 @@ void leer_consola() {
 			log_info(logger,"actualizaciones mongo activado !!!: ");
 			sem_post(&activar_actualizaciones_mongo);
 		}
-		else if(strncmp(leido, "MONGO_DETENER", 1) == 0){
+		else if(strncmp(leido, "MONGO_DETENER", 5) == 0){
 			log_info(logger,"actualizaciones mongo detenido!!!: ");
 			sem_wait(&activar_actualizaciones_mongo);
 		}
@@ -124,9 +123,13 @@ void leer_consola() {
 			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
 			sem_post(&sistemaEnEjecucion);
 		}
+		else if(strncmp(leido, "XMOSTRAR_NEW", 5) == 0){
+			log_info(logger,"TRIPULANTES EN NEW!!!: ");
+			mostrar_tripulantes_new();
+		}
 		else if(strncmp(leido, "INICIAR", 1) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
-			sem_post(&iniciar_planificacion);
+			sem_post(&iniciar_cola_ready);
 		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
 			log_info(logger,"CARGAR DATOS PATOTA: ");
 			crear_patota();
@@ -181,8 +184,6 @@ void crear_patota(){
 	recvDeNotificacion(socketServerMiRam);
 	log_info(logger,"PATOTA CREADA OK");
 
-	queue_push(planificacion_cola_new,&patotaId);
-
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		int * id = malloc(sizeof(int));
@@ -227,6 +228,21 @@ void *labor_tripulante_new(void * id_tripulante){
 
 	int id = *(int*)id_tripulante;
 
+	t_tripulante * tripulante = (t_tripulante*) malloc(sizeof(t_tripulante));
+	tripulante->id = id;
+	sem_init(&tripulante->new,0,0);
+	sem_init(&tripulante->ready,0,0);
+	sem_init(&tripulante->exec,0,0);
+
+
+	pthread_mutex_lock(&planificacion_mutex_new);
+	queue_push(planificacion_cola_new,tripulante);
+	pthread_mutex_unlock(&planificacion_mutex_new);
+
+	log_info(logger,"AGREGUE A LA COLA DE NEW");
+
+
+
 	int socketRam = conectarAServer("127.0.0.1", 5002);
 	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
@@ -239,8 +255,9 @@ void *labor_tripulante_new(void * id_tripulante){
 
 		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
 	}
-
+	sem_wait(&tripulante->ready);
 	//while(tengaTareas)
+
 
 		//sem_wait(&ready)
 
@@ -257,9 +274,16 @@ void *labor_tripulante_new(void * id_tripulante){
 		char * tarea = string_new();
 		if(OPERACION==ENVIAR_TAREA){
 			tarea = recibirString(socketRam);
-			log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+			if(tarea!=NULL){
+
+				log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+			}else{
+				//break while - cola fin
+			}
 
 		}
+
+		sem_wait(&exec);
 		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
 		int socketMongo = conectarAServer("127.0.0.1", 5003);

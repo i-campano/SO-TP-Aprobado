@@ -77,7 +77,13 @@ sem_t iniciar_cola_ready;
 
 sem_t sistemaEnEjecucion;
 
+
+//sem de tipo cola, N = grado multiprogramacion
+sem_t exec;
+
+
 sem_t activar_actualizaciones_mongo;
+
 
 typedef struct _infoHilos{
 	int socket;
@@ -91,7 +97,22 @@ typedef struct {
 	short int fin_tareas;
 	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
 	pthread_t hilo_asociado;
+	sem_t ready;
+	sem_t new;
+	sem_t exec;
 }t_nodo_tripulante;
+
+typedef struct {
+	int id;
+	int patota_id;
+	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
+	pthread_t hilo_asociado;
+	int socket;
+	sem_t ready;
+	sem_t new;
+	sem_t exec;
+}t_tripulante;
+
 
 typedef struct
 {

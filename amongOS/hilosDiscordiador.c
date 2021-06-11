@@ -24,9 +24,8 @@ void planificar(){
 
 
 void planificar_tripulantes(){
-	sem_wait(&iniciar_planificacion);
+	//sem_wait(&iniciar_planificacion);
 
-	hilo_cola_new();
 	hilo_cola_ready();
 }
 
@@ -46,18 +45,26 @@ void hilo_cola_ready(){
 }
 
 void planificar_cola_ready(){
-
-	sem_wait(&iniciar_cola_ready);
 	while(1){
-		sleep(3);
-		sem_wait(&sistemaEnEjecucion);
-		sem_post(&sistemaEnEjecucion);
+		sem_wait(&iniciar_cola_ready);
+
+		pthread_mutex_lock(&planificacion_mutex_new);
+		//quizas ademas deberia hacer un consumidor productor para asegurarme que el pop tenga algo
+		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
+		log_info(logger,"saco de new tripu: %d", tripulante->id);
+		pthread_mutex_unlock(&planificacion_mutex_new);
+		pthread_mutex_lock(&planificacion_mutex_ready);
+		queue_push(&planificacion_cola_ready,tripulante);
+		sem_post(&tripulante->ready);
+		pthread_mutex_unlock(&planificacion_mutex_ready);
+
 		log_info(logger,"PLANIFICANDOO COLA READY");
 		//wait(planificacion_mutex_ready);
 		//hacer algo en la cola ready
 
 	}
 }
+
 
 void hilo_cola_new(){
 	pthread_attr_t attr1;
@@ -76,10 +83,28 @@ void hilo_cola_new(){
 
 
 void planificar_cola_new(){
-	while(1){
-		sleep(6);
-		sem_wait(&sistemaEnEjecucion);
-		sem_post(&sistemaEnEjecucion);
-		log_info(logger,"PLANIFICANDOO COLA NEW");
+	sem_wait(&iniciar_planificacion);
+	log_info(logger,"PLANIFICANDOO COLA NEW");
+		while(1){
+			sleep(10);
+			pthread_mutex_lock(&planificacion_mutex_new);
+			mostrar_lista_tripulantes();
+			pthread_mutex_unlock(&planificacion_mutex_new);
+
+		}
+
+}
+
+
+void mostrar_tripulantes_new(){
+	pthread_mutex_lock(&planificacion_mutex_new);
+	mostrar_lista_tripulantes();
+	pthread_mutex_unlock(&planificacion_mutex_new);
+}
+
+void mostrar_lista_tripulantes(){
+	void mostrar_patota(t_tripulante* tripulante){
+		log_info(logger,"# N:, id tripulante %d", tripulante->id);
 	}
+	list_iterate(planificacion_cola_new->elements, (void*) mostrar_patota);
 }
