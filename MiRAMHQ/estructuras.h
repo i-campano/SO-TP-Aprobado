@@ -8,7 +8,7 @@
 #ifndef ESTRUCTURAS_H_
 #define ESTRUCTURAS_H_
 
-/* 
+
 typedef struct {
 	char * nombre_tarea;
 	uint32_t posicion_x;
@@ -53,6 +53,6 @@ typedef struct _infoHilos{
 
 
 
- */
+
 
 #endif /* ESTRUCTURAS_H_ */

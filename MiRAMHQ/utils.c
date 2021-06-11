@@ -2,7 +2,6 @@
 
 #include "socket.h"
 
-
 void iniciarEstructurasAdministrativas(){
 	lista_pcb = list_create();
 	lista_tcb = list_create();
