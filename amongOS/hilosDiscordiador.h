@@ -14,22 +14,30 @@
 #include "utils.h"
 #include "tripulante.h"
 
-void mostrar_tripulantes_new();
+//Funciones del discordiador
 void leer_consola();
-
-
-void planificar();
 void planificar_tripulantes();
+void atender_ram();
+void atender_imongo_store();
 
+
+//Funciones de Planificacion
 void planificar_cola_new();
 void planificar_cola_ready();
 
+//
+void mostrar_lista_tripulantes();
+void mostrar_tripulantes_new();
+
+
+//-------------------------------
+// Creacion de HILOS
+void iniciarHiloConsola();
+void planificar();
+void atenderLaRam();
+void atenderIMongoStore();
+
 void hilo_cola_ready();
 void hilo_cola_new();
-
-
-void atenderLaRam();
-void iniciarHiloConsola();
-void atenderIMongoStore();
 
 #endif /* HILOSDISCORDIADOR_H_ */

@@ -123,9 +123,11 @@ typedef struct
 void iniciarEstructurasAdministrativasPlanificador();
 
 
-void atender_imongo_store();
+int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
 
-void atender_ram();
+void iniciar_logger();
+
+t_config* leer_config();
 
 
 #endif /* UTILS_H_ */

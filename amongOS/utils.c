@@ -35,45 +35,27 @@ void iniciarEstructurasAdministrativasPlanificador(){
 }
 
 
-void atender_imongo_store(){
-	uint32_t notificacion;
-	while(1){
-		sem_wait(&activar_actualizaciones_mongo);
-		sem_post(&activar_actualizaciones_mongo);
-		notificacion = recibirUint(socketServerIMongoStore);
+int terminar_programa(t_log* logger,t_config* config,int conexion[2]) {
+	log_destroy(logger);
+	config_destroy(config);
+	return 0;
+}
 
-		switch(notificacion){
-			case ACTUALIZACION_IMONGOSTORE:{
-				log_info(logger,"CONEXION VIVA IMONGO CON DISCORDIADOR (SLEEP 10 SEGS)");
-			}
-		}
+void iniciar_logger() {
+	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
+		printf("No se pudo crear el logger. Revise parametros\n");
+		exit(1);
 	}
 }
 
-void atender_ram(){
-	uint32_t notificacion;
-	while(1){
-
-		notificacion = recibirUint(socketServerMiRam);
-
-		switch(notificacion){
-			case PATOTA_CREADA:{
-
-
-				int * patotaNew = (int *) queue_pop(planificacion_cola_new);
-
-				log_info(logger,"PATOTA ID: %d - CARGADA EN MIRAM", *patotaNew);
-				log_info(logger,"PATOTA ID: %d - MOVEMOS DE NEW A READY",*patotaNew);
-
-				//patota patota = malloc(sizeof(patota));
-
-
-				queue_push(planificacion_cola_ready, patotaNew);
-
-				int * patotaReady = (int *) queue_pop(planificacion_cola_ready);
-
-				log_info(logger,"PATOTA ID: %d  - EN READY", *patotaReady);
-			}
-		}
+t_config* leer_config() {
+	t_config *config;
+	if((config = config_create("discordiador.config"))==NULL) {
+		printf("No se pudo leer de la config. Revise. \n");
+		exit(1);
 	}
+	return config;
 }
+
+
+
