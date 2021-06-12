@@ -4,10 +4,7 @@ void *labor_tripulante_new(void * id_tripulante){
 	//¿ estructura estatica dentro del hilo? --- pensar
 	//add a lista de sem ??
 
-
-
 	int id = *(int*)id_tripulante;
-
 
 	t_tripulante * tripulante = (t_tripulante*) malloc(sizeof(t_tripulante));
 	tripulante->id = id;
@@ -25,7 +22,7 @@ void *labor_tripulante_new(void * id_tripulante){
 
 
 
-	int socketRam = conectarAServer("127.0.0.1", 5002);
+	int socketRam = conectarAServer(ip_miram, puerto_miram);
 	log_info(logger,"tripulante: %d  se conecto con miram...", id);
 
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
@@ -71,7 +68,7 @@ void *labor_tripulante_new(void * id_tripulante){
 		sem_wait(&exec);
 		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
-		int socketMongo = conectarAServer("127.0.0.1", 5003);
+		int socketMongo = conectarAServer(ip_mongo, puerto_mongo);
 
 
 		char* claveNueva = string_new();

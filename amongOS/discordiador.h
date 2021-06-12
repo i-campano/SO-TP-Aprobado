@@ -16,4 +16,11 @@ typedef struct patota{
     int socketMIRAM;
 } patota;
 
+t_config* config;
+
+
+char* valor;
+
+char* ip;
+
 #endif /* DISCORDIADOR_H_ */

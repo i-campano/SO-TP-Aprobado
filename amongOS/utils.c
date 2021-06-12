@@ -8,6 +8,18 @@
 #include "utils.h"
 
 
+void iniciar_configuracion(){
+	t_config* config = leer_config();
+
+	ip_mongo = config_get_string_value(config, "IP_MONGO");
+
+	ip_miram = config_get_string_value(config, "IP_MIRAM");
+
+	puerto_mongo = config_get_int_value(config,"PUERTO_MONGO_STORE");
+
+	puerto_miram = config_get_int_value(config,"PUERTO_MIRAM");
+}
+
 void iniciarEstructurasAdministrativasPlanificador(){
 	log_info(logger, "GENERANDO ESTRUCTURAS ADMINISTRATIVAS!");
 

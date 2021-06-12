@@ -5,29 +5,23 @@ int main(void) {
 	//Inicia las colas de planificacion
 	iniciarEstructurasAdministrativasPlanificador();
 
-	t_config* config = leer_config();
+	iniciar_configuracion();
 
-	char* valor = config_get_string_value(config, "CLAVE");
+	socketServerMiRam = conectarAServer(ip_miram, puerto_miram);
 
-	char* ip = config_get_string_value(config, "IP");
+	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
-	char * valorip = "127.0.0.1";
+	log_info(logger, "Planificador se conecto a MIRAM");
+
+	socketServerIMongoStore = conectarAServer(ip_mongo, puerto_mongo);
+
+	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
+
+	log_info(logger, "Planificador se conecto a IMONGOSTORE");
 
 	iniciarHiloConsola();
 
-	socketServerMiRam = conectarAServer(ip, 5002);
-
-	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
-	log_info(logger, "Planificador se conecto a MIRAM");
-
-	socketServerIMongoStore = conectarAServer(ip, 5003);
-
-
-	//realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
-
-	//log_info(logger, "Planificador se conecto a IMONGOSTORE");
-
-	//atenderIMongoStore();
+//	atenderIMongoStore();
 
 	planificar();
 

@@ -18,6 +18,15 @@
 #include <semaphore.h>
 
 
+char* ip_mongo;
+char* ip_miram;
+int puerto_mongo;
+int puerto_miram;
+char* valor;
+
+
+
+
 #define PATOTA_CREADA 22
 #define ACTUALIZACION_IMONGOSTORE 15
 #define CREAR_PATOTA 4
@@ -119,6 +128,7 @@ typedef struct
 } t_paquete;
 
 
+void iniciar_configuracion();
 
 void iniciarEstructurasAdministrativasPlanificador();
 
