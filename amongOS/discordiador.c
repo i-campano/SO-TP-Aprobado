@@ -20,7 +20,7 @@ int main(void) {
 	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 	log_info(logger, "Planificador se conecto a MIRAM");
 
-	socketServerIMongoStore = conectarAServer(valorip, 5003);
+	socketServerIMongoStore = conectarAServer(ip, 5003);
 
 
 	//realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
