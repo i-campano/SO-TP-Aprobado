@@ -15,13 +15,13 @@ int main(void) {
 
 	iniciarHiloConsola();
 
-	socketServerMiRam = conectarAServer(valorip, 5002);
+	socketServerMiRam = conectarAServer(ip, 5002);
 
-	//realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
+	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
+	log_info(logger, "Planificador se conecto a MIRAM");
 
 	socketServerIMongoStore = conectarAServer(valorip, 5003);
 
-	//log_info(logger, "Planificador se conecto a MIRAM");
 
 	//realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
 
