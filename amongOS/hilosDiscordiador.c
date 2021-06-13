@@ -52,6 +52,7 @@ void planificar_tripulantes(){
 	sem_wait(&iniciar_planificacion);
 
 	hilo_cola_ready();
+	hilo_cola_exec();
 }
 
 void planificar_cola_ready(){
@@ -59,17 +60,17 @@ void planificar_cola_ready(){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 
+		//Esperamos que haya algo en new
 		sem_wait(&cola_new);
+
 		pthread_mutex_lock(&planificacion_mutex_new);
-		//quizas ademas deberia hacer un consumidor productor para asegurarme que el pop tenga algo
-		sleep(3);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
 		log_info(logger,"saco de new tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
-		sleep(1);
+		sleep(3);
 		pthread_mutex_lock(&planificacion_mutex_ready);
-		queue_push(&planificacion_cola_ready,tripulante);
-		sem_post(&tripulante->ready);
+		sem_wait(&tripulante->ready);
+		queue_push(planificacion_cola_ready,tripulante);
 		sem_post(&cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
@@ -79,6 +80,41 @@ void planificar_cola_ready(){
 
 	}
 }
+
+void planificar_cola_exec(){
+	while(1){
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
+		sem_wait(&cola_ready);
+		sem_wait(&exec);
+		sleep(2);
+		pthread_mutex_lock(&planificacion_mutex_ready);
+		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
+		pthread_mutex_unlock(&planificacion_mutex_ready);
+		log_info(logger,"ahora va a ejecutar tripulante %d",tripulante->id);
+
+		int i = 0;
+
+		while(i < 6){
+			sem_post(&tripulante->exec);
+			sleep(1);
+			log_info(logger,"EJECUTAMOS TRIPULANTE %d , tarea %d",tripulante->id, i);
+			i = i + 1;
+
+		}
+
+		if(i>=6){
+			log_info(logger,"Fin de quantum");
+		}
+		else{
+			log_info(logger,"Tripulante %d a COLA DE FIN !!!! .. . . .! !! !!",tripulante->id);
+		}
+
+		sem_post(&exec);
+
+	}
+}
+
 
 void planificar_cola_new(){
 	log_info(logger,"PLANIFICANDOO COLA NEW");
@@ -90,34 +126,31 @@ void planificar_cola_new(){
 		}
 }
 
+void hilo_cola_exec(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) planificar_cola_exec,NULL);
+
+}
+
 void hilo_cola_new(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloColaReady , &attr1,(void*) planificar_cola_new,NULL);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) planificar_cola_new,NULL);
 
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = 0;
-	datosHilo->hiloAtendedor = hiloColaReady;
-
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
 }
 
 void hilo_cola_ready(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloColaReady , &attr1,(void*) planificar_cola_ready,NULL);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) planificar_cola_ready,NULL);
 
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = 0;
-	datosHilo->hiloAtendedor = hiloColaReady;
-
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
 }
 
 void hilo_mostrar_tripulantes(){

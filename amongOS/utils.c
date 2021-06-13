@@ -30,7 +30,10 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	sem_init(&cola_new, 0, 0);
 	sem_init(&cola_ready, 0, 0);
-	sem_init(&exec, 0, 2);
+	sem_init(&cola_exec, 0, 0);
+	sem_init(&cola_bloq, 0, 0);
+
+	sem_init(&exec, 0, 1);
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
@@ -40,6 +43,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	planificacion_cola_new = queue_create();
 	planificacion_cola_ready = queue_create();
+	planificacion_cola_exec = queue_create();
 
 	hilosParaConexiones = list_create();
 

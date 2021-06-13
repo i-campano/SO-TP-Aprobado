@@ -74,6 +74,8 @@ pthread_t hiloColaNew;
 //SEMAFORO CONSUMIDOR PRODUCTOR
 sem_t cola_ready;
 sem_t cola_new;
+sem_t cola_exec;
+sem_t cola_bloq;
 
 //MUTEX PARA COLAS
 pthread_mutex_t planificacion_mutex_new;

@@ -42,6 +42,8 @@ typedef struct {
 	sem_t ready;
 	sem_t new;
 	sem_t exec;
+	int instrucciones_ejecutadas;
+	pthread_mutex_t ejecutadas;
 }t_tripulante;
 
 
