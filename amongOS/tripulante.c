@@ -1,17 +1,17 @@
 #include "tripulante.h"
 
-void *labor_tripulante_new(void * id_tripulante){
+void *labor_tripulante_new(void * trip){
 	//¿ estructura estatica dentro del hilo? --- pensar
 	//add a lista de sem ??
 
-	int id = *(int*)id_tripulante;
+	t_tripulante * tripulante = (t_tripulante*) trip;
 
-	t_tripulante * tripulante = (t_tripulante*) malloc(sizeof(t_tripulante));
-	tripulante->id = id;
+
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 
+	log_info(logger,"%d ---- %d", tripulante->id,tripulante->patota_id );
 
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
@@ -20,10 +20,10 @@ void *labor_tripulante_new(void * id_tripulante){
 
 	log_info(logger,"AGREGUE A LA COLA DE NEW");
 
-
+	int socketMongo = conectarAServer(ip_mongo, puerto_mongo);
 
 	int socketRam = conectarAServer(ip_miram, puerto_miram);
-	log_info(logger,"tripulante: %d  se conecto con miram...", id);
+	log_info(logger,"tripulante: %d  se conecto con miram...", tripulante->id);
 
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 
@@ -32,59 +32,55 @@ void *labor_tripulante_new(void * id_tripulante){
 
 	if(creado==TRIPULANTE_CREADO){
 
-		log_info(logger,"TRIPULANTE CREADO, id: %d", id);
+		log_info(logger,"TRIPULANTE CREADO, id: %d", tripulante->id);
 	}
+	sem_wait(&tripulante->ready);
 
-
-	//while(tengaTareas)
+	sem_wait(&exec);
+	while(tripulante->cantidad_tareas>0){
 
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
-		sem_wait(&tripulante->ready);
-		//sem_wait(&ready)
 
 		sendDeNotificacion(socketRam, PEDIR_TAREA);
 
-		sendDeNotificacion(socketRam,(uint32_t)id);
-		log_info(logger,"tripulante: %d pidio tareas a miram...", id);
+		sendDeNotificacion(socketRam,(uint32_t)tripulante->id);
+		log_info(logger,"tripulante: %d pidio tareas a miram...", tripulante->id);
 
 		uint32_t OPERACION = recvDeNotificacion(socketRam);
-
-		//sem_wait(&EXEC)
 
 		log_info(logger,"OPERACION %d",OPERACION);
 		char * tarea = string_new();
 		if(OPERACION==ENVIAR_TAREA){
 			tarea = recibirString(socketRam);
 			if(tarea!=NULL){
-
-				log_info(logger,"tripulante: %d recibio tarea: %s de miram...", id,tarea);
+				tripulante->cantidad_tareas--;
+				log_info(logger,"tripulante: %d recibio tarea: %s de miram...tareas restantes: %d", tripulante->id,tarea,tripulante->cantidad_tareas);
 			}else{
 				//break while - cola fin
 			}
 
 		}
-		sem_wait(&cola_ready);
-		sem_wait(&exec);
-		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
-		int socketMongo = conectarAServer(ip_mongo, puerto_mongo);
+		log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
 
 		char* claveNueva = string_new();
 
 		string_append(&claveNueva,tarea);
 
-		enviar_tarea_a_ejecutar(socketMongo, id, claveNueva);
+		enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
 
 
 		recvDeNotificacion(socketMongo);
 		sleep(2);
-		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",id);
-		sem_post(&exec);
+		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
 
 
-	//fin WHILE(tengaTareas)
+
+	}
+	sem_wait(&cola_ready);
+	sem_post(&exec);
 }
 
 void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {

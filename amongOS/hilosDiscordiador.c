@@ -239,20 +239,20 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-void crearHiloTripulante(int * id_tripulante){
+void crearHiloTripulante(t_tripulante * tripulante){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);
 	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	pthread_t hiloTripulante = malloc(sizeof(pthread_t));
-	pthread_create(&hiloTripulante , &attr2,(void*) labor_tripulante_new,(void*) id_tripulante);
+	pthread_t hiloTripulante = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hiloTripulante , &attr2,(void*) labor_tripulante_new,(void*) tripulante);
 
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = socket;
-	datosHilo->hiloAtendedor = hiloTripulante;
-
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
+//	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+//	datosHilo->socket = socket;
+//	datosHilo->hiloAtendedor = hiloTripulante;
+//
+//	pthread_mutex_lock(&mutexHilos);
+//	list_add(hilosParaConexiones, datosHilo);
+//	pthread_mutex_unlock(&mutexHilos);
 }
 
 void planificar(){

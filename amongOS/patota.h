@@ -24,6 +24,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "utils.h"
+#include "tripulante.h"
+#include "socket.h"
+#include "hilosDiscordiador.h"
 
 
 void crear_patota();

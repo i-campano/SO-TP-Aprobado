@@ -35,6 +35,7 @@ int tripulantes_creados;
 typedef struct {
 	int id;
 	int patota_id;
+	int cantidad_tareas;
 	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
 	pthread_t hilo_asociado;
 	int socket;
@@ -42,7 +43,6 @@ typedef struct {
 	sem_t new;
 	sem_t exec;
 }t_tripulante;
-
 
 
 typedef struct {
@@ -57,7 +57,6 @@ typedef struct {
 void *labor_tripulante_new(void * id_tripulante);
 
 void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva);
-
 
 
 #endif

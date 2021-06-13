@@ -36,6 +36,7 @@
 
 #define CREAR_PATOTA 4
 
+int conectarAServer(char *ip, int puerto);
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

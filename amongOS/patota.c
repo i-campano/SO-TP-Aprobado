@@ -5,7 +5,7 @@
  *      Author: utnso
  */
 #include "patota.h"
-#include "tripulante.h"
+
 
 
 void crear_patota(){
@@ -54,9 +54,13 @@ void crear_patota(){
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		int * id = malloc(sizeof(int));
+		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
+		_tripulante->id = *id;
+		_tripulante->patota_id = patotaId;
+		_tripulante->cantidad_tareas = 5;
 		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
-		crearHiloTripulante(id);
+		crearHiloTripulante(_tripulante);
 	}
 
 
