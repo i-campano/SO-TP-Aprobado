@@ -4,7 +4,7 @@ void *labor_tripulante_new(void * id_tripulante){
 	//¿ estructura estatica dentro del hilo? --- pensar
 	//add a lista de sem ??
 
-	int id = *(int*)id_tripulante;
+	int id = *(int*) id_tripulante;
 
 	t_tripulante * tripulante = (t_tripulante*) malloc(sizeof(t_tripulante));
 	tripulante->id = id;
