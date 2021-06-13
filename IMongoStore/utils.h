@@ -14,12 +14,19 @@
 #include<unistd.h>
 #include<netdb.h>
 #include<commons/log.h>
+#include<commons/config.h>
 #include<commons/collections/list.h>
 #include<string.h>
 #include "socket.h"
 
-#define IP "127.0.0.1"
-#define PUERTO "5001"
+
+char* conf_PUNTO_MONTAJE;
+uint32_t conf_PUERTO_IMONGO;
+uint32_t conf_TIEMPO_SICRONIZACION;
+char* conf_POSICIONES_SABOTAJE;
+uint32_t conf_PUERTO_DISCORDIADOR;
+char* conf_IP_DISCORDIADOR;
+
 
 int server_fd;
 
@@ -32,5 +39,11 @@ typedef enum
 t_log* logger;
 
 void *atenderNotificacion(void * paqueteSocket);
+
+void iniciar_configuracion();
+
+void iniciar_logger();
+
+t_config* leer_config();
 
 #endif /* CONEXIONES_H_ */

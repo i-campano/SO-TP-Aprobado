@@ -6,7 +6,11 @@
 int main(void)
 {
 
+	//Inicializacion del loger
 	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
+
+	//Inicializacion del archivo de Configuracion
+	iniciar_configuracion();
 
 	server_fd = iniciarServidor(5003);
 

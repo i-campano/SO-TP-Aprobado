@@ -72,11 +72,34 @@ void *atenderNotificacion(void * paqueteSocket){
 	return 0;
 }
 
-void ejecutar_tarea(char * tarea){
-	if(strcmp(tarea,"GENERAR_OXIGENO 12;2;3;5")==0){
+void ejecutar_tarea(char * tarea)
+{
+	if(strcmp(tarea,"GENERAR_OXIGENO 12;2;3;5")==0)
+	{
 		log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO:");
 		log_info(logger,"OOOOOOOOOOO");
 	}
 
+}
+
+void iniciar_configuracion(){
+	t_config* config = leer_config();
+
+	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
+	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
+	conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
+	conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
+	conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
+	conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
+
+}
+
+t_config* leer_config() {
+	t_config *config;
+	if((config = config_create("IMongoStore.config"))==NULL) {
+		printf("No se pudo leer de la config. Revise. \n");
+		exit(1);
+	}
+	return config;
 }
 
