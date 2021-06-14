@@ -74,10 +74,12 @@ void *atenderNotificacion(void * paqueteSocket){
 
 void ejecutar_tarea(char * tarea)
 {
+
 	if(strcmp(tarea,"GENERAR_OXIGENO 12;2;3;5")==0)
 	{
 		log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO:");
 		log_info(logger,"OOOOOOOOOOO");
+
 	}
 
 }
@@ -87,10 +89,13 @@ void iniciar_configuracion(){
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
 	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
-	conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
-	conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
-	conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
-	conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
+	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
+	//conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
+	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
+	//conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
+	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
+	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
+	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
 
 }
 
@@ -102,4 +107,39 @@ t_config* leer_config() {
 	}
 	return config;
 }
+
+////////FUNCIONES DE TAREAS/////////
+void generarOxigeno(uint32_t cantidad)
+{
+	//definiciones de variables
+	char* path_oxigeno = string_new();
+	char* cadenaOxigenos;
+	FILE* fd_oxigeno;
+
+	//asigno el path
+	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+
+	//escribe el archivo
+	log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
+	fd_oxigeno = txt_open_for_append(path_oxigeno);
+
+	if (fd_oxigeno == NULL)
+	{
+		//TODO Manejo del error
+	}
+
+	//Escribe la cantidad  OXIGENO SOLICITADA
+	cadenaOxigenos = string_repeat('O', cantidad);
+	txt_write_in_file(fd_oxigeno, cadenaOxigenos);
+
+	//cierra el archivo
+	txt_close_file(fd_oxigeno);
+}
+/*void consumirOxigeno(uint32_t cantidad);
+void generarComida(uint32_t cantidad);
+void consumirComida(uint32_t cantidad);
+void generarBasura(uint32_t cantidad);
+void descartarBasura();*/
+////////FUNCIONES DE TAREAS/////////
 

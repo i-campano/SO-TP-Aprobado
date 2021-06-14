@@ -16,6 +16,8 @@
 #include<commons/log.h>
 #include<commons/config.h>
 #include<commons/collections/list.h>
+#include<commons/txt.h>
+#include<commons/string.h>
 #include<string.h>
 #include "socket.h"
 
@@ -26,6 +28,9 @@ uint32_t conf_TIEMPO_SICRONIZACION;
 char* conf_POSICIONES_SABOTAJE;
 uint32_t conf_PUERTO_DISCORDIADOR;
 char* conf_IP_DISCORDIADOR;
+char* conf_ARCHIVO_OXIGENO_NOMBRE;
+char* conf_ARCHIVO_COMIDA_NOMBRE;
+char* conf_ARCHIVO_BASURA_NOMBRE;
 
 
 int server_fd;
@@ -45,5 +50,14 @@ void iniciar_configuracion();
 void iniciar_logger();
 
 t_config* leer_config();
+
+////////FUNCIONES DE TAREAS/////////
+void generarOxigeno(uint32_t cantidad);
+void consumirOxigeno(uint32_t cantidad);
+void generarComida(uint32_t cantidad);
+void consumirComida(uint32_t cantidad);
+void generarBasura(uint32_t cantidad);
+void descartarBasura();
+////////FUNCIONES DE TAREAS/////////
 
 #endif /* CONEXIONES_H_ */
