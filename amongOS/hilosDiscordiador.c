@@ -11,7 +11,7 @@ void leer_consola() {
 	log_info(logger,"INGRESE UN COMANDO: ");
 	tripulantes_creados = 0;
 	char* leido = readline(">");
-	while(strncmp(leido, "", 1) != 0) {
+	while(strncmp(leido, "TERM", 4) != 0) {
 		log_info(logger, leido);
 
 		if(strncmp(leido, "DETENER", 1) == 0){
@@ -30,8 +30,8 @@ void leer_consola() {
 			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
 			sem_post(&detenerReaunudarEjecucion);
 		}
-		else if(strncmp(leido, "XMOSTRAR_NEW", 5) == 0){
-			log_info(logger,"TRIPULANTES EN NEW!!!: ");
+		else if(strncmp(leido, "LISTAR_TRIP", 1) == 0){
+			log_info(logger,"LISTA TRIPULANTES----------------------: ");
 			hilo_mostrar_tripulantes();
 		}
 		else if(strncmp(leido, "XFINNN", 3) == 0){
@@ -94,7 +94,11 @@ void planificar_cola_bloq(){
 		sem_post(&detenerReaunudarEjecucion);
 
 		sem_wait(&cola_bloq);
+		log_info(logger,"UN TRIPULANTE ENTRO A BLOQUEADO");
+		sleep(5);
 
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
@@ -128,7 +132,7 @@ void planificar_cola_exec(){
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
-		log_info(logger,"ahora va a ejecutar tripulante %d",tripulante->id);
+		log_info(logger,"POR PASAR DE READY A EXEC tripulante %d",tripulante->id);
 
 		//Usar quantum de config
 
@@ -149,8 +153,11 @@ void replanificar(){
 
 		sem_wait(&colaEjecutados);
 
+		log_info(logger,"DISPATCHER");
+		sleep(2);
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 		pthread_mutex_lock(&mutex_cola_ejecutados);
-
 		tripulante = queue_pop(cola_ejecutados);
 
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
@@ -266,15 +273,10 @@ void hilo_mostrar_tripulantes(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloColaReady , &attr1,(void*) mostrar_tripulantes_new,NULL);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) mostrar_tripulantes_new,NULL);
 
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = 0;
-	datosHilo->hiloAtendedor = hiloColaReady;
 
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
 }
 
 void hilo_mostrar_tripulantes_fin(){
@@ -293,11 +295,29 @@ void hilo_mostrar_tripulantes_fin(){
 }
 
 void mostrar_tripulantes_new(){
-	sem_wait(&cola_new);
+
 	pthread_mutex_lock(&planificacion_mutex_new);
 	mostrar_lista_tripulantes_new();
 	pthread_mutex_unlock(&planificacion_mutex_new);
-	sem_post(&cola_new);
+
+	pthread_mutex_lock(&planificacion_mutex_ready);
+	mostrar_lista_tripulantes_ready();
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+
+	pthread_mutex_lock(&planificacion_mutex_bloq);
+	mostrar_lista_tripulantes_bloq();
+	pthread_mutex_unlock(&planificacion_mutex_bloq);
+
+	pthread_mutex_lock(&mutex_cola_ejecutados);
+	mostrar_lista_tripulantes_exec();
+	pthread_mutex_unlock(&mutex_cola_ejecutados);
+
+	pthread_mutex_lock(&planificacion_mutex_fin);
+	mostrar_lista_tripulantes_fin();
+	pthread_mutex_unlock(&planificacion_mutex_fin);
+
+
+
 }
 
 void mostrar_tripulantes_fin(){
@@ -320,6 +340,28 @@ void mostrar_lista_tripulantes_fin(){
 	}
 	list_iterate(planificacion_cola_fin->elements, (void*) mostrar_patota);
 }
+
+void mostrar_lista_tripulantes_bloq(){
+	void mostrar_patota(t_tripulante* tripulante){
+		log_info(logger,".........MOSTRANDO TRIPULANTE EN BLOQ........# N:, id tripulante %d", tripulante->id);
+	}
+	list_iterate(planificacion_cola_bloq->elements, (void*) mostrar_patota);
+}
+
+void mostrar_lista_tripulantes_ready(){
+	void mostrar_patota(t_tripulante* tripulante){
+		log_info(logger,".........MOSTRANDO TRIPULANTE EN READY........# N:, id tripulante %d", tripulante->id);
+	}
+	list_iterate(planificacion_cola_ready->elements, (void*) mostrar_patota);
+}
+
+void mostrar_lista_tripulantes_exec(){
+	void mostrar_patota(t_tripulante* tripulante){
+		log_info(logger,".........MOSTRANDO TRIPULANTE EN EXEC........# N:, id tripulante %d", tripulante->id);
+	}
+	list_iterate(cola_ejecutados->elements, (void*) mostrar_patota);
+}
+
 
 void atender_imongo_store(){
 	uint32_t notificacion;

@@ -85,7 +85,7 @@ void *labor_tripulante_new(void * trip){
 		enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
 		recvDeNotificacion(socketMongo);
 		sleep(2);
-		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
+
 
 		rafaga++;
 
@@ -121,6 +121,8 @@ void *labor_tripulante_new(void * trip){
 
 			sem_wait(&tripulante->exec);
 		}
+
+		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
 
 	}
 	tripulante->estado = 'F';
