@@ -18,11 +18,16 @@
 #include <semaphore.h>
 
 
-char* ip_mongo;
-char* ip_miram;
-int puerto_mongo;
-int puerto_miram;
+char* IP_MONGO;
+char* IP_MIRAM;
+int PUERTO_MONGO;
+int PUERTO_MIRAM;
 char* valor;
+
+int GRADO_MULTIPROGRAMACION;
+int QUANTUM;
+char * ALGORITMO;
+
 
 
 

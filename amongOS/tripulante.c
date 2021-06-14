@@ -27,9 +27,9 @@ void *labor_tripulante_new(void * trip){
 
 	log_info(logger,"AGREGUE A LA COLA DE NEW");
 
-	int socketMongo = conectarAServer(ip_mongo, puerto_mongo);
+	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 
-	int socketRam = conectarAServer(ip_miram, puerto_miram);
+	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 	log_info(logger,"tripulante: %d  se conecto con miram...", tripulante->id);
 
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
@@ -91,7 +91,7 @@ void *labor_tripulante_new(void * trip){
 
 		rafaga++;
 
-		if(rafaga>=2){
+		if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
 			tripulante->estado = 'R';
 			pthread_mutex_lock(&mutex_cola_ejecutados);
 			queue_push(cola_ejecutados,tripulante);

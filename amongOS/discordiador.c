@@ -3,17 +3,18 @@
 int main(void) {
 	iniciar_logger();
 	//Inicia las colas de planificacion
-	iniciarEstructurasAdministrativasPlanificador();
 
 	iniciar_configuracion();
 
-	socketServerMiRam = conectarAServer(ip_miram, puerto_miram);
+	iniciarEstructurasAdministrativasPlanificador();
+
+	socketServerMiRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
 	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
-	socketServerIMongoStore = conectarAServer(ip_mongo, puerto_mongo);
+	socketServerIMongoStore = conectarAServer(IP_MONGO, PUERTO_MONGO);
 
 	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
 

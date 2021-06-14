@@ -11,13 +11,19 @@
 void iniciar_configuracion(){
 	t_config* config = leer_config();
 
-	ip_mongo = config_get_string_value(config, "IP_MONGO");
+	IP_MONGO = config_get_string_value(config, "IP_MONGO");
 
-	ip_miram = config_get_string_value(config, "IP_MIRAM");
+	IP_MIRAM = config_get_string_value(config, "IP_MIRAM");
 
-	puerto_mongo = config_get_int_value(config,"PUERTO_MONGO_STORE");
+	PUERTO_MONGO = config_get_int_value(config,"PUERTO_MONGO_STORE");
 
-	puerto_miram = config_get_int_value(config,"PUERTO_MIRAM");
+	PUERTO_MIRAM = config_get_int_value(config,"PUERTO_MIRAM");
+
+	GRADO_MULTIPROGRAMACION = config_get_int_value(config,"GRADO_MULTIPROGRAMACION");
+
+	ALGORITMO = config_get_string_value(config,"ALGORITMO");
+
+	QUANTUM = config_get_int_value(config,"QUANTUM");
 }
 
 void iniciarEstructurasAdministrativasPlanificador(){
@@ -36,7 +42,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	sem_init(&colaEjecutados, 0, 0);
 
-	sem_init(&exec, 0, 2);
+	sem_init(&exec, 0, GRADO_MULTIPROGRAMACION);
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
