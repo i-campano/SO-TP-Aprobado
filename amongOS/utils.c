@@ -36,7 +36,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	sem_init(&colaEjecutados, 0, 0);
 
-	sem_init(&exec, 0, 1);
+	sem_init(&exec, 0, 2);
 
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);

@@ -69,7 +69,7 @@ void *labor_tripulante_new(void * trip){
 
 
 	char* claveNueva = string_new();
-
+	int rafaga = 0;
 	string_append(&claveNueva,tarea);
 	sem_wait(&tripulante->exec);
 	while(tripulante->instrucciones_ejecutadas<tripulante->cantidad_tareas){
@@ -89,6 +89,18 @@ void *labor_tripulante_new(void * trip){
 		sleep(2);
 		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
 
+		rafaga++;
+
+		if(rafaga>=2){
+			tripulante->estado = 'R';
+			pthread_mutex_lock(&mutex_cola_ejecutados);
+			queue_push(cola_ejecutados,tripulante);
+			pthread_mutex_unlock(&mutex_cola_ejecutados);
+			sem_post(&colaEjecutados);
+			sem_post(&exec);
+			sem_wait(&tripulante->exec);
+			rafaga = 0;
+		}
 
 	}
 	tripulante->estado = 'F';
@@ -97,10 +109,9 @@ void *labor_tripulante_new(void * trip){
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
 	sem_post(&colaEjecutados);
 	sem_post(&exec);
-
-	while(1){}
-
 	log_info(logger, "FIN TAREAS TRIPULANTE %d", tripulante->id);
+
+
 }
 
 void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {

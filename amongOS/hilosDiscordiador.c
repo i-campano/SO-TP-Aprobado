@@ -113,18 +113,17 @@ void planificar_cola_exec(){
 
 
 void replanificar(){
-
 	t_tripulante * tripulante;
 	while(1){
 
 		sem_wait(&colaEjecutados);
-		//MUTEX LOCK -->
-		log_info(logger,"despues del wait");
+
 		pthread_mutex_lock(&mutex_cola_ejecutados);
-		log_info(logger,"antes del pop");
+
 		tripulante = queue_pop(cola_ejecutados);
-		log_info(logger,"despues del pop");
+
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
+
 		log_info(logger,"TRIPULANTE REPLANIFICADO... %d , estado: %c", tripulante->id, tripulante->estado);
 		switch(tripulante->estado) {
 			case 'F':{
@@ -142,7 +141,9 @@ void replanificar(){
 				//MUTEX COLA BLOQ UNLO
 			}
 			case 'R':{
+				pthread_mutex_lock(&planificacion_mutex_ready);
 				queue_push(planificacion_cola_ready,tripulante);
+				pthread_mutex_unlock(&planificacion_mutex_ready);
 				sem_post(&cola_ready);
 				break;
 			}
