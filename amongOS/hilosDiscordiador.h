@@ -26,9 +26,12 @@ void planificar_cola_new();
 void planificar_cola_ready();
 void replanificar();
 
+
 //
 void mostrar_lista_tripulantes();
 void mostrar_tripulantes_new();
+void mostrar_tripulantes_fin();
+
 
 
 //-------------------------------
@@ -42,5 +45,7 @@ void crearHiloTripulante(t_tripulante * tripulante);
 void hilo_cola_ready();
 void hilo_cola_new();
 void hilo_cola_replanificar();
+
+void hilo_mostrar_tripulantes_fin();
 
 #endif /* HILOSDISCORDIADOR_H_ */

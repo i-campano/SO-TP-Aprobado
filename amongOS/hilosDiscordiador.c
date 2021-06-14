@@ -34,6 +34,10 @@ void leer_consola() {
 			log_info(logger,"TRIPULANTES EN NEW!!!: ");
 			hilo_mostrar_tripulantes();
 		}
+		else if(strncmp(leido, "XFINNN", 3) == 0){
+			log_info(logger,"TRIPULANTES EN NEW!!!: ");
+			hilo_mostrar_tripulantes_fin();
+		}
 		else if(strncmp(leido, "INICIAR", 1) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
@@ -50,7 +54,7 @@ void leer_consola() {
 
 void planificar_tripulantes(){
 	sem_wait(&iniciar_planificacion);
-	hilo_cola_new();
+	//hilo_cola_new();
 	hilo_cola_ready();
 	hilo_cola_exec();
 	hilo_cola_replanificar();
@@ -235,6 +239,21 @@ void hilo_mostrar_tripulantes(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void hilo_mostrar_tripulantes_fin(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloColaReady , &attr1,(void*) mostrar_tripulantes_fin,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloColaReady;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
 void mostrar_tripulantes_new(){
 	sem_wait(&cola_new);
 	pthread_mutex_lock(&planificacion_mutex_new);
@@ -243,11 +262,25 @@ void mostrar_tripulantes_new(){
 	sem_post(&cola_new);
 }
 
+void mostrar_tripulantes_fin(){
+	pthread_mutex_lock(&planificacion_mutex_fin);
+	mostrar_lista_tripulantes_fin();
+	pthread_mutex_unlock(&planificacion_mutex_fin);
+}
+
+
 void mostrar_lista_tripulantes(){
 	void mostrar_patota(t_tripulante* tripulante){
 		log_info(logger,".........MOSTRANDO TRIPULANTE EN NEW........# N:, id tripulante %d", tripulante->id);
 	}
 	list_iterate(planificacion_cola_new->elements, (void*) mostrar_patota);
+}
+
+void mostrar_lista_tripulantes_fin(){
+	void mostrar_patota(t_tripulante* tripulante){
+		log_info(logger,".........MOSTRANDO TRIPULANTE EN FIN........# N:, id tripulante %d", tripulante->id);
+	}
+	list_iterate(planificacion_cola_fin->elements, (void*) mostrar_patota);
 }
 
 void atender_imongo_store(){
