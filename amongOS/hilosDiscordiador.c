@@ -95,7 +95,7 @@ void planificar_cola_bloq(){
 
 		sem_wait(&cola_bloq);
 		log_info(logger,"UN TRIPULANTE ENTRO A BLOQUEADO");
-		sleep(CICLO_CPU);
+		sleep(CICLO_IO);
 
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
