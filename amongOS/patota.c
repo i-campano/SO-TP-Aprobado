@@ -58,7 +58,7 @@ void crear_patota(){
 		*id = tripulantes_creados;
 		_tripulante->id = *id;
 		_tripulante->patota_id = patotaId;
-		_tripulante->cantidad_tareas = 5;
+		_tripulante->cantidad_tareas = 3;
 		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
 		crearHiloTripulante(_tripulante);
 	}

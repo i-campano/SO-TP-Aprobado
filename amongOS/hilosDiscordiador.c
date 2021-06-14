@@ -73,7 +73,7 @@ void planificar_cola_ready(){
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
 		log_info(logger,"saco de new tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
-		sleep(3);
+		sleep(CICLO_CPU);
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		sem_wait(&tripulante->ready);
 		queue_push(planificacion_cola_ready,tripulante);
@@ -95,7 +95,7 @@ void planificar_cola_bloq(){
 
 		sem_wait(&cola_bloq);
 		log_info(logger,"UN TRIPULANTE ENTRO A BLOQUEADO");
-		sleep(5);
+		sleep(CICLO_CPU);
 
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
@@ -106,7 +106,7 @@ void planificar_cola_bloq(){
 		log_info(logger,"PLANIFICANDOO COLA BLOQ");
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
 
-		sleep(2);
+		sleep(CICLO_CPU);
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		sem_wait(&tripulante->ready);
@@ -128,10 +128,19 @@ void planificar_cola_exec(){
 		sem_post(&detenerReaunudarEjecucion);
 		sem_wait(&cola_ready);
 		sem_wait(&exec);
-		sleep(2);
+		sleep(CICLO_CPU);
+
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
+
+
+		sem_wait(&cola_exec);
+		pthread_mutex_lock(&planificacion_mutex_exec);
+		//queue_push(planificacion_cola_ready,tripulante);
+		list_add(lista_exec,tripulante);
+		pthread_mutex_unlock(&planificacion_mutex_exec);
+
 		log_info(logger,"POR PASAR DE READY A EXEC tripulante %d",tripulante->id);
 
 		//Usar quantum de config
@@ -145,6 +154,23 @@ void planificar_cola_exec(){
 }
 
 
+void sacar_de_exec(int id_tripulante){
+
+	bool encontrarTripulante(t_tripulante * tripulante){
+		return tripulante->id == id_tripulante;
+	}
+	pthread_mutex_lock(&planificacion_mutex_exec);
+	t_tripulante * data = (t_tripulante*) list_remove_by_condition(lista_exec,(void*) encontrarTripulante);
+	pthread_mutex_unlock(&planificacion_mutex_exec);
+
+	if(data == NULL){
+		log_error(logger, "No se encontro el tripulante %d", id_tripulante);
+	} else{
+		log_warning(logger, "remuevo tripulante de exec = %d", id_tripulante);
+		log_warning(logger, "Socket cerro la conexion!");
+
+	}
+}
 
 
 void replanificar(){
@@ -154,20 +180,27 @@ void replanificar(){
 		sem_wait(&colaEjecutados);
 
 		log_info(logger,"DISPATCHER");
-		sleep(2);
+		sleep(CICLO_CPU);
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
+
 		pthread_mutex_lock(&mutex_cola_ejecutados);
 		tripulante = queue_pop(cola_ejecutados);
-
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
+
+		sacar_de_exec(tripulante->id);
+		sem_post(&cola_exec);
+
 
 		log_info(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
 		switch(tripulante->estado) {
 			case 'F':{
 				//MUTEX COLA FIN LOCK
+				pthread_mutex_lock(&planificacion_mutex_fin);
 				queue_push(planificacion_cola_fin,tripulante);
+				pthread_mutex_unlock(&planificacion_mutex_fin);
 				sem_post(&cola_fin);
+				log_info(logger,"AGREGO TRIPULANTE %d A COLA FIN",tripulante->id);
 				//MUTEX COLA FIN UNLOCK
 				break;
 			}
@@ -215,7 +248,7 @@ void planif_cola_exec(){
 void planificar_cola_new(){
 	log_info(logger,"PLANIFICANDOO COLA NEW");
 		while(1){
-			sleep(10);
+			sleep(CICLO_CPU);
 			pthread_mutex_lock(&planificacion_mutex_new);
 			mostrar_lista_tripulantes_new();
 			pthread_mutex_unlock(&planificacion_mutex_new);
@@ -359,7 +392,7 @@ void mostrar_lista_tripulantes_exec(){
 	void mostrar_patota(t_tripulante* tripulante){
 		log_info(logger,".........MOSTRANDO TRIPULANTE EN EXEC........# N:, id tripulante %d", tripulante->id);
 	}
-	list_iterate(cola_ejecutados->elements, (void*) mostrar_patota);
+	list_iterate(lista_exec, (void*) mostrar_patota);
 }
 
 

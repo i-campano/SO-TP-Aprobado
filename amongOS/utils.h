@@ -29,6 +29,10 @@ int QUANTUM;
 char * ALGORITMO;
 
 
+int CICLO_IO;
+int CICLO_CPU;
+
+
 
 
 
@@ -66,6 +70,8 @@ t_queue* planificacion_cola_ready;
 t_queue* planificacion_cola_exec;
 t_queue* planificacion_cola_bloq;
 t_queue* planificacion_cola_fin;
+
+t_list * lista_exec;
 
 t_queue* cola_ejecutados;
 

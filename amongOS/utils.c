@@ -24,6 +24,10 @@ void iniciar_configuracion(){
 	ALGORITMO = config_get_string_value(config,"ALGORITMO");
 
 	QUANTUM = config_get_int_value(config,"QUANTUM");
+
+	CICLO_CPU = config_get_int_value(config,"CICLO_CPU");
+
+	CICLO_IO = config_get_int_value(config,"CICLO_IO");
 }
 
 void iniciarEstructurasAdministrativasPlanificador(){
@@ -36,7 +40,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	sem_init(&cola_new, 0, 0);
 	sem_init(&cola_ready, 0, 0);
-	sem_init(&cola_exec, 0, 0);
+	sem_init(&cola_exec, 0, GRADO_MULTIPROGRAMACION);
 	sem_init(&cola_bloq, 0, 0);
 	sem_init(&cola_fin,0,0);
 
@@ -61,6 +65,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	cola_ejecutados = queue_create();
 
+	lista_exec = list_create();
 	hilosParaConexiones = list_create();
 
 	pthread_mutex_init(&mutexHilos,NULL);

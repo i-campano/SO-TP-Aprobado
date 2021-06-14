@@ -84,13 +84,14 @@ void *labor_tripulante_new(void * trip){
 
 		enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
 		recvDeNotificacion(socketMongo);
-		sleep(2);
+		sleep(CICLO_CPU);
 
 
 		rafaga++;
 
 		if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
 			tripulante->estado = 'R';
+
 			pthread_mutex_lock(&mutex_cola_ejecutados);
 			queue_push(cola_ejecutados,tripulante);
 			pthread_mutex_unlock(&mutex_cola_ejecutados);
@@ -104,8 +105,9 @@ void *labor_tripulante_new(void * trip){
 		// TODO: PENSAR---		SI ENTRA A BLOQUEADO RESETEAMOS LA RAFAGA PARA EL RR
 
 		//La 'tarea 3' es de entrada salida
-		if(tripulante->instrucciones_ejecutadas == 3){
+		if(tripulante->instrucciones_ejecutadas == 2){
 			tripulante->estado = 'B';
+
 			pthread_mutex_lock(&mutex_cola_ejecutados);
 			queue_push(cola_ejecutados,tripulante);
 			pthread_mutex_unlock(&mutex_cola_ejecutados);
@@ -115,7 +117,7 @@ void *labor_tripulante_new(void * trip){
 			//Solo hacemos un wait y despues retoma la ejecucion. No va al final de ready. Pensarlo un poco mas.
 			log_info(logger,"TRIPULANTE %d BLOQUEADO - TAREA: %d", tripulante->id, tripulante->instrucciones_ejecutadas);
 			sem_wait(&tripulante->bloq);
-			sleep(2);
+			sleep(CICLO_CPU);
 			log_info(logger,"TRIPULANTE %d PASA DE BLOQUEADO A READY",tripulante->id);
 			sem_post(&tripulante->ready);
 
@@ -127,11 +129,14 @@ void *labor_tripulante_new(void * trip){
 	}
 	tripulante->estado = 'F';
 	pthread_mutex_lock(&mutex_cola_ejecutados);
+//	TODO PENSAR SEM COLA EJECUTADOS
 	queue_push(cola_ejecutados,tripulante);
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
 	sem_post(&colaEjecutados);
 	sem_post(&exec);
 	log_info(logger, "FIN TAREAS TRIPULANTE %d", tripulante->id);
+
+	while(1){}
 
 
 }
