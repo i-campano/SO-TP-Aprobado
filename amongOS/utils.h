@@ -60,7 +60,9 @@ t_queue* planificacion_cola_new;
 t_queue* planificacion_cola_ready;
 t_queue* planificacion_cola_exec;
 t_queue* planificacion_cola_bloq;
-t_queue* planificcion_cola_fin;
+t_queue* planificacion_cola_fin;
+
+t_queue* cola_ejecutados;
 
 //HILOS
 pthread_t hiloConsola;
@@ -76,13 +78,16 @@ sem_t cola_ready;
 sem_t cola_new;
 sem_t cola_exec;
 sem_t cola_bloq;
+sem_t cola_fin;
 
 //MUTEX PARA COLAS
 pthread_mutex_t planificacion_mutex_new;
 pthread_mutex_t planificacion_mutex_ready;
 pthread_mutex_t planificacion_mutex_exec;
 pthread_mutex_t planificacion_mutex_bloq;
-pthread_mutex_t planificcion_mutex_fin;
+pthread_mutex_t planificacion_mutex_fin;
+
+pthread_mutex_t mutex_cola_ejecutados;
 
 //Semaforos
 pthread_mutex_t mutexHilos;
@@ -93,6 +98,7 @@ sem_t detenerReaunudarEjecucion;
 
 //sem de tipo cola, N = grado multiprogramacion
 sem_t exec;
+sem_t colaEjecutados;
 
 
 sem_t activar_actualizaciones_mongo;

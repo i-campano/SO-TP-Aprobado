@@ -44,6 +44,8 @@ typedef struct {
 	sem_t exec;
 	int instrucciones_ejecutadas;
 	pthread_mutex_t ejecutadas;
+	int fin;
+	char estado;
 }t_tripulante;
 
 

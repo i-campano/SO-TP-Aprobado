@@ -50,9 +50,10 @@ void leer_consola() {
 
 void planificar_tripulantes(){
 	sem_wait(&iniciar_planificacion);
-
+	hilo_cola_new();
 	hilo_cola_ready();
 	hilo_cola_exec();
+	hilo_cola_replanificar();
 }
 
 void planificar_cola_ready(){
@@ -81,6 +82,10 @@ void planificar_cola_ready(){
 	}
 }
 
+
+
+
+
 void planificar_cola_exec(){
 	while(1){
 		sem_wait(&detenerReaunudarEjecucion);
@@ -93,24 +98,74 @@ void planificar_cola_exec(){
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 		log_info(logger,"ahora va a ejecutar tripulante %d",tripulante->id);
 
-		int i = 0;
 
-		while(i < 6){
-			sem_post(&tripulante->exec);
-			sleep(1);
-			log_info(logger,"EJECUTAMOS TRIPULANTE %d , tarea %d",tripulante->id, i);
-			i = i + 1;
+		//Usar quantum de config
+
+		//Necesito otra condicion para salir del while cuando el tripulante termina
+
+		sem_post(&tripulante->exec);
+
+
+	}
+}
+
+
+
+
+void replanificar(){
+
+	t_tripulante * tripulante;
+	while(1){
+
+		sem_wait(&colaEjecutados);
+		//MUTEX LOCK -->
+		log_info(logger,"despues del wait");
+		pthread_mutex_lock(&mutex_cola_ejecutados);
+		log_info(logger,"antes del pop");
+		tripulante = queue_pop(cola_ejecutados);
+		log_info(logger,"despues del pop");
+		pthread_mutex_unlock(&mutex_cola_ejecutados);
+		log_info(logger,"TRIPULANTE REPLANIFICADO... %d , estado: %c", tripulante->id, tripulante->estado);
+		switch(tripulante->estado) {
+			case 'F':{
+				//MUTEX COLA FIN LOCK
+				queue_push(planificacion_cola_fin,tripulante);
+				sem_post(&cola_fin);
+				//MUTEX COLA FIN UNLOCK
+				break;
+			}
+			case 'B':{
+				//MUTEX COLA BLOQ LOCK
+				queue_push(planificacion_cola_bloq,tripulante);
+				sem_post(&cola_bloq);
+				break;
+				//MUTEX COLA BLOQ UNLO
+			}
+			case 'R':{
+				queue_push(planificacion_cola_ready,tripulante);
+				sem_post(&cola_ready);
+				break;
+			}
+			default:
+				break;
 
 		}
+	}
+}
 
-		if(i>=6){
-			log_info(logger,"Fin de quantum");
-		}
-		else{
-			log_info(logger,"Tripulante %d a COLA DE FIN !!!! .. . . .! !! !!",tripulante->id);
-		}
 
-		sem_post(&exec);
+void planif_cola_exec(){
+	while(1){
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
+
+		sem_wait(&cola_ready);
+		sem_wait(&exec);
+
+		pthread_mutex_lock(&planificacion_mutex_ready);
+		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
+		sem_post(&tripulante->exec);
+		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 	}
 }
@@ -134,6 +189,15 @@ void hilo_cola_exec(){
 	pthread_create(&hilo , &attr1,(void*) planificar_cola_exec,NULL);
 
 }
+void hilo_cola_replanificar(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) replanificar,NULL);
+
+}
+
 
 void hilo_cola_new(){
 	pthread_attr_t attr1;
@@ -143,6 +207,8 @@ void hilo_cola_new(){
 	pthread_create(&hilo , &attr1,(void*) planificar_cola_new,NULL);
 
 }
+
+
 
 void hilo_cola_ready(){
 	pthread_attr_t attr1;

@@ -12,6 +12,8 @@ void *labor_tripulante_new(void * trip){
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 
+	tripulante->fin = 0;
+
 	pthread_mutex_init(&tripulante->ejecutadas,NULL);
 
 	log_info(logger,"%d ---- %d", tripulante->id,tripulante->patota_id );
@@ -69,11 +71,15 @@ void *labor_tripulante_new(void * trip){
 	char* claveNueva = string_new();
 
 	string_append(&claveNueva,tarea);
+	sem_wait(&tripulante->exec);
 	while(tripulante->instrucciones_ejecutadas<tripulante->cantidad_tareas){
 
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
-		sem_wait(&tripulante->exec);
+
+
+		//tripulante->estado = B | FQ | FIN
+
 
 		tripulante->instrucciones_ejecutadas++;
 
@@ -85,6 +91,15 @@ void *labor_tripulante_new(void * trip){
 
 
 	}
+	tripulante->estado = 'F';
+	pthread_mutex_lock(&mutex_cola_ejecutados);
+	queue_push(cola_ejecutados,tripulante);
+	pthread_mutex_unlock(&mutex_cola_ejecutados);
+	sem_post(&colaEjecutados);
+	sem_post(&exec);
+
+	while(1){}
+
 	log_info(logger, "FIN TAREAS TRIPULANTE %d", tripulante->id);
 }
 
