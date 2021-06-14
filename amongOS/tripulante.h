@@ -42,6 +42,7 @@ typedef struct {
 	sem_t ready;
 	sem_t new;
 	sem_t exec;
+	sem_t bloq;
 	int instrucciones_ejecutadas;
 	pthread_mutex_t ejecutadas;
 	int fin;

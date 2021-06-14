@@ -11,6 +11,7 @@ void *labor_tripulante_new(void * trip){
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
+	sem_init(&tripulante->bloq,0,0);
 
 	tripulante->fin = 0;
 
@@ -78,9 +79,6 @@ void *labor_tripulante_new(void * trip){
 		sem_post(&detenerReaunudarEjecucion);
 
 
-		//tripulante->estado = B | FQ | FIN
-
-
 		tripulante->instrucciones_ejecutadas++;
 
 
@@ -100,6 +98,28 @@ void *labor_tripulante_new(void * trip){
 			sem_post(&exec);
 			sem_wait(&tripulante->exec);
 			rafaga = 0;
+		}
+
+
+		// TODO: PENSAR---		SI ENTRA A BLOQUEADO RESETEAMOS LA RAFAGA PARA EL RR
+
+		//La 'tarea 3' es de entrada salida
+		if(tripulante->instrucciones_ejecutadas == 3){
+			tripulante->estado = 'B';
+			pthread_mutex_lock(&mutex_cola_ejecutados);
+			queue_push(cola_ejecutados,tripulante);
+			pthread_mutex_unlock(&mutex_cola_ejecutados);
+			sem_post(&colaEjecutados);
+			sem_post(&exec);
+
+			//Solo hacemos un wait y despues retoma la ejecucion. No va al final de ready. Pensarlo un poco mas.
+			log_info(logger,"TRIPULANTE %d BLOQUEADO - TAREA: %d", tripulante->id, tripulante->instrucciones_ejecutadas);
+			sem_wait(&tripulante->bloq);
+			sleep(2);
+			log_info(logger,"TRIPULANTE %d PASA DE BLOQUEADO A READY",tripulante->id);
+			sem_post(&tripulante->ready);
+
+			sem_wait(&tripulante->exec);
 		}
 
 	}

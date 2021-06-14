@@ -57,6 +57,7 @@ void planificar_tripulantes(){
 	//hilo_cola_new();
 	hilo_cola_ready();
 	hilo_cola_exec();
+	hilo_cola_bloq();
 	hilo_cola_replanificar();
 }
 
@@ -86,6 +87,33 @@ void planificar_cola_ready(){
 	}
 }
 
+void planificar_cola_bloq(){
+	t_tripulante * tripulante;
+	while(1){
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
+
+		sem_wait(&cola_bloq);
+
+
+		pthread_mutex_lock(&planificacion_mutex_bloq);
+		tripulante = queue_pop(planificacion_cola_bloq);
+		sem_post(&tripulante->bloq);
+		log_info(logger,"PLANIFICANDOO COLA BLOQ");
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
+
+		sleep(2);
+
+		pthread_mutex_lock(&planificacion_mutex_ready);
+		sem_wait(&tripulante->ready);
+		queue_push(planificacion_cola_ready,tripulante);
+		sem_post(&cola_ready);
+		pthread_mutex_unlock(&planificacion_mutex_ready);
+
+
+
+	}
+}
 
 
 
@@ -101,7 +129,6 @@ void planificar_cola_exec(){
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 		log_info(logger,"ahora va a ejecutar tripulante %d",tripulante->id);
-
 
 		//Usar quantum de config
 
@@ -128,7 +155,7 @@ void replanificar(){
 
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
 
-		log_info(logger,"TRIPULANTE REPLANIFICADO... %d , estado: %c", tripulante->id, tripulante->estado);
+		log_info(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
 		switch(tripulante->estado) {
 			case 'F':{
 				//MUTEX COLA FIN LOCK
@@ -139,7 +166,9 @@ void replanificar(){
 			}
 			case 'B':{
 				//MUTEX COLA BLOQ LOCK
+				pthread_mutex_lock(&planificacion_mutex_bloq);
 				queue_push(planificacion_cola_bloq,tripulante);
+				pthread_mutex_unlock(&planificacion_mutex_bloq);
 				sem_post(&cola_bloq);
 				break;
 				//MUTEX COLA BLOQ UNLO
@@ -181,7 +210,7 @@ void planificar_cola_new(){
 		while(1){
 			sleep(10);
 			pthread_mutex_lock(&planificacion_mutex_new);
-			mostrar_lista_tripulantes();
+			mostrar_lista_tripulantes_new();
 			pthread_mutex_unlock(&planificacion_mutex_new);
 		}
 }
@@ -224,6 +253,15 @@ void hilo_cola_ready(){
 
 }
 
+
+void hilo_cola_bloq(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) planificar_cola_bloq,NULL);
+}
+
 void hilo_mostrar_tripulantes(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
@@ -257,7 +295,7 @@ void hilo_mostrar_tripulantes_fin(){
 void mostrar_tripulantes_new(){
 	sem_wait(&cola_new);
 	pthread_mutex_lock(&planificacion_mutex_new);
-	mostrar_lista_tripulantes();
+	mostrar_lista_tripulantes_new();
 	pthread_mutex_unlock(&planificacion_mutex_new);
 	sem_post(&cola_new);
 }
@@ -269,7 +307,7 @@ void mostrar_tripulantes_fin(){
 }
 
 
-void mostrar_lista_tripulantes(){
+void mostrar_lista_tripulantes_new(){
 	void mostrar_patota(t_tripulante* tripulante){
 		log_info(logger,".........MOSTRANDO TRIPULANTE EN NEW........# N:, id tripulante %d", tripulante->id);
 	}
