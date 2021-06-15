@@ -27,6 +27,9 @@ void planificar_cola_exec();
 void planificar_cola_bloq();
 void replanificar();
 
+//Funciones utiles
+void sacar_de_exec(int id_tripulante);
+
 
 //
 void mostrar_lista_tripulantes_new();
