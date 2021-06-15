@@ -31,9 +31,11 @@ void replanificar();
 //
 void mostrar_lista_tripulantes_new();
 void mostrar_lista_tripulantes_fin();
+void mostrar_lista_tripulantes_ready();
+void mostrar_lista_tripulantes_bloq();
+void mostrar_lista_tripulantes_exec();
 
-void mostrar_tripulantes_new();
-void mostrar_tripulantes_fin();
+void listar_tripulantes();
 
 
 
