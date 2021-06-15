@@ -15,7 +15,9 @@ void *labor_tripulante_new(void * trip){
 
 	tripulante->fin = 0;
 
-	pthread_mutex_init(&tripulante->ejecutadas,NULL);
+
+
+
 
 	log_info(logger,"%d ---- %d", tripulante->id,tripulante->patota_id );
 
@@ -23,10 +25,13 @@ void *labor_tripulante_new(void * trip){
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
 	//Avisamos que estamos hay alguien en new
-	sem_post(&cola_new);
+	log_info(logger,"METO A NEW TRIPULANTE %d",tripulante->id);
 	pthread_mutex_unlock(&planificacion_mutex_new);
+	sem_wait(&detenerReaunudarEjecucion);
+	sem_post(&detenerReaunudarEjecucion);
 
-	log_info(logger,"AGREGUE A LA COLA DE NEW");
+	sem_post(&cola_new);
+
 
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 
@@ -88,18 +93,7 @@ void *labor_tripulante_new(void * trip){
 
 
 		rafaga++;
-
-		if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
-			tripulante->estado = 'R';
-
-			pthread_mutex_lock(&mutex_cola_ejecutados);
-			queue_push(cola_ejecutados,tripulante);
-			pthread_mutex_unlock(&mutex_cola_ejecutados);
-			sem_post(&colaEjecutados);
-			sem_post(&exec);
-			sem_wait(&tripulante->exec);
-			rafaga = 0;
-		}
+		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
 
 
 		// TODO: PENSAR---		SI ENTRA A BLOQUEADO RESETEAMOS LA RAFAGA PARA EL RR
@@ -115,16 +109,31 @@ void *labor_tripulante_new(void * trip){
 			sem_post(&exec);
 
 			//Solo hacemos un wait y despues retoma la ejecucion. No va al final de ready. Pensarlo un poco mas.
-			log_info(logger,"TRIPULANTE %d BLOQUEADO - TAREA: %d", tripulante->id, tripulante->instrucciones_ejecutadas);
+			//log_info(logger,"TRIPULANTE %d BLOQUEADO - TAREA: %d", tripulante->id, tripulante->instrucciones_ejecutadas);
 			sem_wait(&tripulante->bloq);
-			sleep(CICLO_CPU);
-			log_info(logger,"TRIPULANTE %d PASA DE BLOQUEADO A READY",tripulante->id);
-			sem_post(&tripulante->ready);
+
+
+			//log_info(logger,"TRIPULANTE %d PASA DE BLOQUEADO A READY",tripulante->id);
+			sem_wait(&tripulante->ready);
 
 			sem_wait(&tripulante->exec);
+			rafaga = 0;
 		}
 
-		log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
+		if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
+			tripulante->estado = 'R';
+
+			pthread_mutex_lock(&mutex_cola_ejecutados);
+			queue_push(cola_ejecutados,tripulante);
+			pthread_mutex_unlock(&mutex_cola_ejecutados);
+			sem_post(&colaEjecutados);
+			sem_post(&exec);
+			sem_wait(&tripulante->exec);
+			rafaga = 0;
+		}
+
+
+
 
 	}
 	tripulante->estado = 'F';

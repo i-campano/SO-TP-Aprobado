@@ -58,7 +58,6 @@ void hilo_mostrar_tripulantes(){
 
 
 void listar_tripulantes(){
-
 	log_info(logger,"Estado de la Nave");
 
 	pthread_mutex_lock(&planificacion_mutex_new);

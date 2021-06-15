@@ -25,7 +25,7 @@ void planificar_cola_ready(){
 
 		pthread_mutex_lock(&planificacion_mutex_new);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
-		log_info(logger,"saco de new tripu: %d", tripulante->id);
+		log_info(logger,"SACO de NEW tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
 		sleep(CICLO_CPU);
 		pthread_mutex_lock(&planificacion_mutex_ready);
@@ -35,7 +35,6 @@ void planificar_cola_ready(){
 		sem_post(&cola_ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
-		log_info(logger,"PLANIFICANDOO COLA READY");
 		//wait(planificacion_mutex_ready);
 		//hacer algo en la cola ready
 		sem_wait(&detenerReaunudarEjecucion);
@@ -51,23 +50,20 @@ void planificar_cola_bloq(){
 		sem_post(&detenerReaunudarEjecucion);
 
 		sem_wait(&cola_bloq);
-		log_info(logger,"UN TRIPULANTE ENTRO A BLOQUEADO");
+
 		sleep(CICLO_IO);
-
-
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
 		sem_post(&tripulante->bloq);
-		log_info(logger,"PLANIFICANDOO COLA BLOQ");
+		log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
 
-		sleep(CICLO_CPU);
-
 		pthread_mutex_lock(&planificacion_mutex_ready);
-		sem_wait(&tripulante->ready);
 		queue_push(planificacion_cola_ready,tripulante);
+		log_info(logger,"METO EN READY TRIPULANTE %d",tripulante->id);
 		sem_post(&cola_ready);
+		sem_post(&tripulante->ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 		sem_wait(&detenerReaunudarEjecucion);
@@ -122,7 +118,7 @@ void replanificar(){
 
 		sem_wait(&colaEjecutados);
 
-		log_info(logger,"DISPATCHER");
+
 		sleep(CICLO_CPU);
 
 
