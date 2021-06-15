@@ -10,7 +10,6 @@
 
 void planificar_tripulantes(){
 	sem_wait(&iniciar_planificacion);
-	//hilo_cola_new();
 	hilo_cola_ready();
 	hilo_cola_exec();
 	hilo_cola_bloq();
@@ -200,15 +199,6 @@ void planif_cola_exec(){
 }
 
 
-void planificar_cola_new(){
-	log_info(logger,"PLANIFICANDOO COLA NEW");
-		while(1){
-			sleep(CICLO_CPU);
-			pthread_mutex_lock(&planificacion_mutex_new);
-			mostrar_lista_tripulantes_new();
-			pthread_mutex_unlock(&planificacion_mutex_new);
-		}
-}
 
 void hilo_cola_exec(){
 	pthread_attr_t attr1;
@@ -227,15 +217,6 @@ void hilo_cola_replanificar(){
 
 }
 
-
-void hilo_cola_new(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) planificar_cola_new,NULL);
-
-}
 
 
 
