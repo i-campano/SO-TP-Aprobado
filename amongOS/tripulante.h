@@ -17,12 +17,11 @@ int tripulantes_creados;
 #define FALSE 0
 
 //Estados de los trip segun cola
-#define NEW 'N'
-#define READY 'R'
-#define EXEC 'E'
-#define BLOQ 'B'
-#define BLOQ_SAB 'S' //QUIZAS ESTE NO SIRVA AHORA NO SE
-#define FIN 'F'
+#define NEW 0
+#define READY 1
+#define BLOCK 2
+#define EXEC 3
+#define FIN 4
 
 //Estado Planificacion
 #define ACTIVE 1
@@ -47,6 +46,8 @@ typedef struct {
 	pthread_mutex_t ejecutadas;
 	int fin;
 	char estado;
+	uint32_t ubi_x;
+	uint32_t ubi_y;
 }t_tripulante;
 
 

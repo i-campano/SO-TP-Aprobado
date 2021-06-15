@@ -95,6 +95,31 @@ void *atenderNotificacion(void * paqueteSocket){
 			break;
 
 		}
+
+		case ACTUALIZAR_ESTADO_MIRAM:{
+			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t estado = recvDeNotificacion(socket);
+			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
+			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %d",id_trip,estado);
+
+			break;
+
+		}
+
+		case ACTUALIZAR_UBICACION:{
+			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t x = recvDeNotificacion(socket);
+			uint32_t y = recvDeNotificacion(socket);
+
+			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
+
+
+			log_info(logger, "estado ACTUALIZADO tripulante: %d, ubicacion-> X: %d ; Y: %d",id_trip,x,y);
+
+			break;
+
+		}
+
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
 			break;

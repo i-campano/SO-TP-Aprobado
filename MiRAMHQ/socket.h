@@ -49,6 +49,15 @@
 
 #define ENVIAR_TAREA 8
 
+#define ACTUALIZAR_ESTADO_MIRAM 14
+
+#define ESTADO_ACTUALIZADO_MIRAM 16
+
+#define ACTUALIZAR_UBICACION 18
+
+#define UBICACION_ACTUALIZADA 20
+
+
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

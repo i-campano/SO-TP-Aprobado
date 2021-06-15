@@ -52,6 +52,14 @@ int CICLO_CPU;
 
 #define EJECUTAR_TAREA 9
 
+#define ACTUALIZAR_ESTADO_MIRAM 14
+
+#define ESTADO_ACTUALIZADO_MIRAM 16
+
+#define ACTUALIZAR_UBICACION 18
+
+#define UBICACION_ACTUALIZADA 20
+
 
 t_log* logger;
 int socketListener,socketMaximo;	 // PARA SERVER
