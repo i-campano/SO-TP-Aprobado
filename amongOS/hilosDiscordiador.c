@@ -29,10 +29,10 @@ void planificar_cola_ready(){
 		pthread_mutex_unlock(&planificacion_mutex_new);
 		sleep(CICLO_CPU);
 		pthread_mutex_lock(&planificacion_mutex_ready);
-		sem_wait(&tripulante->ready);
 		queue_push(planificacion_cola_ready,tripulante);
-		log_info(logger,"METO EN READY tripu: %d", tripulante->id);
+		sem_post(&tripulante->ready);
 		sem_post(&cola_ready);
+		log_info(logger,"METO EN READY tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 		//wait(planificacion_mutex_ready);
@@ -119,15 +119,13 @@ void replanificar(){
 		sem_wait(&colaEjecutados);
 
 
-		sleep(CICLO_CPU);
-
-
 		pthread_mutex_lock(&mutex_cola_ejecutados);
 		tripulante = queue_pop(cola_ejecutados);
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
 
 		sacar_de_exec(tripulante->id);
 		sem_post(&cola_exec);
+
 
 
 		log_info(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);

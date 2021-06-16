@@ -24,6 +24,7 @@ void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado) {
 	sendDeNotificacion(socketRam, ACTUALIZAR_ESTADO_MIRAM);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
 	sendDeNotificacion(socketRam,estado);
+
 	log_info(logger, "tripulante: %d pidio tareas a miram...", tripulante->id);
 	uint32_t RESPONSE_ACTUALIZACION = recvDeNotificacion(socketRam);
 	log_info(logger, "OPERACION %d", RESPONSE_ACTUALIZACION);
@@ -95,7 +96,7 @@ void *labor_tripulante_new(void * trip){
 	//para simular la cantidad;
 	char* tarea = pedir_tarea(socketRam, tripulante);
 
-	sem_post(&tripulante->ready);
+	sem_wait(&tripulante->ready);
 	actualizar_estado(socketRam,tripulante,READY);
 
 	log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
