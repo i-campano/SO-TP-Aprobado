@@ -213,7 +213,7 @@ void crear_pcb(int socket) {
 
 	//char * tarea_harcode = "GENERAR_OXIGENO 12;2;3;5";
 
-	strcpy(tcb->tareas, tareas);
+	string_append(&tcb->tareas, tareas);
 	tcb->patotaid = (int)patotaid;
 	tcb->estado = 'N';
 	tcb->socket_tcb = socket;
