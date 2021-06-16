@@ -47,6 +47,7 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 	}
 }
 
+//	ej de carga por consola: GENERAR_OXIGENO 12;2;3;5-REGAR_PLANTAS;2;3;5
 char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea, int * cpuBound) {
 	log_info(logger, "PARSER tarea : %s", tarea);
 	char** tarea_separada = string_split(tarea,";");
@@ -57,7 +58,7 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea,
 	*movY = strtol(tarea_separada[2], NULL, 10);
 	*tiempo_tarea = strtol(tarea_separada[3], NULL, 10);
 
-//	GENERAR_OXIGENO 12;2;3;5
+
 	log_info(logger,"PARSER:  - movX: %d - movY:  ",*movX,*movY);
 	//tarea_parametro = string_split(tarea_separada[0]," ");
 	//*tiempo_tarea = atoi(tarea_separada[3]);
