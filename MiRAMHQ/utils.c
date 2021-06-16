@@ -213,6 +213,7 @@ void crear_pcb(int socket) {
 	pcb->id_posicion = string_new();
 	pcb->cantidad_tripulantes = cantidad_patota;
 
+	string_append(&pcb->id_posicion, id_posiciones);
 
 	pcb->tareas_list = list_create();
 
@@ -222,7 +223,6 @@ void crear_pcb(int socket) {
 	}
 
 
-	string_append(&pcb->id_posicion, id_posiciones);
 
 	//char * tarea_harcode = "GENERAR_OXIGENO 12;2;3;5";
 

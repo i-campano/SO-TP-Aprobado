@@ -49,14 +49,15 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 
 char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea, int * cpuBound) {
 	log_info(logger, "PARSER tarea : %s", tarea);
-	char** tarea_parametro;
 	char** tarea_separada = string_split(tarea,";");
+	char** tarea_parametro = string_split(tarea_separada[0]," ");
 
 	log_info(logger,"PARSER:  - movX: %s - movY: %s ",tarea_separada[1],tarea_separada[2]);
 	*movX = strtol(tarea_separada[1], NULL, 10);
 	*movY = strtol(tarea_separada[2], NULL, 10);
 	*tiempo_tarea = strtol(tarea_separada[3], NULL, 10);
 
+//	GENERAR_OXIGENO 12;2;3;5
 	log_info(logger,"PARSER:  - movX: %d - movY:  ",*movX,*movY);
 	//tarea_parametro = string_split(tarea_separada[0]," ");
 	//*tiempo_tarea = atoi(tarea_separada[3]);
