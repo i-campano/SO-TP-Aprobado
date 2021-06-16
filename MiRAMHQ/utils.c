@@ -58,13 +58,13 @@ t_tripulante * encontrar_trip(int id_trip){
 	return tripulante;
 }
 
-tcb2 * encontrar_patota(int id_patota){
-	bool encontrarPatota(tcb2 * pcb){
+pcb * encontrar_patota(int id_patota){
+	bool encontrarPatota(pcb * pcb){
 		return pcb->patotaid == id_patota;
 	}
 
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
-	tcb2 * pcb = list_find(lista_pcb,(void*) encontrarPatota);
+	pcb * pcb = list_find(lista_pcb,(void*) encontrarPatota);
 	log_info(logger,"ENCONTRE PATOTA EN PCB LIST: %d tareas: %s", pcb->patotaid, pcb->tareas);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
 
@@ -97,11 +97,6 @@ void *atenderNotificacion(void * paqueteSocket){
 		case CREAR_PATOTA:{
 
 			crear_pcb(socket);
-			log_info(logger, "----------------PATOTAS EN MI RAM: ");
-
-			pthread_mutex_lock(&pthread_mutex_pcb_list);
-			mostrar_lista_patota();
-			pthread_mutex_unlock(&pthread_mutex_pcb_list);
 
 			log_info(logger, "----------------FIN PATOTA CREADA----------------");
 			sendDeNotificacion(socket, PATOTA_CREADA);
@@ -115,9 +110,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_trip = recvDeNotificacion(socket);
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
 
-
 			//encontrar_trip(id_trip);
-
 
 			char * tarea = obtener_tarea(tripulante);
 			log_info(logger,"tripulante id: %d, patota id: %d, indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tripulante->instrucciones_ejecutadas);
@@ -192,7 +185,7 @@ void *atenderNotificacion(void * paqueteSocket){
 char * obtener_tarea(t_tripulante * tripulante){
 	int patota_id = tripulante->patota_id;
 
-	tcb2 * pcb = encontrar_patota(patota_id);
+	pcb * pcb = encontrar_patota(patota_id);
 
 	//char * tarea = "GENERAR_OXIGENO 12;2;3;5";
 	return pcb->tareas;
@@ -205,23 +198,24 @@ void crear_pcb(int socket) {
 	char* id_posiciones = recibirString(socket);
 	uint32_t patotaid = recibirUint(socket);
 	uint32_t cantidad_patota = recibirUint(socket);
-	tcb2* tcb = malloc(sizeof(tcb2));
-	tcb->id_posicion = string_new();
-	tcb->tareas = string_new();
-	tcb->cantidad_tripulantes = cantidad_patota;
-	strcpy(tcb->id_posicion, id_posiciones);
+	pcb* pcb = malloc(sizeof(pcb));
+	pcb->id_posicion = string_new();
+	pcb->tareas = string_new();
+	pcb->cantidad_tripulantes = cantidad_patota;
+	strcpy(pcb->id_posicion, id_posiciones);
 
 	//char * tarea_harcode = "GENERAR_OXIGENO 12;2;3;5";
 
-	string_append(&tcb->tareas, tareas);
-	tcb->patotaid = (int)patotaid;
-	tcb->estado = 'N';
-	tcb->socket_tcb = socket;
-	log_info(logger, "agregando patota en lista_tcb");
+	string_append(&pcb->tareas, tareas);
+	pcb->patotaid = (int)patotaid;
+	pcb->estado = 'N';
+	pcb->socket_tcb = socket;
+	log_info(logger, "agregando patota en lista_pcb");
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
-	list_add(lista_pcb, tcb);
+	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
 
+	mostrar_patota(pcb);
 	//printf("%c\n",tcb->estado);
 
 }
@@ -243,13 +237,15 @@ void crear_tcb(int socket) {
 
 }
 
+void mostrar_patota(pcb* pcb){
+
+	log_info(logger,"PATOTA ID: %d - Tareas: %s - Posicion: %s - Cantidad trip: %d - Estado: %c",pcb->patotaid,pcb->tareas, pcb->id_posicion,pcb->cantidad_tripulantes,pcb->estado);
+}
 
 void mostrar_lista_patota(){
-	int i = 0;
-	void mostrar_patota(tcb2* tcb){
-		i++;
-		log_info(logger,"# N: %d - PATOTA ID: %d - Tareas: %s - Posicion: %s - Cantidad trip: %d - Estado: %c", i,tcb->patotaid,tcb->tareas, tcb->id_posicion,tcb->cantidad_tripulantes,tcb->estado);
-	}
+
+
+	log_info(logger,"LISTA DE PCB------------------------");
 
 	list_iterate(lista_pcb, (void*) mostrar_patota);
 }

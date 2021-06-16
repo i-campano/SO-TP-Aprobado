@@ -20,7 +20,7 @@ typedef struct
 {
 	uint32_t identificador_pcb;
 	tareas * tareas;
-} pcb;
+} pcb3;
 
 typedef struct
 {
@@ -30,7 +30,7 @@ typedef struct
 	uint32_t posicion_x;
 	uint32_t posicion_y;
 	uint32_t proxima_instruccion;
-	pcb *puntero_pcb;
+	pcb3 *puntero_pcb;
 } tcb;
 
 typedef struct
@@ -43,7 +43,7 @@ typedef struct
 	uint32_t proxima_instruccion;
 	int patotaid;
 	uint32_t cantidad_tripulantes;
-} tcb2;
+} pcb;
 
 
 typedef struct _infoHilos{
