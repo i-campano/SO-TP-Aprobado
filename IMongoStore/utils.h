@@ -57,11 +57,10 @@ void iniciar_logger();
 t_config* leer_config();
 
 ////////FUNCIONES DE TAREAS/////////
-void generarOxigeno(uint32_t cantidad);
-void consumirOxigeno(uint32_t cantidad);
-void generarComida(uint32_t cantidad);
-void consumirComida(uint32_t cantidad);
-void generarBasura(uint32_t cantidad);
+void generarDatos(uint32_t cantidad, char caracter);
+void consumirDatos(uint32_t cantidad, char caracter);
+void consumirDatos2(uint32_t cantidad, char caracter);
+
 void descartarBasura();
 ////////FUNCIONES DE TAREAS/////////
 

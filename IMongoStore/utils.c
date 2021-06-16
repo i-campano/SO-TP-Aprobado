@@ -109,7 +109,7 @@ t_config* leer_config() {
 }
 
 ////////FUNCIONES DE TAREAS/////////
-void generarOxigeno(uint32_t cantidad)
+void generarDatos(uint32_t cantidad, char caracter)
 {
 	//definiciones de variables
 	char* path_oxigeno = string_new();
@@ -133,7 +133,7 @@ void generarOxigeno(uint32_t cantidad)
 	}
 
 	//Escribe la cantidad  OXIGENO SOLICITADA
-	cadenaOxigenos = string_repeat('O', cantidad);
+	cadenaOxigenos = string_repeat(caracter, cantidad);
 	txt_write_in_file(fd_oxigeno, cadenaOxigenos);
 
 	//cierra el archivo
@@ -143,40 +143,40 @@ void generarOxigeno(uint32_t cantidad)
 	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 
-void consumirOxigeno(uint32_t cantidad)
+void consumirDatos(uint32_t cantidad, char caracter)
 {
 	//definiciones de variables
 	char* path_oxigeno = string_new();
 	char* cadenaOxigenos = string_new();
+	char* cadenaOxigenosAux = string_new();
 	FILE* fd_oxigeno;
 
 	//asigno el path
-	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
-	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+	string_append(&path_oxigeno, conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno, conf_ARCHIVO_OXIGENO_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
 	pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
 
 	//lee la cadena dentro del archivo
 	fd_oxigeno = fopen(path_oxigeno, "r");
-	fscanf(fd_oxigeno, "%s" ,cadenaOxigenos);
-	fclose(fd_oxigeno);
-
-	//elimina las "O" consumidas de cadenaOxigenos
-
-
-	//vuelve a abrir el archivo para sobreescribir con la nueva cadena
-	fd_oxigeno = fopen(path_oxigeno, "w");
-	fwrite(cadenaOxigenos, sizeof(char), sizeof(cadenaOxigenos), fd_oxigeno );
+	fscanf(fd_oxigeno,"%s",cadenaOxigenosAux);
+	//Si la cantidad a borrar es mayor de la lo que hay escrito, deja el archivo en blanco
+	if (string_length(cadenaOxigenosAux)>cantidad) {
+		cadenaOxigenos = string_substring(cadenaOxigenosAux,0,string_length(cadenaOxigenosAux)-cantidad);
+	}
 	fclose (fd_oxigeno);
+
+	fd_oxigeno = fopen(path_oxigeno, "w");
+	fputs(cadenaOxigenos,fd_oxigeno);
+	fclose (fd_oxigeno);
+
 
 	//unlock del mutex para el manejo del archivo
 	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
-/*void consumirOxigeno(uint32_t cantidad);
-void generarComida(uint32_t cantidad);
-void consumirComida(uint32_t cantidad);
-void generarBasura(uint32_t cantidad);
+
+/* TODO: implementar
 void descartarBasura();*/
 ////////FUNCIONES DE TAREAS/////////
 

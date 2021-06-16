@@ -13,9 +13,9 @@
 
 
 int server_fd;
-char * archivo_oxigeno = "Oxigeno.ims";
-char * archivo_comida = "Comida.ims";
-char * archivo_basura = "Basura.ims";
+char * archivo_oxigeno = "oxigeno.ims";
+char * archivo_comida = "comida.ims";
+char * archivo_basura = "basura.ims";
 
 void manejadorDeHilos();
 

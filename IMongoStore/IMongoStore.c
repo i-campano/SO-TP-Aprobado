@@ -22,7 +22,8 @@ int main(void)
 	//Inicia escucha de llamados
 	//manejadorDeHilos();
 
-	generarOxigeno(21);
+	generarDatos(2,'O');
+	consumirDatos(6,'O');
 
 	return EXIT_SUCCESS;
 }
