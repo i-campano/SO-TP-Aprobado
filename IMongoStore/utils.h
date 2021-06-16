@@ -60,8 +60,8 @@ t_config* leer_config();
 void generarDatos(uint32_t cantidad, char caracter);
 void consumirDatos(uint32_t cantidad, char caracter);
 void consumirDatos2(uint32_t cantidad, char caracter);
-
 void descartarBasura();
+char *devolverTarea(char* tarea);
 ////////FUNCIONES DE TAREAS/////////
 
 #endif /* CONEXIONES_H_ */

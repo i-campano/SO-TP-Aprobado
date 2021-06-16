@@ -56,9 +56,10 @@ void *atenderNotificacion(void * paqueteSocket){
 			case EJECUTAR_TAREA:{
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
-
+				char * accionTarea = devolverDeTarea(tarea,0);
+				uint32_t cantidad = atoi(devolverDeTarea(tarea,1));
 				uint32_t id_trip = recvDeNotificacion(socket);
-				ejecutar_tarea(tarea);
+				ejecutar_tarea(accionTarea);
 				sendDeNotificacion(socket,198);
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
 
@@ -179,4 +180,21 @@ void consumirDatos(uint32_t cantidad, char caracter)
 /* TODO: implementar
 void descartarBasura();*/
 ////////FUNCIONES DE TAREAS/////////
+
+
+char *devolverDeTarea(char* tarea,int dato){
+	//dato = 0 devuelve el nombre de la tarea
+	//dato= 1 devuelve la cantidad pasada como parametro
+	int i=0;
+	char laTarea[100] = "GENERAR_OXIGENO 10 4|4 5";
+	char* tareas[4];
+	char* token =strtok(laTarea," ");
+	while(token!= NULL){
+		tareas[i] = token;
+		printf("\ntoken: %s",token);
+		token = strtok(NULL," ");
+		i++;
+	}
+	return tareas[dato];
+}
 
