@@ -58,6 +58,7 @@ typedef struct {
 
 t_log* logger;
 char * obtener_tarea(t_tripulante * tripulante);
+void mostrar_patota(pcb* pcb);
 void mostrar_lista_patota();
 void crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);

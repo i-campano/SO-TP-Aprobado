@@ -30,19 +30,18 @@ typedef struct
 	uint32_t posicion_x;
 	uint32_t posicion_y;
 	uint32_t proxima_instruccion;
-	pcb3 *puntero_pcb;
 } tcb;
 
 typedef struct
 {
 	uint32_t identificador_tripulante;
 	char * id_posicion;
-	char * tareas;
 	int socket_tcb; //VER
 	char estado;
 	uint32_t proxima_instruccion;
 	int patotaid;
 	uint32_t cantidad_tripulantes;
+	t_list * tareas_list;
 } pcb;
 
 

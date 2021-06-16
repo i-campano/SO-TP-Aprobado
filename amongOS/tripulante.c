@@ -47,8 +47,28 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 	}
 }
 
+char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea, int * cpuBound) {
+	log_info(logger, "PARSER tarea : %s", tarea);
+	char** tarea_parametro;
+	char** tarea_separada = string_split(tarea,";");
 
+	log_info(logger,"PARSER:  - movX: %s - movY: %s ",tarea_separada[1],tarea_separada[2]);
+	*movX = strtol(tarea_separada[1], NULL, 10);
+	*movY = strtol(tarea_separada[2], NULL, 10);
+	*tiempo_tarea = strtol(tarea_separada[3], NULL, 10);
 
+	log_info(logger,"PARSER:  - movX: %d - movY:  ",*movX,*movY);
+	//tarea_parametro = string_split(tarea_separada[0]," ");
+	//*tiempo_tarea = atoi(tarea_separada[3]);
+	*esIo = 1;
+	*cpuBound = *movX + *movY;
+	if(tarea_parametro[1] == NULL) {
+		*esIo = 0;
+	}
+
+	log_info(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
+	return tarea_separada[0];
+}
 
 void *labor_tripulante_new(void * trip){
 
@@ -97,6 +117,12 @@ void *labor_tripulante_new(void * trip){
 
 	//para simular la cantidad;
 	char* tarea = pedir_tarea(socketRam, tripulante);
+	int movX = 0 ;
+	int movY= 0;
+	int esIo = 0;
+	int tiempo_tarea = 0;
+	int cpuBound = 0;
+	parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
 
 	sem_wait(&tripulante->ready);
 	actualizar_estado(socketRam,tripulante,READY);
@@ -114,9 +140,9 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,EXEC);
 	
 	//simular 3 tareas
-	while(tarea!="" && tareas_pedidas<=3){
+	while(tarea!="" && tareas_pedidas<1){
 		
-		while(tripulante->instrucciones_ejecutadas<tripulante->cantidad_tareas){
+		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
 
 			//Aumenta en par X ; impar Y
 
@@ -130,7 +156,8 @@ void *labor_tripulante_new(void * trip){
 
 
 			//La 'tarea 3' es de entrada salida
-			if(tripulante->instrucciones_ejecutadas == 2){
+			if(esIo && tripulante->instrucciones_ejecutadas>movX+movY){
+				log_info(logger,"000000000000 - - - - IO BOUND!!!!!!!!!!!!!!!!!!!!!");
 				tripulante->estado = 'B';
 
 				pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -154,6 +181,8 @@ void *labor_tripulante_new(void * trip){
 				recvDeNotificacion(socketMongo);
 
 				rafaga = 0;
+			}else{
+				log_info(logger,"11111111111111 - - - - CPU BOUND!!!!!!!!!!!!!!!!!!!!!");
 			}
 
 			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
@@ -188,11 +217,14 @@ void *labor_tripulante_new(void * trip){
 
 		}
 		//Fin tarea
+		if(0){
 
+			tarea = pedir_tarea(socketRam, tripulante);
+			parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
+			tripulante->instrucciones_ejecutadas = 0;
+		}
+			tareas_pedidas++;
 		//Pido Tarea Siguiente
-		tarea = pedir_tarea(socketRam, tripulante);
-		tripulante->instrucciones_ejecutadas = 0;
-		tareas_pedidas++;
 	
 	}
 
