@@ -140,7 +140,7 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,EXEC);
 	
 	//simular 3 tareas
-	while(tarea!="" && tareas_pedidas<1){
+	while(strcmp(tarea,"--")!=0){
 		
 		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
 
@@ -217,13 +217,15 @@ void *labor_tripulante_new(void * trip){
 
 		}
 		//Fin tarea
-		if(0){
+
 
 			tarea = pedir_tarea(socketRam, tripulante);
-			parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
-			tripulante->instrucciones_ejecutadas = 0;
-		}
-			tareas_pedidas++;
+			if(strcmp(tarea,"--")!=0){
+				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
+				tripulante->instrucciones_ejecutadas = 0;
+
+				//break;
+			}
 		//Pido Tarea Siguiente
 	
 	}

@@ -188,8 +188,15 @@ char * obtener_tarea(t_tripulante * tripulante){
 	pcb * pcb = encontrar_patota(patota_id);
 
 	char * tarea =string_new();
-	string_append(&tarea,list_get(pcb->tareas_list,tripulante->instrucciones_ejecutadas));
-	log_info(logger,"TAREA: %s",tarea);
+	log_info(logger,"tareas ejecutadas %d: tareas totales : %d",tripulante->instrucciones_ejecutadas,list_size(pcb->tareas_list));
+	if(tripulante->instrucciones_ejecutadas<list_size(pcb->tareas_list)){
+		string_append(&tarea,list_get(pcb->tareas_list,tripulante->instrucciones_ejecutadas));
+		log_info(logger,"TAREA: %s",tarea);
+
+	}else{
+		log_info(logger,"NO HAY MAS TAREAS: %s",tarea);
+		string_append(&tarea,"--");
+	}
 	//char * tarea = "GENERAR_OXIGENO 12;2;3;5";
 	return tarea;
 }
