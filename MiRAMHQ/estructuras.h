@@ -41,7 +41,7 @@ typedef struct
 	int socket_tcb; //VER
 	char estado;
 	uint32_t proxima_instruccion;
-	uint32_t patotaid;
+	int patotaid;
 	uint32_t cantidad_tripulantes;
 } tcb2;
 

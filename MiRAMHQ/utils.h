@@ -38,6 +38,8 @@ t_list * lista_tripulantes;
 
 pthread_mutex_t pthread_mutex_tcb_list;
 
+pthread_mutex_t pthread_mutex_pcb_list;
+
 typedef struct {
 	int id;
 	int patota_id;
@@ -55,7 +57,7 @@ typedef struct {
 
 
 t_log* logger;
-char * obtener_tarea();
+char * obtener_tarea(t_tripulante * tripulante);
 void mostrar_lista_patota();
 void crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);
