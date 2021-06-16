@@ -21,7 +21,7 @@
 #include<string.h>
 #include "socket.h"
 
-
+//VARIABLES DEL ARCHIVO DE CONFIGURACION
 char* conf_PUNTO_MONTAJE;
 uint32_t conf_PUERTO_IMONGO;
 uint32_t conf_TIEMPO_SICRONIZACION;
@@ -31,6 +31,11 @@ char* conf_IP_DISCORDIADOR;
 char* conf_ARCHIVO_OXIGENO_NOMBRE;
 char* conf_ARCHIVO_COMIDA_NOMBRE;
 char* conf_ARCHIVO_BASURA_NOMBRE;
+
+//MUTEX PARA ARCHIVOS
+pthread_mutex_t mut_ARCHIVO_OXIGENO;
+pthread_mutex_t mut_ARCHIVO_COMIDA;
+pthread_mutex_t mut_ARCHIVO_BASURA;
 
 
 int server_fd;

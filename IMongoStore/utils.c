@@ -120,6 +120,9 @@ void generarOxigeno(uint32_t cantidad)
 	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
 	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
+
 	//escribe el archivo
 	log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
 	fd_oxigeno = txt_open_for_append(path_oxigeno);
@@ -135,6 +138,40 @@ void generarOxigeno(uint32_t cantidad)
 
 	//cierra el archivo
 	txt_close_file(fd_oxigeno);
+
+	//ulock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
+}
+
+void consumirOxigeno(uint32_t cantidad)
+{
+	//definiciones de variables
+	char* path_oxigeno = string_new();
+	char* cadenaOxigenos = string_new();
+	FILE* fd_oxigeno;
+
+	//asigno el path
+	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
+
+	//lee la cadena dentro del archivo
+	fd_oxigeno = fopen(path_oxigeno, "r");
+	fscanf(fd_oxigeno, "%s" ,cadenaOxigenos);
+	fclose(fd_oxigeno);
+
+	//elimina las "O" consumidas de cadenaOxigenos
+
+
+	//vuelve a abrir el archivo para sobreescribir con la nueva cadena
+	fd_oxigeno = fopen(path_oxigeno, "w");
+	fwrite(cadenaOxigenos, sizeof(char), sizeof(cadenaOxigenos), fd_oxigeno );
+	fclose (fd_oxigeno);
+
+	//unlock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 /*void consumirOxigeno(uint32_t cantidad);
 void generarComida(uint32_t cantidad);
