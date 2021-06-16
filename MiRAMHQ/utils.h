@@ -36,6 +36,23 @@ t_list * lista_pcb;
 
 t_list * lista_tripulantes;
 
+pthread_mutex_t pthread_mutex_tcb_list;
+
+typedef struct {
+	int id;
+	int patota_id;
+	int cantidad_tareas;
+	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
+	pthread_t hilo_asociado;
+	int socket;
+	int instrucciones_ejecutadas;
+	pthread_mutex_t ejecutadas;
+	int fin;
+	char estado;
+	uint32_t ubi_x;
+	uint32_t ubi_y;
+}t_tripulante;
+
 
 t_log* logger;
 char * obtener_tarea();

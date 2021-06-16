@@ -5,6 +5,8 @@
 void iniciarEstructurasAdministrativas(){
 	lista_pcb = list_create();
 	lista_tcb = list_create();
+
+	pthread_mutex_init(&pthread_mutex_tcb_list,NULL);
 }
 
 
@@ -41,9 +43,24 @@ void enviar_tarea(int socket, char * tarea) {
 	sendRemasterizado(socket, ENVIAR_TAREA, tamanio, (void*) buffer);
 }
 
+t_tripulante * encontrar_trip(int id_trip){
+	bool encontrarTripulante(t_tripulante * tripulante){
+		return tripulante->id == id_trip;
+	}
+
+	pthread_mutex_lock(&pthread_mutex_tcb_list);
+	t_tripulante * tripulante = list_find(lista_tcb,(void*) encontrarTripulante);
+	log_info(logger,"ENCONTRE EL TRIP EN TCB LIST: %d socket: %d", tripulante->id, tripulante->socket);
+	pthread_mutex_unlock(&pthread_mutex_tcb_list);
+
+	return tripulante;
+}
+
 void *atenderNotificacion(void * paqueteSocket){
 
 	int socket = *(int*)paqueteSocket;
+
+	t_tripulante * tripulante = malloc(sizeof(t_tripulante));
 	while(1){
 
 	uint32_t nroNotificacion = recvDeNotificacion(socket);
@@ -79,7 +96,15 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_trip = recvDeNotificacion(socket);
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
 
-			char * tarea = obtener_tarea(id_trip);
+
+			//encontrar_trip(id_trip);
+
+
+			char * tarea = obtener_tarea(tripulante->id);
+			log_info(logger,"tripulante id: %d, patota id: %d, indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tripulante->instrucciones_ejecutadas);
+
+			//Enrealidad hay que crear un atributo Tareas ejecutadas y a ese sumarle 1
+			tripulante->instrucciones_ejecutadas++;
 
 			enviar_tarea(socket,tarea);
 			//sendDeNotificacion(socket,85);
@@ -89,6 +114,18 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		}
 		case CREAR_TRIPULANTE:{
+			uint32_t trip_id = recvDeNotificacion(socket);
+			uint32_t patota_id = recvDeNotificacion(socket);
+			t_tripulante * trip = malloc(sizeof(t_tripulante));
+			trip->id =trip_id;
+			trip->socket = socket;
+			list_add(lista_tcb,trip);
+			tripulante->id = trip_id;
+			tripulante->socket = socket;
+			tripulante->ubi_x = 0;
+			tripulante->ubi_y = 0;
+			tripulante->instrucciones_ejecutadas = 0;
+			tripulante->patota_id = patota_id;
 			sendDeNotificacion(socket, TRIPULANTE_CREADO);
 			log_info(logger, "tcb creado");
 
@@ -110,6 +147,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_trip = recvDeNotificacion(socket);
 			uint32_t x = recvDeNotificacion(socket);
 			uint32_t y = recvDeNotificacion(socket);
+
+			encontrar_trip(id_trip);
 
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
 

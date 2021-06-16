@@ -84,6 +84,8 @@ void *labor_tripulante_new(void * trip){
 	log_info(logger,"tripulante: %d  se conecto con miram...", tripulante->id);
 
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
+	sendDeNotificacion(socketRam,tripulante->id);
+	sendDeNotificacion(socketRam,tripulante->patota_id);
 
 	int creado = recvDeNotificacion(socketRam);
 
