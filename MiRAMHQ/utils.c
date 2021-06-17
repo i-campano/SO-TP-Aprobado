@@ -189,8 +189,9 @@ char * obtener_tarea(t_tripulante * tripulante){
 
 	char * tarea =string_new();
 	log_info(logger,"tareas ejecutadas %d: tareas totales : %d",tripulante->instrucciones_ejecutadas,list_size(pcb->tareas_list));
+
 	if(tripulante->instrucciones_ejecutadas<list_size(pcb->tareas_list)){
-		string_append(&tarea,list_get(pcb->tareas_list,tripulante->instrucciones_ejecutadas));
+		string_append(&tarea,((t_tarea *)list_get(pcb->tareas_list,tripulante->instrucciones_ejecutadas))->nombre_tarea);
 		log_info(logger,"TAREA: %s",tarea);
 
 	}else{
@@ -205,7 +206,19 @@ char * obtener_tarea(t_tripulante * tripulante){
 void crear_pcb(int socket) {
 	char* tareas = recibirString(socket);
 	char ** arrayTareas = string_split(tareas,"-");
-	log_info(logger,"array TAREAs %s",arrayTareas[0]);
+	t_list * lista = list_create();
+	for(int i = 0; arrayTareas[i]!=NULL; i++){
+		log_info(logger,"%s indice: %d",arrayTareas[i],i);
+
+		t_tarea * tarea = malloc(sizeof(tarea));
+		tarea->nombre_tarea = string_new();
+		tarea->nombre_tarea = string_duplicate(arrayTareas[i]);
+
+		string_append(&tarea,arrayTareas[i]);
+		list_add(lista,(void*)tarea);
+	}
+
+
 	char* id_posiciones = recibirString(socket);
 	uint32_t patotaid = recibirUint(socket);
 	uint32_t cantidad_patota = recibirUint(socket);
@@ -215,16 +228,8 @@ void crear_pcb(int socket) {
 
 	string_append(&pcb->id_posicion, id_posiciones);
 
-	pcb->tareas_list = list_create();
+	pcb->tareas_list = lista;
 
-	for(int i = 0; arrayTareas[i]!=NULL; i++){
-		void * el = (void*) arrayTareas[i];
-		list_add(pcb->tareas_list,el);
-	}
-
-
-
-	//char * tarea_harcode = "GENERAR_OXIGENO 12;2;3;5";
 
 	pcb->patotaid = (int)patotaid;
 	pcb->estado = 'N';

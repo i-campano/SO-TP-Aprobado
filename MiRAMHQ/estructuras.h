@@ -11,15 +11,13 @@
 
 typedef struct {
 	char * nombre_tarea;
-	uint32_t posicion_x;
-	uint32_t posicion_y;
-	uint32_t duracion;
-}tareas;
+}t_tarea;
+
 
 typedef struct
 {
 	uint32_t identificador_pcb;
-	tareas * tareas;
+	t_tarea * tareas;
 } pcb3;
 
 typedef struct
@@ -43,6 +41,8 @@ typedef struct
 	uint32_t cantidad_tripulantes;
 	t_list * tareas_list;
 } pcb;
+
+
 
 
 typedef struct _infoHilos{

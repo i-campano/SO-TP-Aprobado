@@ -9,15 +9,32 @@
 
 
 void crear_patota(){
+	char * tareasX = string_new();
+    FILE *archivo = fopen("oxigeno.txt", "r"); // Modo lectura
+    char bufer[1000];         // Aquí vamos a ir almacenando cada línea
+    int cantidad_tareas = 0;
+    while (fgets(bufer, 1000, archivo))
+    {
+        // Aquí, justo ahora, tenemos ya la línea. Le vamos a remover el salto
+        strtok(bufer, "\n");
+        // La imprimimos, pero realmente podríamos hacer cualquier otra cosa
+		string_append(&tareasX,bufer);
+		string_append(&tareasX,"-");
+		cantidad_tareas++;
+    }
+    char * tareasOk = string_substring_until(tareasX,string_length(tareasX)-1);
 
-	char * leido = readline("INGRESAR TAREAS>");
 
-	char * tareas = string_new();
-	string_append(&tareas,leido);
-	free(leido);
-	int longitud_tareas = string_length(tareas);
 
-	leido = readline("CANTIDAD TRIPULANTES>");
+    log_info(logger,"%s",tareasOk);
+
+
+//	char * leido = readline("INGRESAR TAREAS>");
+
+//	free(leido);
+	int longitud_tareas = string_length(tareasOk);
+
+	char * leido = readline("CANTIDAD TRIPULANTES>");
 	uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
 	free(leido);
 
@@ -35,7 +52,7 @@ void crear_patota(){
 	int longitud_posiciones = string_length(posiciones);
 
 	char * claveGet = string_new();
-	string_append(&claveGet,tareas);
+	string_append(&claveGet,tareasOk);
 	string_append(&claveGet,posiciones);
 
 	int tamanioGet = 0;
@@ -44,7 +61,7 @@ void crear_patota(){
 
 	void* buffer_patota = crear_buffer_patota(longitud_tareas,
 			longitud_posiciones, patotaId, cantidad_tripulantes,
-			&tamanioGet, tareas, posiciones);
+			&tamanioGet, tareasOk, posiciones);
 
 	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
 
@@ -58,13 +75,15 @@ void crear_patota(){
 		*id = tripulantes_creados;
 		_tripulante->id = *id;
 		_tripulante->patota_id = patotaId;
-		_tripulante->cantidad_tareas = 5;
+		_tripulante->cantidad_tareas = cantidad_tareas;
 		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
 		crearHiloTripulante(_tripulante);
 	}
 
 
 }
+
+
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
 	void* buffer_patota = malloc(longitud_tareas + longitud_posiciones + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int) + sizeof(int));
