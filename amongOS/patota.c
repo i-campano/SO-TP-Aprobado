@@ -9,8 +9,14 @@
 
 
 void crear_patota(){
+	char * leido = readline("INGRESAR UBICACION TAREAS>");
+	char * path = string_new();
+	string_append(&path,leido);
+
+	free(leido);
+
 	char * tareasX = string_new();
-    FILE *archivo = fopen("oxigeno.txt", "r"); // Modo lectura
+    FILE *archivo = fopen(path, "r"); // Modo lectura
     char bufer[1000];         // Aquí vamos a ir almacenando cada línea
     int cantidad_tareas = 0;
     while (fgets(bufer, 1000, archivo))
@@ -34,7 +40,7 @@ void crear_patota(){
 //	free(leido);
 	int longitud_tareas = string_length(tareasOk);
 
-	char * leido = readline("CANTIDAD TRIPULANTES>");
+	leido = readline("CANTIDAD TRIPULANTES>");
 	uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
 	free(leido);
 
