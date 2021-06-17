@@ -53,17 +53,17 @@ void *atenderNotificacion(void * paqueteSocket){
 			}
 				break;
 
-			case EJECUTAR_TAREA:{
-				char * tarea = recibirString(socket);
-				//Case para hacer HANDSHAKE = Chequear la conexion
-				char * accionTarea = devolverDeTarea(tarea,0);
-				uint32_t cantidad = atoi(devolverDeTarea(tarea,1));
-				uint32_t id_trip = recvDeNotificacion(socket);
-				ejecutar_tarea(accionTarea);
-				sendDeNotificacion(socket,198);
-				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
+			case EJECUTAR_TAREA:
 
-			}
+				/*char * tarea = recibirString(socket);
+				//Case para hacer HANDSHAKE = Chequear la conexion
+				char * accionTarea = devolverDeTarea(tarea,0); "GENERAR_OXIGENO"
+				uint32_t cantidad = atoi(devolverDeTarea(tarea,1)); 10
+				uint32_t id_trip = recvDeNotificacion(socket);
+				ejecutar_tarea(accionTarea, 1);
+				sendDeNotificacion(socket,198);
+				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);*/
+
 				break;
 			default:
 				log_warning(logger, "La conexion recibida es erronea");
@@ -72,16 +72,32 @@ void *atenderNotificacion(void * paqueteSocket){
 	}
 	return 0;
 }
-
-void ejecutar_tarea(char * tarea)
-{
-
-	if(strcmp(tarea,"GENERAR_OXIGENO 12;2;3;5")==0)
-	{
-		log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO:");
-		log_info(logger,"OOOOOOOOOOO");
-
+//TODO, mejorar con codigos como est'a hecho arriba
+void ejecutarTarea(char* tarea, uint32_t  cantidad){
+	if(0){
+		printf(" entra ac[a en el if 0");
 	}
+	if (strcmp("GENERAR_OXIGENO", tarea)==0){
+			generarOxigeno(cantidad);
+	}
+	else if (strcmp("GENERAR_COMIDA", tarea)==0){
+		generarComida(cantidad);
+	}
+	else if ( strcmp("GENERAR_BASURA", tarea)==0) {
+		generarBasura(cantidad);
+	}
+	else if (strcmp("CONSUMIR_OXIGENO", tarea)==0) {
+		consumirOxigeno(cantidad);
+	}
+	else if ( strcmp("CONSUMIR_COMIDA", tarea)==0) {
+		consumirComida(cantidad);
+	}
+	else if (strcmp("DESCARTAR_BASURA", tarea)==0){
+		descartarBasura();
+	}
+	else {
+			printf("Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
+		}
 
 }
 
@@ -110,7 +126,7 @@ t_config* leer_config() {
 }
 
 ////////FUNCIONES DE TAREAS/////////
-void generarDatos(uint32_t cantidad, char caracter)
+void generarOxigeno(uint32_t cantidad)
 {
 	//definiciones de variables
 	char* path_oxigeno = string_new();
@@ -134,7 +150,7 @@ void generarDatos(uint32_t cantidad, char caracter)
 	}
 
 	//Escribe la cantidad  OXIGENO SOLICITADA
-	cadenaOxigenos = string_repeat(caracter, cantidad);
+	cadenaOxigenos = string_repeat('O', cantidad);
 	txt_write_in_file(fd_oxigeno, cadenaOxigenos);
 
 	//cierra el archivo
@@ -144,7 +160,76 @@ void generarDatos(uint32_t cantidad, char caracter)
 	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 
-void consumirDatos(uint32_t cantidad, char caracter)
+void generarComida(uint32_t cantidad)
+{
+	//definiciones de variables
+	char* path_comida = string_new();
+	char* cadenaComida;
+	FILE* fd_comida;
+
+	//asigno el path
+	string_append(&path_comida, conf_PUNTO_MONTAJE);
+	string_append(&path_comida, conf_ARCHIVO_COMIDA_NOMBRE);
+
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
+
+	//escribe el archivo
+	log_info(logger,"EJECUTO TAREA - GENERAR COMIDA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
+	fd_comida = txt_open_for_append(path_comida);
+
+	if (fd_comida == NULL)
+	{
+		//TODO Manejo del error
+	}
+
+	//Escribe la cantidad  OXIGENO SOLICITADA
+	cadenaComida = string_repeat('C', cantidad);
+	txt_write_in_file(fd_comida, cadenaComida);
+
+	//cierra el archivo
+	txt_close_file(fd_comida);
+	free(path_comida);
+	//ulock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_COMIDA);
+}
+
+void generarBasura(uint32_t cantidad)
+{
+	//definiciones de variables
+	char* path_basura = string_new();
+	char* cadenaBasura;
+	FILE* fd_basura;
+
+	//asigno el path
+	string_append(&path_basura ,conf_PUNTO_MONTAJE);
+	string_append(&path_basura ,conf_ARCHIVO_BASURA_NOMBRE);
+
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_BASURA);
+
+	//escribe el archivo
+	log_info(logger,"EJECUTO TAREA - GENERAR BASURA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
+	fd_basura = txt_open_for_append(path_basura);
+
+	if (fd_basura == NULL)
+	{
+		//TODO Manejo del error
+	}
+
+	//Escribe la cantidad  OXIGENO SOLICITADA
+	cadenaBasura = string_repeat('B', cantidad);
+	txt_write_in_file(fd_basura, cadenaBasura);
+
+	//cierra el archivo
+	txt_close_file(fd_basura);
+
+	//ulock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
+}
+
+
+void consumirOxigeno(uint32_t cantidad)
 {
 	//definiciones de variables
 	char* path_oxigeno = string_new();
@@ -177,11 +262,66 @@ void consumirDatos(uint32_t cantidad, char caracter)
 	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 
-/* TODO: implementar
-void descartarBasura();*/
+void consumirComida(uint32_t cantidad)
+{
+	//definiciones de variables
+	char* path_comida = string_new();
+	char* cadenaComida = string_new();
+	char* cadenaComidaAux = string_new();
+	FILE* fd_comida;
+
+	//asigno el path
+	string_append(&path_comida, conf_PUNTO_MONTAJE);
+	string_append(&path_comida, conf_ARCHIVO_COMIDA_NOMBRE);
+
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
+
+	//lee la cadena dentro del archivo
+	fd_comida = fopen(path_comida, "r");
+	fscanf(fd_comida,"%s",cadenaComidaAux);
+	//Si la cantidad a borrar es mayor de la lo que hay escrito, deja el archivo en blanco
+	if (string_length(cadenaComidaAux)>cantidad) {
+		cadenaComida = string_substring(cadenaComidaAux,0,string_length(cadenaComidaAux)-cantidad);
+	}
+	fclose (fd_comida);
+
+	fd_comida = fopen(path_comida, "w");
+	fputs(cadenaComida,fd_comida);
+	fclose (fd_comida);
+
+
+	//unlock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_COMIDA);
+}
+
+void descartarBasura()
+{
+	//definiciones de variables
+	char* path_basura = string_new();
+	FILE* fd_basura;
+
+	//asigno el path
+	string_append(&path_basura, conf_PUNTO_MONTAJE);
+	string_append(&path_basura, conf_ARCHIVO_BASURA_NOMBRE);
+
+	//lock del mutex para el manejo del archivo
+	pthread_mutex_lock(&mut_ARCHIVO_BASURA);
+
+
+
+	fd_basura = fopen(path_basura, "w");
+	fclose (fd_basura);
+
+
+	//unlock del mutex para el manejo del archivo
+	pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
+}
+
 ////////FUNCIONES DE TAREAS/////////
 
 
+/*
 char *devolverDeTarea(char* tarea,int dato){
 	//dato = 0 devuelve el nombre de la tarea
 	//dato= 1 devuelve la cantidad pasada como parametro
@@ -197,4 +337,5 @@ char *devolverDeTarea(char* tarea,int dato){
 	}
 	return tareas[dato];
 }
+*/
 

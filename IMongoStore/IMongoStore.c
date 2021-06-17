@@ -22,8 +22,16 @@ int main(void)
 	//Inicia escucha de llamados
 	//manejadorDeHilos();
 
-	generarDatos(10,'O');
-	consumirDatos(6,'O');
+	generarOxigeno(10);
+	consumirOxigeno(5);
+	generarComida(10);
+	consumirComida(4);
+	generarBasura(8);
+	descartarBasura();
+
+	ejecutarTarea("GENERAR_OXIGENO",10);
+	ejecutarTarea("GENERAR_BASURA",10);
+
 
 	return EXIT_SUCCESS;
 }
