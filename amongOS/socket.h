@@ -25,7 +25,7 @@
 #include <semaphore.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-
+#include<commons/string.h>
 #define BACKLOG 20
 
 #define DISCORDIADOR 1

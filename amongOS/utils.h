@@ -16,6 +16,7 @@
 #include<readline/readline.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include "tripulante.h"
 
 
 char* IP_MONGO;
@@ -121,7 +122,7 @@ sem_t colaEjecutados;
 
 
 sem_t activar_actualizaciones_mongo;
-
+sem_t terminarPrograma;
 
 typedef struct _infoHilos{
 	int socket;
@@ -160,11 +161,11 @@ void iniciar_configuracion();
 void iniciarEstructurasAdministrativasPlanificador();
 
 
-int terminar_programa(t_log* logger,t_config* config,int conexion[2]);
+int terminar_programa(t_log* logger,t_config* config);
 
 void iniciar_logger();
-
+int cerrar_conexiones_hilos(t_log* logger);
 t_config* leer_config();
-
-
+int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger);
+int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger);
 #endif /* UTILS_H_ */

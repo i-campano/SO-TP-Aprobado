@@ -64,6 +64,7 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea,
 	}
 
 	log_info(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
+	free(tarea_parametro);//stringsplit
 	return tarea_separada[0];
 }
 
@@ -241,8 +242,9 @@ void *labor_tripulante_new(void * trip){
 	sem_post(&exec);
 	actualizar_estado(socketRam,tripulante,FIN);
 	log_info(logger, "FIN TAREAS TRIPULANTE %d", tripulante->id);
-
+	free(claveNueva);
 	//while(1){}
+	return 0; //Para que no moleste el warning
 }
 
 void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
@@ -256,5 +258,6 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 	tamanio += largoClave;
 	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
 	sendDeNotificacion(socketMongo, (uint32_t) id);
+	free(buffer); //Malloc linea 253
 }
 

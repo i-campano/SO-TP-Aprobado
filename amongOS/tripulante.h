@@ -9,7 +9,7 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include "utils.h"
-
+#include "socket.h"
 int tripulantes_creados;
 
 //BOOL
@@ -63,6 +63,7 @@ typedef struct {
 void *labor_tripulante_new(void * id_tripulante);
 
 void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva);
-
-
+void actualizar_ubicacion(int socketRam, t_tripulante* tripulante);
+void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado);
+char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea, int * cpuBound);
 #endif

@@ -88,10 +88,12 @@ void sendRemasterizado(int aQuien, int tipoMsj, int tamanioMsj, void* peticionDe
 	memcpy(bufferMensaje+sizeof(int), peticionDeArchivo, tamanioMsj);
 	if(send(aQuien, bufferMensaje, tamanioMsj+sizeof(int), 0) == -1){
 		perror("Error al enviar mensaje.");
+		free(bufferMensaje);//malloc linea 86
 		exit(-1);
 	}
 	free(bufferMensaje);
 }
+//malloc revisados
 
 void sendDeNotificacion(int aQuien, uint32_t notificacion){
 	if(send(aQuien, &notificacion, sizeof(uint32_t),0)==-1){
@@ -126,13 +128,14 @@ char* recibirString(int socket){ //EL TAMAÑO DEL STRING SE RECIBE ADENTRO DE ES
 	void* string = malloc(tamanio);
 	if(recv(socket, string, tamanio, MSG_WAITALL) == -1){
 		perror("Error al recibir un string.");
+		free(string); //malloc linea 128
 		exit(-1);
 	}
 	char* stringRecibido = string_substring_until(string, tamanio);
 	free(string);
 	return stringRecibido;
 }
-
+//malloc revisados
 int recvDeNotificacion(int deQuien){
 	uint32_t notificacion;
 	int resultadoRecv = recv(deQuien, &notificacion, sizeof(uint32_t), MSG_WAITALL);

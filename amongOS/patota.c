@@ -52,7 +52,6 @@ void crear_patota(){
 	char * posiciones = string_new();
 	leido = readline("INGRESAR POSICIONES>");
 	string_append(&posiciones,leido);
-
 	free(leido);
 	//string_append(&posiciones,"#12-3|4&#16-5|6");
 	int longitud_posiciones = string_length(posiciones);
@@ -84,11 +83,15 @@ void crear_patota(){
 		_tripulante->cantidad_tareas = cantidad_tareas;
 		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
 		crearHiloTripulante(_tripulante);
+		free(id); //malloc linea 79 dentro de este while
 	}
-
-
+	free(buffer_patota); //Se hace el malloc dentro de crear_buffer_patota
+	free(claveGet); //malloc linea 60
+	free(posiciones); //stringNew linea 52
+	free(tareasX);//stringNew linea 18
+	free(tareasOk); // linea 31
 }
-
+//Mallocs Revisados
 
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
@@ -114,3 +117,4 @@ void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t
 	*tamanioGet += sizeof(uint32_t);
 	return buffer_patota;
 }
+//Mallocs Revisados

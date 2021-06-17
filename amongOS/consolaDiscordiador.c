@@ -6,7 +6,7 @@
  */
 
 #include "consolaDiscordiador.h"
-
+int programa_ejecucion = 1;
 void leer_consola() {
 	log_info(logger,"INGRESE UN COMANDO: ");
 	tripulantes_creados = 0;
@@ -45,6 +45,7 @@ void leer_consola() {
 		}
 		leido = readline(">");
 	}
+	sem_post(&terminarPrograma);
 	free(leido);
 }
 

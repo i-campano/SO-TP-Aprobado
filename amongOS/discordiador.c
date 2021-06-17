@@ -26,9 +26,9 @@ int main(void) {
 
 	planificar();
 
-	while(1){}
-
-	return terminar_programa(logger,config,NULL);
+	sem_wait(&terminarPrograma);
+	terminar_programa(logger,config);
+	return 0;
 }
 
 

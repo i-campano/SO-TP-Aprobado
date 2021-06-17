@@ -3,7 +3,6 @@
  */
 
 #include "MiRAMHQ.h"
-#include "socket.h"
 
 int main(void)
 {
@@ -17,6 +16,7 @@ int main(void)
 	server_fd = iniciarServidor(5002);
 
 	iniciarEstructurasAdministrativas();
+
 
 	log_info(logger, "Servidor listo para recibir al clientexxxxx");
 	manejadorDeHilos();

@@ -11,6 +11,6 @@
 #include<string.h>
 #include<commons/log.h>
 #include "utils.h"
-
+#include "socket.h"
 
 #endif /* MiRAMHQ_H_ */
