@@ -80,7 +80,7 @@ int terminar_programa(t_log* logger,t_config* config) {
 }
 int cerrar_conexiones_hilos(t_log* logger){
 	log_info(logger,"Deteniendo planificacion para terminar, por favor espere");
-	//sem_wait(&detenerReaunudarEjecucion);
+	sem_wait(&detenerReaunudarEjecucion);
 	sleep(2);
 	log_info(logger,"Planificacion detenida");
 	log_info(logger,"Cerrando conexiones y liberando memoria");
@@ -96,15 +96,15 @@ int cerrar_conexiones_hilos(t_log* logger){
 	log_info(logger,"Liberando recursos de exec");
 	eliminar_cola(cola_ejecutados,mutex_cola_ejecutados,logger);
 	eliminar_list(lista_exec,planificacion_mutex_exec,logger);
-	log_info(logger,"Cerrando hilos MENTIRA MUAJAJAJA KB TU MEMORIA");
+	log_info(logger,"Cerrando hilos");
 	return 0;
 }
 int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger) {
 	t_tripulante* tripulante;
+	pthread_mutex_lock(&mutex_cola);
 	int cantidad_elementos = queue_size(cola);
 	int i = 0;
 	log_info(logger,"Hay %i tripulantes en este estado", cantidad_elementos);
-	pthread_mutex_lock(&mutex_cola);
 	while(i < cantidad_elementos) {
 		tripulante = queue_pop(cola);
 		close(tripulante->socket);
@@ -120,10 +120,10 @@ int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger) {
 }
 int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger) {
 	t_tripulante* tripulante;
+	pthread_mutex_lock(&mutex_lista);
 	int cantidad_elementos = list_size(lista);
 	int i = 0;
 	log_info(logger,"Hay %i tripulantes en este estado", cantidad_elementos);
-	pthread_mutex_lock(&mutex_lista);
 	while(i < cantidad_elementos) {
 		tripulante = list_get(lista,0);
 		close(tripulante->socket);
