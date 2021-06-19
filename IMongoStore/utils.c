@@ -74,9 +74,7 @@ void *atenderNotificacion(void * paqueteSocket){
 }
 //TODO, mejorar con codigos como est'a hecho arriba
 void ejecutarTarea(char* tarea, uint32_t  cantidad){
-	if(0){
-		printf(" entra ac[a en el if 0");
-	}
+
 	if (strcmp("GENERAR_OXIGENO", tarea)==0){
 			generarOxigeno(cantidad);
 	}
@@ -155,7 +153,7 @@ void generarOxigeno(uint32_t cantidad)
 
 	//cierra el archivo
 	txt_close_file(fd_oxigeno);
-
+	free(path_oxigeno);
 	//ulock del mutex para el manejo del archivo
 	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
@@ -231,11 +229,14 @@ void generarBasura(uint32_t cantidad)
 
 void consumirOxigeno(uint32_t cantidad)
 {
+
 	//definiciones de variables
 	char* path_oxigeno = string_new();
 	char* cadenaOxigenos = string_new();
 	char* cadenaOxigenosAux = string_new();
 	FILE* fd_oxigeno;
+	int caracter;
+	int contador=0;
 
 	//asigno el path
 	string_append(&path_oxigeno, conf_PUNTO_MONTAJE);
@@ -246,9 +247,14 @@ void consumirOxigeno(uint32_t cantidad)
 
 	//lee la cadena dentro del archivo
 	fd_oxigeno = fopen(path_oxigeno, "r");
-	fscanf(fd_oxigeno,"%s",cadenaOxigenosAux);
-	//Si la cantidad a borrar es mayor de la lo que hay escrito, deja el archivo en blanco
-	if (string_length(cadenaOxigenosAux)>cantidad) {
+	caracter = fgetc(fd_oxigeno);
+	while(caracter!=EOF){
+		caracter = fgetc(fd_oxigeno);
+		contador++;
+	}
+	cadenaOxigenosAux = string_repeat('O',contador);
+	printf("contador: %d", contador);
+	if (contador > cantidad) {
 		cadenaOxigenos = string_substring(cadenaOxigenosAux,0,string_length(cadenaOxigenosAux)-cantidad);
 	}
 	fclose (fd_oxigeno);
@@ -256,6 +262,7 @@ void consumirOxigeno(uint32_t cantidad)
 	fd_oxigeno = fopen(path_oxigeno, "w");
 	fputs(cadenaOxigenos,fd_oxigeno);
 	fclose (fd_oxigeno);
+	log_info(logger,"EJECUTO TAREA - CONSUMIR OXIGENO ABRO ARCHIVO"); //TODO agregar path y cantidad al log
 
 
 	//unlock del mutex para el manejo del archivo
@@ -269,25 +276,35 @@ void consumirComida(uint32_t cantidad)
 	char* cadenaComida = string_new();
 	char* cadenaComidaAux = string_new();
 	FILE* fd_comida;
+	int caracter,contador=0;
 
 	//asigno el path
 	string_append(&path_comida, conf_PUNTO_MONTAJE);
 	string_append(&path_comida, conf_ARCHIVO_COMIDA_NOMBRE);
+
 
 	//lock del mutex para el manejo del archivo
 	pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
 
 	//lee la cadena dentro del archivo
 	fd_comida = fopen(path_comida, "r");
-	fscanf(fd_comida,"%s",cadenaComidaAux);
+	caracter = fgetc(fd_comida);
+	while(caracter!=EOF){
+		caracter = fgetc(fd_comida);
+		contador++;
+	}
+	cadenaComidaAux = string_repeat('C',contador);
+
+
 	//Si la cantidad a borrar es mayor de la lo que hay escrito, deja el archivo en blanco
 	if (string_length(cadenaComidaAux)>cantidad) {
 		cadenaComida = string_substring(cadenaComidaAux,0,string_length(cadenaComidaAux)-cantidad);
 	}
 	fclose (fd_comida);
+	fd_comida = fopen(path_comida,"w");
 
-	fd_comida = fopen(path_comida, "w");
-	fputs(cadenaComida,fd_comida);
+	//fd_comida = fopen(path_comida, "w");
+	fputs(cadenaComida, fd_comida);
 	fclose (fd_comida);
 
 
