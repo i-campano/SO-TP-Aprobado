@@ -124,7 +124,7 @@ t_config* leer_config() {
 	return config;
 }
 
-////////FUNCIONES DE TAREAS/////////
+////////////////////////////////////////////FUNCIONES DE TAREAS/////////////////////////////////////
 void generarOxigeno(uint32_t cantidad)
 {
 	//definiciones de variables
@@ -368,7 +368,7 @@ char* generarPath(char* archivoTripulante) {
 	return path_bitacora;
 }
 
-////////FUNCIONES DE TAREAS/////////
+////////////////////////////////////////////FUNCIONES DE TAREAS///////////////////////////////////////
 
 
 /*
@@ -391,6 +391,7 @@ char *devolverDeTarea(char* tarea,int dato){
 
 /* Bitacora */
 
+////////////////////////////////////////////FUNCIONES DE BITACORA/////////////////////////////////////
 void escribirBitacora(char* tarea, uint32_t idTripulante) {
 
 
@@ -411,4 +412,179 @@ void escribirBitacora(char* tarea, uint32_t idTripulante) {
 
 
 }
+////////////////////////////////////////////FUNCIONES DE BITACORA/////////////////////////////////////
 
+////////////////////////////////////////////FUNCIONES DE INICIO/  ////////////////////////////////////
+
+//Verifica si un archikvo existe o no
+//case 0: printf ("El archivo existe\n"); break;
+//case -1: printf ("El archivo no existe\n"); break;
+//case -2: printf ("Ocurrió un error al abrir. %d (%s)\n", errno, strerror(errno)); break;
+int existsArchivo(char *fname)
+{
+  int fd=open(fname, O_RDONLY);
+  if (fd<0)         /* error */
+    return (errno==ENOENT)?-1:-2;
+  /* Si no hemos salido ya, cerramos */
+  close(fd);
+  return 0;
+}
+
+
+
+//ANALIZA SI EXISTE O NO LA ESTRUCTURA DE ARCHIVOS
+//SI NO EXISTE LA CREA
+//retorna 0 OK / -1 Error
+short iniciaEstructuraDeArchivos()
+{
+	//definiciones de variables
+	int existeBlocks = 0;
+	int existeSuperBloque = 0;
+	int existeArchivoOxigeno = 0;
+	int existeArchivoOxigenoMetadata = 0;
+	int existeArchivoComida = 0;
+	int existeArchivoComidaMetadata = 0;
+	int existeBasura = 0;
+	int existeBasuraMetadata = 0;
+
+	int cantidadArchivos = 0;
+
+	FILE* fd_auxiliar;
+
+	char* path_blocks = string_new();
+	char* path_superbloque = string_new();
+	char* path_oxigeno = string_new();
+	char* path_oxigeno_metadata = string_new();
+	char* path_comida = string_new();
+	char* path_comida_metadata = string_new();
+	char* path_basura = string_new();
+	char* path_basura_metadata = string_new();
+
+	//Asignacion de rutas
+	string_append(&path_blocks,conf_PUNTO_MONTAJE);
+	string_append(&path_blocks,"Blocks");
+
+	string_append(&path_superbloque,conf_PUNTO_MONTAJE);
+	string_append(&path_superbloque,"SuperBloque");
+
+	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+
+	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+	string_append(&path_oxigeno_metadata,conf_PUNTO_MONTAJE);
+	string_append(&path_oxigeno_metadata,"Files/");
+	string_append(&path_oxigeno_metadata,conf_ARCHIVO_OXIGENO_NOMBRE);
+
+	string_append(&path_comida,conf_PUNTO_MONTAJE);
+	string_append(&path_comida,conf_ARCHIVO_COMIDA_NOMBRE);
+	string_append(&path_comida_metadata,conf_PUNTO_MONTAJE);
+	string_append(&path_comida_metadata,"Files/");
+	string_append(&path_comida_metadata,conf_ARCHIVO_COMIDA_NOMBRE);
+
+	string_append(&path_basura,conf_PUNTO_MONTAJE);
+	string_append(&path_basura,conf_ARCHIVO_BASURA_NOMBRE);
+	string_append(&path_basura_metadata,conf_PUNTO_MONTAJE);
+	string_append(&path_basura_metadata,"Files/");
+	string_append(&path_basura_metadata,conf_ARCHIVO_BASURA_NOMBRE);
+
+	//Verificacion de existencia
+	existeBlocks = existsArchivo(path_blocks);
+	existeSuperBloque = existsArchivo(path_superbloque);
+	existeArchivoOxigeno = existsArchivo(path_oxigeno);
+	existeArchivoOxigenoMetadata = existsArchivo(path_oxigeno_metadata);
+	existeArchivoComida = existsArchivo(path_comida);
+	existeArchivoComidaMetadata = existsArchivo(path_comida_metadata);
+	existeBasura = existsArchivo(path_basura);
+	existeBasuraMetadata = existsArchivo(path_basura_metadata);
+
+	cantidadArchivos = existeBlocks + existeSuperBloque + 	existeArchivoOxigeno +
+			existeArchivoOxigenoMetadata + existeArchivoComida + existeArchivoComidaMetadata +
+			existeBasura + existeBasuraMetadata;
+
+	//Crea la estructura en caso de corresponder
+	if(cantidadArchivos != 0)
+	{
+		pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
+		pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
+		pthread_mutex_lock(&mut_ARCHIVO_BASURA);
+		pthread_mutex_lock(&mut_ARCHIVO_OXIGENO_METADATA);
+		pthread_mutex_lock(&mut_ARCHIVO_COMIDA_METADATA);
+		pthread_mutex_lock(&mut_ARCHIVO_BASURA_METADATA);
+		pthread_mutex_lock(&mut_ARCHIVO_BLOCKS);
+		pthread_mutex_lock(&mut_ARCHIVO_SUPERBLOQUE);
+
+		fd_auxiliar = fopen(path_oxigeno, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_oxigeno_metadata, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_comida, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_comida_metadata, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_basura, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_basura_metadata, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_blocks, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		fd_auxiliar = fopen(path_superbloque, "w");
+		if (fd_auxiliar == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+		}
+		fclose (fd_auxiliar);
+
+		//TODO Crear la carpeta de bitacoras de cero
+
+		pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
+		pthread_mutex_unlock(&mut_ARCHIVO_COMIDA);
+		pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
+		pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO_METADATA);
+		pthread_mutex_unlock(&mut_ARCHIVO_COMIDA_METADATA);
+		pthread_mutex_unlock(&mut_ARCHIVO_BASURA_METADATA);
+		pthread_mutex_unlock(&mut_ARCHIVO_BLOCKS);
+		pthread_mutex_unlock(&mut_ARCHIVO_SUPERBLOQUE);
+	}
+
+	return 0;
+}
+
+
+
+////////////////////////////////////////////FUNCIONES DE INICIO/  ////////////////////////////////////

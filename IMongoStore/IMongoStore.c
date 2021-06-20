@@ -8,6 +8,11 @@ int main(void)
 		pthread_mutex_init(&mut_ARCHIVO_OXIGENO, NULL);
 		pthread_mutex_init(&mut_ARCHIVO_COMIDA, NULL);
 		pthread_mutex_init(&mut_ARCHIVO_BASURA, NULL);
+		pthread_mutex_init(&mut_ARCHIVO_OXIGENO_METADATA, NULL);
+		pthread_mutex_init(&mut_ARCHIVO_COMIDA_METADATA, NULL);
+		pthread_mutex_init(&mut_ARCHIVO_BASURA_METADATA, NULL);
+		pthread_mutex_init(&mut_ARCHIVO_BLOCKS, NULL);
+		pthread_mutex_init(&mut_ARCHIVO_SUPERBLOQUE, NULL);
 
 	//Inicializacion del loger
 	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
@@ -30,8 +35,6 @@ int main(void)
 	consumirOxigeno(2);
 	consumirComida(3);
 	descartarBasura();
-
-
 
 	log_info(logger,"finished");
 

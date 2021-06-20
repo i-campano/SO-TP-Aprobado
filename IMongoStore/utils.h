@@ -38,7 +38,11 @@ char* conf_PATH_BITACORA;
 pthread_mutex_t mut_ARCHIVO_OXIGENO;
 pthread_mutex_t mut_ARCHIVO_COMIDA;
 pthread_mutex_t mut_ARCHIVO_BASURA;
-
+pthread_mutex_t mut_ARCHIVO_OXIGENO_METADATA;
+pthread_mutex_t mut_ARCHIVO_COMIDA_METADATA;
+pthread_mutex_t mut_ARCHIVO_BASURA_METADATA;
+pthread_mutex_t mut_ARCHIVO_BLOCKS;
+pthread_mutex_t mut_ARCHIVO_SUPERBLOQUE;
 
 int server_fd;
 
