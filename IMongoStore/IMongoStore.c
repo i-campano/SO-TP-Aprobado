@@ -23,15 +23,13 @@ int main(void)
 
 	//Inicia escucha de llamados
 	//manejadorDeHilos();
-
-	generarOxigeno(10);
-	generarOxigeno(10);
-	generarOxigeno(10);
-	generarOxigeno(10);
+	escribirBitacora("se movio de (1,1) a (1,2)",1);
+	generarOxigeno(5);
+	generarBasura(5);
+	generarComida(5);
 	consumirOxigeno(2);
-
-	generarComida(10);
-	consumirComida(8);
+	consumirComida(3);
+	descartarBasura();
 
 
 

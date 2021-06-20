@@ -20,6 +20,7 @@
 #include<commons/string.h>
 #include<string.h>
 #include "socket.h"
+#include<time.h>
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
 char* conf_PUNTO_MONTAJE;
@@ -31,6 +32,7 @@ char* conf_IP_DISCORDIADOR;
 char* conf_ARCHIVO_OXIGENO_NOMBRE;
 char* conf_ARCHIVO_COMIDA_NOMBRE;
 char* conf_ARCHIVO_BASURA_NOMBRE;
+char* conf_PATH_BITACORA;
 
 //MUTEX PARA ARCHIVOS
 pthread_mutex_t mut_ARCHIVO_OXIGENO;
@@ -60,12 +62,20 @@ t_config* leer_config();
 void generarOxigeno(uint32_t cantidad);
 void generarComida(uint32_t cantidad);
 void generarBasura(uint32_t cantidad);
-
 void consumirOxigeno(uint32_t cantidad);
 void consumirComida(uint32_t cantidad);
 void descartarBasura();
 char *devolverTarea(char* tarea);
 ////////FUNCIONES DE TAREAS/////////
 void ejecutarTarea(char* tarea, uint32_t cantidad);
+
+/* Bitacora */
+void escribirBitacora(char* tarea, uint32_t idTripulante);
+
+char* generarIdArchivo(uint32_t idTripulante);
+char* generarPath(char* archivoTripulante);
+char*  getCurrentTime();
+
+
 
 #endif /* CONEXIONES_H_ */

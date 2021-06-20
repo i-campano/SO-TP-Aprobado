@@ -111,14 +111,15 @@ void iniciar_configuracion(){
 	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
 	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
 	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
+	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
 
 }
 
 t_config* leer_config() {
 	t_config *config;
 	if((config = config_create("IMongoStore.config"))==NULL) {
-		printf("No se pudo leer de la config. Revise. \n");
-		exit(1);
+		perror("No se pudo leer de la config. Revise. \n");
+		exit(-1);
 	}
 	return config;
 }
@@ -142,9 +143,9 @@ void generarOxigeno(uint32_t cantidad)
 	log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
 	fd_oxigeno = txt_open_for_append(path_oxigeno);
 
-	if (fd_oxigeno == NULL)
-	{
-		//TODO Manejo del error
+	if (fd_oxigeno == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
 	}
 
 	//Escribe la cantidad  OXIGENO SOLICITADA
@@ -176,9 +177,9 @@ void generarComida(uint32_t cantidad)
 	log_info(logger,"EJECUTO TAREA - GENERAR COMIDA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
 	fd_comida = txt_open_for_append(path_comida);
 
-	if (fd_comida == NULL)
-	{
-		//TODO Manejo del error
+	if (fd_comida == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
 	}
 
 	//Escribe la cantidad  OXIGENO SOLICITADA
@@ -209,10 +210,9 @@ void generarBasura(uint32_t cantidad)
 	//escribe el archivo
 	log_info(logger,"EJECUTO TAREA - GENERAR BASURA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
 	fd_basura = txt_open_for_append(path_basura);
-
-	if (fd_basura == NULL)
-	{
-		//TODO Manejo del error
+	if (fd_basura == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
 	}
 
 	//Escribe la cantidad  OXIGENO SOLICITADA
@@ -247,6 +247,10 @@ void consumirOxigeno(uint32_t cantidad)
 
 	//lee la cadena dentro del archivo
 	fd_oxigeno = fopen(path_oxigeno, "r");
+	if (fd_oxigeno == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
+	}
 	caracter = fgetc(fd_oxigeno);
 	while(caracter!=EOF){
 		caracter = fgetc(fd_oxigeno);
@@ -260,6 +264,10 @@ void consumirOxigeno(uint32_t cantidad)
 	fclose (fd_oxigeno);
 
 	fd_oxigeno = fopen(path_oxigeno, "w");
+	if (fd_oxigeno == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
+	}
 	fputs(cadenaOxigenos,fd_oxigeno);
 	fclose (fd_oxigeno);
 	log_info(logger,"EJECUTO TAREA - CONSUMIR OXIGENO ABRO ARCHIVO"); //TODO agregar path y cantidad al log
@@ -288,6 +296,10 @@ void consumirComida(uint32_t cantidad)
 
 	//lee la cadena dentro del archivo
 	fd_comida = fopen(path_comida, "r");
+	if (fd_comida == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+	}
 	caracter = fgetc(fd_comida);
 	while(caracter!=EOF){
 		caracter = fgetc(fd_comida);
@@ -302,8 +314,10 @@ void consumirComida(uint32_t cantidad)
 	}
 	fclose (fd_comida);
 	fd_comida = fopen(path_comida,"w");
-
-	//fd_comida = fopen(path_comida, "w");
+	if (fd_comida == NULL) {
+			perror("Hubo un error al abrir el arhivo");
+			exit(-1);
+	}
 	fputs(cadenaComida, fd_comida);
 	fclose (fd_comida);
 
@@ -325,14 +339,33 @@ void descartarBasura()
 	//lock del mutex para el manejo del archivo
 	pthread_mutex_lock(&mut_ARCHIVO_BASURA);
 
-
-
 	fd_basura = fopen(path_basura, "w");
+	if (fd_basura == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
+	}
 	fclose (fd_basura);
 
 
 	//unlock del mutex para el manejo del archivo
 	pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
+}
+
+char* generarIdArchivo(uint32_t idTripulante) {
+	char* archivoTripulante = string_new();
+	string_append(&archivoTripulante, "Tripulante");
+	string_append(&archivoTripulante, string_itoa(idTripulante));
+	string_append(&archivoTripulante, ".ims");
+	return archivoTripulante;
+}
+
+char* generarPath(char* archivoTripulante) {
+	//asigno el path
+	char* path_bitacora = string_new();
+	string_append(&path_bitacora, conf_PUNTO_MONTAJE);
+	string_append(&path_bitacora, conf_PATH_BITACORA);
+	string_append(&path_bitacora, archivoTripulante);
+	return path_bitacora;
 }
 
 ////////FUNCIONES DE TAREAS/////////
@@ -355,4 +388,27 @@ char *devolverDeTarea(char* tarea,int dato){
 	return tareas[dato];
 }
 */
+
+/* Bitacora */
+
+void escribirBitacora(char* tarea, uint32_t idTripulante) {
+
+
+	FILE* archivoBitacora;
+	char* archivoTripulante = generarIdArchivo(idTripulante);
+	char* pathBitacoraTripulante = generarPath(archivoTripulante);
+
+	archivoBitacora = fopen(pathBitacoraTripulante,"a+");
+	if (archivoBitacora == NULL) {
+		perror("Hubo un error al abrir el arhivo");
+		exit(-1);
+	}
+//	tarea = strcat(tarea,"\n");
+	fprintf(archivoBitacora, "%s\n",tarea);
+
+	//cierra el archivo
+	txt_close_file(archivoBitacora);
+
+
+}
 
