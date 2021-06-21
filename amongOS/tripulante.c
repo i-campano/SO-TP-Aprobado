@@ -4,16 +4,14 @@ char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	//Lo pasamos a Ready
 	sendDeNotificacion(socketRam, PEDIR_TAREA);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
-	log_info(logger, "tripulante: %d pidio tareas a miram...", tripulante->id);
+	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", OPERACION);
 	char* tarea = string_new();
 	if (OPERACION == ENVIAR_TAREA) {
 		tarea = recibirString(socketRam);
 		if (tarea != NULL) {
-			log_info(logger,
-					"tripulante: %d recibio tarea: %s de miram...",
-					tripulante->id, tarea);
+			log_debug(logger,"T%d - P%d : RECIBIO TAREA", tripulante->id,tripulante->patota_id);
 		}
 	}
 	return tarea;
@@ -28,7 +26,7 @@ void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado) {
 	uint32_t RESPONSE_ACTUALIZACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", RESPONSE_ACTUALIZACION);
 	if (RESPONSE_ACTUALIZACION == ESTADO_ACTUALIZADO_MIRAM) {
-		log_info(logger,"tripulante: %d ACTUALIZO ESTADO OK",tripulante->id);
+		log_debug(logger,"T%d - P%d : ACTUALIZO ESTADO OK", tripulante->id,tripulante->patota_id);
 	}
 }
 
@@ -40,9 +38,9 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 	sendDeNotificacion(socketRam,tripulante->ubi_y);
 
 	uint32_t RESPONSE_ACTUALIZACION = recvDeNotificacion(socketRam);
-	log_info(logger, "OPERACION %d", RESPONSE_ACTUALIZACION);
+
 	if (RESPONSE_ACTUALIZACION == UBICACION_ACTUALIZADA ) {
-		log_info(logger,"tripulante: %d ACTUALIZO UBICACION OK",tripulante->id);
+		log_debug(logger,"T%d - P%d : ACTUALIZO UBICACION OK", tripulante->id,tripulante->patota_id);
 	}
 }
 
@@ -63,7 +61,7 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea,
 		*esIo = 0;
 	}
 
-	log_info(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
+	log_debug(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
 	free(tarea_parametro);//stringsplit
 	return tarea_separada[0];
 }
@@ -91,7 +89,7 @@ void *labor_tripulante_new(void * trip){
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
 	//Avisamos que estamos hay alguien en new
-	log_info(logger,"METO A NEW TRIPULANTE %d",tripulante->id);
+	log_info(logger,"T%d - P%d : NEW", tripulante->id,tripulante->patota_id);
 	pthread_mutex_unlock(&planificacion_mutex_new);
 	sem_post(&cola_new);
 
@@ -102,7 +100,7 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	log_info(logger,"tripulante: %d  se conecto con miram...", tripulante->id);
+	log_debug(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 	sendDeNotificacion(socketRam,tripulante->id);
@@ -112,7 +110,7 @@ void *labor_tripulante_new(void * trip){
 
 	if(creado==TRIPULANTE_CREADO){
 
-		log_info(logger,"TRIPULANTE CREADO, id: %d", tripulante->id);
+		log_debug(logger,"T%d - P%d : TRIPULANTE CREADO OK", tripulante->id,tripulante->patota_id);
 	}
 	actualizar_estado(socketRam,tripulante,NEW);
 
@@ -128,7 +126,6 @@ void *labor_tripulante_new(void * trip){
 	sem_wait(&tripulante->ready);
 	actualizar_estado(socketRam,tripulante,READY);
 
-	log_info(logger,"Enviar tarea a IMONGO STORE %s", tarea);
 
 	char* claveNueva = string_new();
 
@@ -140,9 +137,8 @@ void *labor_tripulante_new(void * trip){
 	sem_wait(&tripulante->exec);
 	actualizar_estado(socketRam,tripulante,EXEC);
 	
-	//simular 3 tareas
 	while(strcmp(tarea,"--")!=0){
-		log_info(logger,"tripulante: %d  se conecto con miram...", tripulante->cantidad_tareas);
+		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
 		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
 

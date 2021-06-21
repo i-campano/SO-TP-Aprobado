@@ -25,14 +25,14 @@ void planificar_cola_ready(){
 
 		pthread_mutex_lock(&planificacion_mutex_new);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
-		log_info(logger,"SACO de NEW tripu: %d", tripulante->id);
+		//log_info(logger,"T%d - P%d : SALIENDO DE NEW", tripulante->id,tripulante->patota_id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
 		sleep(CICLO_CPU);
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		queue_push(planificacion_cola_ready,tripulante);
 		sem_post(&tripulante->ready);
 		sem_post(&cola_ready);
-		log_info(logger,"METO EN READY tripu: %d", tripulante->id);
+		log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 		//wait(planificacion_mutex_ready);
@@ -56,12 +56,12 @@ void planificar_cola_bloq(){
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
 		sem_post(&tripulante->bloq);
-		log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
+		//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		queue_push(planificacion_cola_ready,tripulante);
-		log_info(logger,"METO EN READY TRIPULANTE %d",tripulante->id);
+		log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
 		sem_post(&cola_ready);
 		sem_post(&tripulante->ready);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
@@ -87,7 +87,7 @@ void planificar_cola_exec(){
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
-		log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+		//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
 
@@ -95,7 +95,7 @@ void planificar_cola_exec(){
 		pthread_mutex_lock(&planificacion_mutex_exec);
 		//queue_push(planificacion_cola_ready,tripulante);
 		list_add(lista_exec,tripulante);
-		log_info(logger,"METO a EXEC tripu: %d", tripulante->id);
+		log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
 		pthread_mutex_unlock(&planificacion_mutex_exec);
 
 
@@ -134,7 +134,7 @@ void replanificar(){
 				//MUTEX COLA FIN LOCK
 				pthread_mutex_lock(&planificacion_mutex_fin);
 				queue_push(planificacion_cola_fin,tripulante);
-				log_info(logger,"METO en FIN tripu: %d", tripulante->id);
+				log_info(logger,"T%d - P%d : FIN", tripulante->id,tripulante->patota_id);
 				pthread_mutex_unlock(&planificacion_mutex_fin);
 				sem_post(&cola_fin);
 
@@ -145,7 +145,7 @@ void replanificar(){
 				//MUTEX COLA BLOQ LOCK
 				pthread_mutex_lock(&planificacion_mutex_bloq);
 				queue_push(planificacion_cola_bloq,tripulante);
-				log_info(logger,"METO en BLOQ tripu: %d", tripulante->id);
+				log_info(logger,"T%d - P%d : BLOCK", tripulante->id,tripulante->patota_id);
 				pthread_mutex_unlock(&planificacion_mutex_bloq);
 				sem_post(&cola_bloq);
 				break;
@@ -154,7 +154,7 @@ void replanificar(){
 			case 'R':{
 				pthread_mutex_lock(&planificacion_mutex_ready);
 				queue_push(planificacion_cola_ready,tripulante);
-				log_info(logger,"METO en READY tripu: %d", tripulante->id);
+				log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
 				pthread_mutex_unlock(&planificacion_mutex_ready);
 				sem_post(&cola_ready);
 				break;
@@ -175,7 +175,7 @@ void sacar_de_exec(int id_tripulante){
 	}
 	pthread_mutex_lock(&planificacion_mutex_exec);
 	t_tripulante * data = (t_tripulante*) list_remove_by_condition(lista_exec,(void*) encontrarTripulante);
-	log_info(logger,"SACO de EXEC tripu: %d", data->id);
+	log_info(logger,"T%d - P%d : INTERRUPCION", data->id,data->patota_id);
 	pthread_mutex_unlock(&planificacion_mutex_exec);
 
 //	if(data == NULL){
@@ -197,7 +197,7 @@ void planif_cola_exec(){
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
-		log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+		//log_info(logger,"T%d - P%d : PASANDO A EXEC", tripulante->id,tripulante->patota_id);
 		sem_post(&tripulante->exec);
 		pthread_mutex_unlock(&planificacion_mutex_ready);
 
