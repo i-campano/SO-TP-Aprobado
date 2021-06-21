@@ -83,7 +83,7 @@ void planificar_cola_exec(){
 		sem_post(&detenerReaunudarEjecucion);
 		sem_wait(&cola_ready);
 		sem_wait(&exec);
-		sleep(CICLO_CPU);
+
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);

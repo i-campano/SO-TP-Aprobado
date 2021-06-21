@@ -154,8 +154,8 @@ void *labor_tripulante_new(void * trip){
 			tripulante->instrucciones_ejecutadas++;
 			rafaga++;
 
-			log_info(logger,"TAREA EJECUTADA CORRECTAMENTE por tripulante: %d ",tripulante->id);
 
+			sleep(CICLO_CPU);
 
 			//La 'tarea 3' es de entrada salida
 			if(esIo && tripulante->instrucciones_ejecutadas>movX+movY){
@@ -183,8 +183,6 @@ void *labor_tripulante_new(void * trip){
 				recvDeNotificacion(socketMongo);
 
 				rafaga = 0;
-			}else{
-				log_info(logger,"                                    CPU BOUND+++++++");
 			}
 
 			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
@@ -199,9 +197,12 @@ void *labor_tripulante_new(void * trip){
 				actualizar_estado(socketRam,tripulante,EXEC);
 
 
-				sleep(CICLO_CPU);
-
 				rafaga = 0;
+			}
+
+
+			if(!(esIo && tripulante->instrucciones_ejecutadas>movX+movY)){
+				log_info(logger,"                                    CPU BOUND+++++++");
 			}
 
 			//Instruccion no es de entrada salida && no es de espera -> actualizo ubicacion
@@ -216,11 +217,14 @@ void *labor_tripulante_new(void * trip){
 				actualizar_ubicacion(socketRam,tripulante);
 			}
 
+			log_info(logger,"CICLO TERMINADO por tripulante: %d ",tripulante->id);
+
 
 		}
 		//Fin tarea
 
 
+			log_info(logger,"PEDIR PROXIMA TAREA por tripulante: %d ",tripulante->id);
 			tarea = pedir_tarea(socketRam, tripulante);
 			if(strcmp(tarea,"--")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
