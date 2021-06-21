@@ -56,15 +56,17 @@ void planificar_cola_bloq(){
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
 		int timer = 0;
 		while(timer<tripulante->block_io_rafaga){
-			log_info(logger,"T%d - P%d : TIMER-I/O-BLOCK=%d", tripulante->id,tripulante->patota_id,timer);
+
+			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			sleep(CICLO_IO);
 			timer++;
 		}
 		sem_post(&tripulante->bloq);
 		//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
-		pthread_mutex_unlock(&planificacion_mutex_bloq);
+
 
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		queue_push(planificacion_cola_ready,tripulante);
@@ -150,9 +152,10 @@ void replanificar(){
 			}
 			case 'B':{
 				//MUTEX COLA BLOQ LOCK
+//				log_info(logger,"T%d - P%d : ESPERANDO PARA ENTRAR A BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
 				pthread_mutex_lock(&planificacion_mutex_bloq);
 				queue_push(planificacion_cola_bloq,tripulante);
-				log_info(logger,"T%d - P%d : BLOCK", tripulante->id,tripulante->patota_id);
+				log_info(logger,"T%d - P%d : BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
 				pthread_mutex_unlock(&planificacion_mutex_bloq);
 				sem_post(&cola_bloq);
 				break;
