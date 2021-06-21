@@ -65,6 +65,19 @@ void *atenderNotificacion(void * paqueteSocket){
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);*/
 
 				break;
+
+			case LOGUEAR_BITACORA:
+
+						/*char * tarea = recibirString(socket);
+						//Case para hacer HANDSHAKE = Chequear la conexion
+						char * accionTarea = devolverDeTarea(tarea,0); "GENERAR_OXIGENO"
+						uint32_t cantidad = atoi(devolverDeTarea(tarea,1)); 10
+						uint32_t id_trip = recvDeNotificacion(socket);
+						ejecutar_tarea(accionTarea, 1);
+						sendDeNotificacion(socket,198);
+						log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);*/
+
+						break;
 			default:
 				log_warning(logger, "La conexion recibida es erronea");
 				break;
@@ -76,7 +89,7 @@ void *atenderNotificacion(void * paqueteSocket){
 void ejecutarTarea(char* tarea, uint32_t  cantidad){
 
 	if (strcmp("GENERAR_OXIGENO", tarea)==0){
-			generarOxigeno(cantidad);
+		generarOxigeno(cantidad);
 	}
 	else if (strcmp("GENERAR_COMIDA", tarea)==0){
 		generarComida(cantidad);
@@ -97,6 +110,10 @@ void ejecutarTarea(char* tarea, uint32_t  cantidad){
 			printf("Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
 		}
 
+}
+
+void loggearBitacora(char* infoALoggear, uint32_t idTripulante) {
+	escribirBitacora(infoALoggear, idTripulante);
 }
 
 void iniciar_configuracion(){

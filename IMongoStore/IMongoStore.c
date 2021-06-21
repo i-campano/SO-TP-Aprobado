@@ -3,17 +3,20 @@
 
 #include "IMongoStore.h"
 
+void inicializarMutex() {
+	pthread_mutex_init(&mut_ARCHIVO_OXIGENO, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_COMIDA, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_BASURA, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_OXIGENO_METADATA, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_COMIDA_METADATA, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_BASURA_METADATA, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_BLOCKS, NULL);
+	pthread_mutex_init(&mut_ARCHIVO_SUPERBLOQUE, NULL);
+}
+
 int main(void)
 {
-		pthread_mutex_init(&mut_ARCHIVO_OXIGENO, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_COMIDA, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_BASURA, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_OXIGENO_METADATA, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_COMIDA_METADATA, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_BASURA_METADATA, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_BLOCKS, NULL);
-		pthread_mutex_init(&mut_ARCHIVO_SUPERBLOQUE, NULL);
-
+	inicializarMutex();
 	//Inicializacion del loger
 	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
 
@@ -28,13 +31,11 @@ int main(void)
 
 	//Inicia escucha de llamados
 	//manejadorDeHilos();
-	escribirBitacora("se movio de (1,1) a (1,2)",1);
-	generarOxigeno(5);
-	generarBasura(5);
-	generarComida(5);
-	consumirOxigeno(2);
-	consumirComida(3);
-	descartarBasura();
+	escribirBitacora("resuelve sabotaje",1);
+	escribirBitacora("resuelve sabotaje",2);
+	escribirBitacora("resuelve sabotaje",3);
+	escribirBitacora("se mueve saraza22",5);
+
 
 	log_info(logger,"finished");
 
