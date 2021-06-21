@@ -83,6 +83,10 @@ void *labor_tripulante_new(void * trip){
 	tripulante->ubi_x = 0;
 	tripulante->ubi_y = 0;
 
+	int firstMove = 0;
+	int moveUp = 0;
+	int moveRight = 0;
+
 	log_info(logger,"%d ---- %d", tripulante->id,tripulante->patota_id );
 
 	//Agregamos a cola de NEW
@@ -142,21 +146,17 @@ void *labor_tripulante_new(void * trip){
 		
 		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
 
-			//Aumenta en par X ; impar Y
-
 			sem_wait(&detenerReaunudarEjecucion);
 			sem_post(&detenerReaunudarEjecucion);
 
 			tripulante->instrucciones_ejecutadas++;
-
-
 
 			sleep(CICLO_CPU);
 
 			//La 'tarea 3' es de entrada salida
 			if(esIo && tripulante->instrucciones_ejecutadas>movX+movY){
 
-//				log_info(logger,"T%d - P%d  															********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
 				tripulante->block_io_rafaga = tiempo_tarea;
 				pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -208,20 +208,42 @@ void *labor_tripulante_new(void * trip){
 
 			if(!(esIo && tripulante->instrucciones_ejecutadas>movX+movY)){
 				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND     +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
-			}
 
-			//Instruccion no es de entrada salida && no es de espera -> actualizo ubicacion
-			if(tripulante->instrucciones_ejecutadas!=2){
+				if( firstMove == 0){
+					firstMove = 1;
 
-				if(tripulante->instrucciones_ejecutadas %2 ==0 ){
-					tripulante->ubi_x++;
-				}else{
-					tripulante->ubi_y++;
+					moveRight = movX -tripulante->ubi_x;;
+					moveUp =  movY -tripulante->ubi_y;
+
 				}
 
+
+				if(moveRight!=0){
+					if(movX>tripulante->ubi_x){
+						tripulante->ubi_x++;
+						moveRight--;
+					}else if(movX<tripulante->ubi_x ){
+						tripulante->ubi_x--;
+						moveRight++;
+					}
+				}else if(moveUp!=0){
+					 if ((movY>tripulante->ubi_y)  ){
+						tripulante->ubi_y++;
+						moveUp--;
+					}else if (movY<tripulante->ubi_y  ){
+						tripulante->ubi_y--;
+						moveUp++;
+					}
+
+				}
 				actualizar_ubicacion(socketRam,tripulante);
+
 			}
-			log_info(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
+
+
+
+
+			log_info(logger,"T%d - P%d : CICLO TERMINADO - Ubicacion x: %d, y: %d", tripulante->id,tripulante->patota_id, tripulante->ubi_x,tripulante->ubi_y);
 
 			rafaga++;
 
@@ -233,6 +255,9 @@ void *labor_tripulante_new(void * trip){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
 				tripulante->instrucciones_ejecutadas = 0;
 				tripulante->cantidad_tareas--;
+				moveUp = 0;
+				moveRight = 0;
+				firstMove = 0;
 			}
 	
 	}
