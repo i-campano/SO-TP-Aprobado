@@ -51,10 +51,18 @@ void planificar_cola_bloq(){
 
 		sem_wait(&cola_bloq);
 
-		sleep(CICLO_IO);
+
+
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
+		int timer = 0;
+		log_info(logger,"T%d - P%d : BLOCK", tripulante->id,tripulante->patota_id);
+		while(timer<tripulante->block_io_rafaga){
+			log_info(logger,"T%d - P%d : BLOCK - TIMER=%d", tripulante->id,tripulante->patota_id,timer);
+			sleep(CICLO_IO);
+			timer++;
+		}
 		sem_post(&tripulante->bloq);
 		//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
@@ -128,7 +136,7 @@ void replanificar(){
 
 
 
-		log_info(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
+		log_debug(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
 		switch(tripulante->estado) {
 			case 'F':{
 				//MUTEX COLA FIN LOCK
@@ -175,7 +183,7 @@ void sacar_de_exec(int id_tripulante){
 	}
 	pthread_mutex_lock(&planificacion_mutex_exec);
 	t_tripulante * data = (t_tripulante*) list_remove_by_condition(lista_exec,(void*) encontrarTripulante);
-	log_info(logger,"T%d - P%d : INTERRUPCION", data->id,data->patota_id);
+	log_info(logger,"T%d - P%d : DISPATCHER", data->id,data->patota_id);
 	pthread_mutex_unlock(&planificacion_mutex_exec);
 
 //	if(data == NULL){
@@ -187,22 +195,7 @@ void sacar_de_exec(int id_tripulante){
 }
 
 
-void planif_cola_exec(){
-	while(1){
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
 
-		sem_wait(&cola_ready);
-		sem_wait(&exec);
-
-		pthread_mutex_lock(&planificacion_mutex_ready);
-		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
-		//log_info(logger,"T%d - P%d : PASANDO A EXEC", tripulante->id,tripulante->patota_id);
-		sem_post(&tripulante->exec);
-		pthread_mutex_unlock(&planificacion_mutex_ready);
-
-	}
-}
 
 
 

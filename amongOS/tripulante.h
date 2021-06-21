@@ -48,6 +48,7 @@ typedef struct {
 	char estado;
 	uint32_t ubi_x;
 	uint32_t ubi_y;
+	int block_io_rafaga;
 }t_tripulante;
 
 

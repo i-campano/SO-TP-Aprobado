@@ -136,8 +136,8 @@ void *labor_tripulante_new(void * trip){
 
 	sem_wait(&tripulante->exec);
 	actualizar_estado(socketRam,tripulante,EXEC);
-	
 	while(strcmp(tarea,"--")!=0){
+
 		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
 		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
@@ -155,7 +155,8 @@ void *labor_tripulante_new(void * trip){
 
 			//La 'tarea 3' es de entrada salida
 			if(esIo && tripulante->instrucciones_ejecutadas>movX+movY){
-				log_info(logger,"                                                   IO BOUND *****");
+
+				log_info(logger," 															********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
 
 				pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -166,7 +167,15 @@ void *labor_tripulante_new(void * trip){
 
 				//ACA INVERTIDO PARA QUE ME DIGA EFECTIVAMENTE CUANDO ESTA EN BLOCK
 				actualizar_estado(socketRam,tripulante,BLOCK);
+
+				tripulante->block_io_rafaga = tiempo_tarea;
 				sem_wait(&tripulante->bloq);
+
+				enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
+				recvDeNotificacion(socketMongo);
+
+				tripulante->instrucciones_ejecutadas+=tiempo_tarea;
+
 
 
 				sem_wait(&tripulante->ready);
@@ -175,8 +184,7 @@ void *labor_tripulante_new(void * trip){
 				sem_wait(&tripulante->exec);
 				actualizar_estado(socketRam,tripulante,EXEC);
 
-				enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
-				recvDeNotificacion(socketMongo);
+
 
 				rafaga = 0;
 			}
@@ -198,7 +206,7 @@ void *labor_tripulante_new(void * trip){
 
 
 			if(!(esIo && tripulante->instrucciones_ejecutadas>movX+movY)){
-				log_info(logger,"                                    CPU BOUND+++++++");
+				log_info(logger," 															++++++++   	T%d - P%d :	CPU BOUND     +++++++", tripulante->id,tripulante->patota_id);
 			}
 
 			//Instruccion no es de entrada salida && no es de espera -> actualizo ubicacion
