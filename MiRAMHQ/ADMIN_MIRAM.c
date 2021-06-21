@@ -4,7 +4,7 @@
  *  Created on: 28 feb. 2019
  *      Author: AFIRM
  */
-#include "planificador.h"
+#include "ADMIN_MIRAM.h"
 
 void* mem_ppal = NULL;
 t_list* listaSegmentos;
@@ -21,7 +21,7 @@ uint32_t nProceso = 0;
 //PARA CREAR TAREAS
 //uint32_t tamanioTareas = 0;
 
-int main(void)
+int admin_miram(void)
 {
 	printf("Inicio \n");
 	crear_memoria_ppal();

@@ -1,9 +1,3 @@
-/*
- * ADMIN_MIRAM.h
- *
- *  Created on: 21 jun. 2021
- *      Author: utnso
- */
 
 #ifndef ADMIN_MIRAM_H_
 #define ADMIN_MIRAM_H_
@@ -79,6 +73,5 @@ void mostrarEstadoMemoria(void* segmento);
 //Funciones compactacion
 int desplazar_segmento(segmento_t* sg,uint32_t offset);
 int compactar_memoria(void);
-#endif /* PLANIFICADOR_H_ */
 
 #endif /* ADMIN_MIRAM_H_ */
