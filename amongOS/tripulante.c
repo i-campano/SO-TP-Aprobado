@@ -2,9 +2,9 @@
 
 char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	//Lo pasamos a Ready
+	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
 	sendDeNotificacion(socketRam, PEDIR_TAREA);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
-	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", OPERACION);
 	char* tarea = string_new();
@@ -148,7 +148,7 @@ void *labor_tripulante_new(void * trip){
 			sem_post(&detenerReaunudarEjecucion);
 
 			tripulante->instrucciones_ejecutadas++;
-			rafaga++;
+
 
 
 			sleep(CICLO_CPU);
@@ -205,6 +205,7 @@ void *labor_tripulante_new(void * trip){
 			}
 
 
+
 			if(!(esIo && tripulante->instrucciones_ejecutadas>movX+movY)){
 				log_info(logger," 															++++++++   	T%d - P%d :	CPU BOUND     +++++++", tripulante->id,tripulante->patota_id);
 			}
@@ -220,28 +221,22 @@ void *labor_tripulante_new(void * trip){
 
 				actualizar_ubicacion(socketRam,tripulante);
 			}
+			log_info(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
 
-			log_info(logger,"CICLO TERMINADO por tripulante: %d ",tripulante->id);
-
+			rafaga++;
 
 		}
 		//Fin tarea
-
-
-			log_info(logger,"PEDIR PROXIMA TAREA por tripulante: %d ",tripulante->id);
 			tarea = pedir_tarea(socketRam, tripulante);
+
 			if(strcmp(tarea,"--")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
 				tripulante->instrucciones_ejecutadas = 0;
 				tripulante->cantidad_tareas--;
-
-				//break;
 			}
-		//Pido Tarea Siguiente
-
 	
 	}
-
+	log_info(logger,"T%d - P%d : FIN TAREAS", tripulante->id,tripulante->patota_id);
 	tripulante->estado = 'F';
 	pthread_mutex_lock(&mutex_cola_ejecutados);
 	queue_push(cola_ejecutados,tripulante);
@@ -249,9 +244,8 @@ void *labor_tripulante_new(void * trip){
 	sem_post(&colaEjecutados);
 	sem_post(&exec);
 	actualizar_estado(socketRam,tripulante,FIN);
-	log_info(logger, "FIN TAREAS TRIPULANTE %d", tripulante->id);
 	free(claveNueva);
-	//while(1){}
+
 	return 0; //Para que no moleste el warning
 }
 

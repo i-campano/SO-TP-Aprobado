@@ -57,9 +57,8 @@ void planificar_cola_bloq(){
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
 		int timer = 0;
-		log_info(logger,"T%d - P%d : BLOCK", tripulante->id,tripulante->patota_id);
 		while(timer<tripulante->block_io_rafaga){
-			log_info(logger,"T%d - P%d : BLOCK - TIMER=%d", tripulante->id,tripulante->patota_id,timer);
+			log_info(logger,"T%d - P%d : TIMER-I/O-BLOCK=%d", tripulante->id,tripulante->patota_id,timer);
 			sleep(CICLO_IO);
 			timer++;
 		}
