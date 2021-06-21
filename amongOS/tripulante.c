@@ -47,7 +47,7 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 
 
 //	ej de carga por consola: GENERAR_OXIGENO 12;2;3;5-REGAR_PLANTAS;2;3;5
-char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea, int * cpuBound) {
+char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea) {
 	char** tarea_separada = string_split(tarea,";");
 	char** tarea_parametro = string_split(tarea_separada[0]," ");
 
@@ -56,7 +56,6 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea,
 	*tiempo_tarea = strtol(tarea_separada[3], NULL, 10);
 
 	*esIo = 1;
-	*cpuBound = *movX + *movY;
 	if(tarea_parametro[1] == NULL) {
 		*esIo = 0;
 	}
@@ -124,8 +123,8 @@ void *labor_tripulante_new(void * trip){
 	int movY= 0;
 	int esIo = 0;
 	int tiempo_tarea = 0;
-	int cpuBound = 0;
-	parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
+	int moveBound = 0;
+	parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 
 	sem_wait(&tripulante->ready);
 	actualizar_estado(socketRam,tripulante,READY);
@@ -144,7 +143,9 @@ void *labor_tripulante_new(void * trip){
 
 		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
-		while(tripulante->instrucciones_ejecutadas<cpuBound+tiempo_tarea){
+		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
+
+		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
 
 			sem_wait(&detenerReaunudarEjecucion);
 			sem_post(&detenerReaunudarEjecucion);
@@ -154,7 +155,7 @@ void *labor_tripulante_new(void * trip){
 			sleep(CICLO_CPU);
 
 			//La 'tarea 3' es de entrada salida
-			if(esIo && tripulante->instrucciones_ejecutadas>movX+movY){
+			if(esIo && tripulante->instrucciones_ejecutadas>moveBound){
 
 				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
@@ -206,8 +207,8 @@ void *labor_tripulante_new(void * trip){
 
 
 
-			if(!(esIo && tripulante->instrucciones_ejecutadas>movX+movY)){
-				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND     +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+			if(!esIo && tripulante->instrucciones_ejecutadas<=moveBound){
+				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND [MOVE]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 
 				if( firstMove == 0){
 					firstMove = 1;
@@ -237,13 +238,16 @@ void *labor_tripulante_new(void * trip){
 
 				}
 				actualizar_ubicacion(socketRam,tripulante);
+				log_info(logger,"T%d - P%d: Actualizo Ubicacion x: %d, y: %d", tripulante->id,tripulante->patota_id, tripulante->ubi_x,tripulante->ubi_y);
 
+			}else if(!esIo && tripulante->instrucciones_ejecutadas>moveBound){
+				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND  [TASK]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			}
 
 
 
 
-			log_info(logger,"T%d - P%d : CICLO TERMINADO - Ubicacion x: %d, y: %d", tripulante->id,tripulante->patota_id, tripulante->ubi_x,tripulante->ubi_y);
+			log_info(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
 
 			rafaga++;
 
@@ -252,7 +256,7 @@ void *labor_tripulante_new(void * trip){
 			tarea = pedir_tarea(socketRam, tripulante);
 
 			if(strcmp(tarea,"--")!=0){
-				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea,&cpuBound);
+				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 				tripulante->instrucciones_ejecutadas = 0;
 				tripulante->cantidad_tareas--;
 				moveUp = 0;
