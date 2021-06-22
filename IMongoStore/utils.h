@@ -18,9 +18,32 @@
 #include<commons/collections/list.h>
 #include<commons/txt.h>
 #include<commons/string.h>
+#include<commons/bitarray.h>
 #include<string.h>
 #include "socket.h"
 #include<time.h>
+
+#include"utils.h"
+
+struct {
+	uint32_t tamanio_bloque;
+	uint32_t cantidad_bloques;
+	t_bitarray bitmap;
+} superblock;
+
+
+
+struct {
+	uint32_t tamanio;
+	uint32_t cantidadBloques;
+	char* bloques;
+	char caracterLlenado;
+	char* md5;
+
+} metadata;
+
+
+
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
 char* conf_PUNTO_MONTAJE;
@@ -78,7 +101,6 @@ void escribirBitacora(char* tarea, uint32_t idTripulante);
 
 char* generarIdArchivo(uint32_t idTripulante);
 char* generarPath(char* archivoTripulante);
-char*  getCurrentTime();
 
 
 
