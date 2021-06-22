@@ -274,6 +274,8 @@ void *labor_tripulante_new(void * trip){
 	sem_post(&exec);
 	actualizar_estado(socketRam,tripulante,FIN);
 	free(claveNueva);
+	liberar_conexion(socketMongo);
+	liberar_conexion(socketRam);
 
 	return 0; //Para que no moleste el warning
 }
@@ -291,4 +293,5 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 	sendDeNotificacion(socketMongo, (uint32_t) id);
 	free(buffer); //Malloc linea 253
 }
+
 

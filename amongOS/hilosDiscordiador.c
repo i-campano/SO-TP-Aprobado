@@ -55,16 +55,21 @@ void planificar_cola_bloq(){
 
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
-		tripulante = queue_pop(planificacion_cola_bloq);
+		tripulante = list_get(planificacion_cola_bloq->elements,0);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
 		int timer = 0;
 		while(timer<tripulante->block_io_rafaga){
-
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
 			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			sleep(CICLO_IO);
 			timer++;
 		}
+		pthread_mutex_lock(&planificacion_mutex_bloq);
+		tripulante = queue_pop(planificacion_cola_bloq);
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
 		sem_post(&tripulante->bloq);
+
 		//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
 
 

@@ -186,3 +186,10 @@ void realizarHandshake(int socket, uint32_t ES_SENDER,uint32_t ES_RECV){	// le p
 	}
 	//log_info(logger, "Conexion con %ES_PROTOCOLO existosa.");
 }
+
+void liberar_conexion (int socket) {
+	if (close(socket) == -1) {
+		log_error(logger, "Ocurrio un error al intentar liberar la conexion socket: %d -> %s", socket, strerror(errno));
+	}
+}
+
