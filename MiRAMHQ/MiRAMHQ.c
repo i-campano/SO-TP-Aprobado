@@ -3,9 +3,12 @@
  */
 
 #include "MiRAMHQ.h"
-
 int main(void)
 {
+	/*admin_memoria();
+	return 0;
+	*/
+	crear_memoria_ppal();
 	void iterator(char* value)
 	{
 		printf("%s\n", value);
@@ -20,4 +23,5 @@ int main(void)
 
 	log_info(logger, "Servidor listo para recibir al clientexxxxx");
 	manejadorDeHilos();
+
 }

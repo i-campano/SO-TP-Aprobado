@@ -99,6 +99,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			crear_pcb(socket);
 
 			log_info(logger, "----------------FIN PATOTA CREADA----------------");
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			sendDeNotificacion(socket, PATOTA_CREADA);
 			break;
 		}
@@ -138,9 +139,12 @@ void *atenderNotificacion(void * paqueteSocket){
 			tripulante->ubi_y = 0;
 			tripulante->instrucciones_ejecutadas = 0;
 			tripulante->patota_id = (int)patota_id;
+			crear_tripulante(trip_id,patota_id);
 			sendDeNotificacion(socket, TRIPULANTE_CREADO);
 			log_info(logger, "tcb creado");
-
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
+			list_iterate(listaSegmentos,mostrarMemoriaCompleta);
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			break;
 
 		}
@@ -234,7 +238,12 @@ void crear_pcb(int socket) {
 	pcb->patotaid = (int)patotaid;
 	pcb->estado = 'N';
 	pcb->socket_tcb = socket;
+	pcb_t pcbRam;
+	pcbRam.id = patotaid;
+	pcbRam.tareas = string_new();
+	string_append(&pcbRam.tareas,tareas);
 	log_info(logger, "agregando patota en lista_pcb");
+	crear_patota2(pcbRam,id_posiciones);
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
 	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
@@ -260,7 +269,18 @@ void crear_tcb(int socket) {
 	//printf("%c\n",tcb->estado);
 
 }
+/*void crear_pcb2(int socket) {
+	char* tareas = recibirString(socket); //RECIBO TODAS LAS TAREAS JUNTAS
+	char* id_posiciones = recibirString(socket);//RECIBO POSICIONES
+	uint32_t patotaid = recibirUint(socket);//RECIBO ID
+	uint32_t cantidad_patota = recibirUint(socket);//RECIBO CUANTOS TRIPS
+	pcb_t pcb; //TIPO DE PATOTA ADMIN MIRAM
+	pcb.id = patotaid;
+	pcb.tareas = string_new();
+	string_append(&pcb.tareas,tareas);
+	crear_patota2(cantidad_patota,pcb,id_posiciones);
 
+}*/
 void mostrar_patota(pcb* pcb){
 
 	log_info(logger,"PATOTA ID: %d - Posicion: %s - Cantidad trip: %d - Estado: %c",pcb->patotaid, pcb->id_posicion,pcb->cantidad_tripulantes,pcb->estado);

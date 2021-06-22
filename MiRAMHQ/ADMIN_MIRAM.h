@@ -1,7 +1,6 @@
 
 #ifndef ADMIN_MIRAM_H_
 #define ADMIN_MIRAM_H_
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -16,11 +15,14 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdbool.h>
+#include "utils.h"
 
 #define DATO_PCB 0
 #define DATO_TCB 1
 #define DATO_TAREAS 2
 #define VACIO 3
+#define FF 0
+#define BF 1
 
 typedef struct {
 	uint32_t inicio;
@@ -28,10 +30,20 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t fin;
 }segmento_t;
+
+typedef struct{
+	uint32_t nFrame;
+	bool estado;
+}frame_t;
+typedef struct{
+	uint32_t nPagina;
+	uint32_t id_patota;
+}pagina_t;
 typedef struct {
 	uint32_t id;
 	char* tareas;
 }pcb_t;
+
 typedef struct {
 	uint32_t id;
 	char estado;
@@ -40,6 +52,10 @@ typedef struct {
 	char* prox_tarea;
 	pcb_t* pcb;
 }tcb_t;
+
+t_list* listaSegmentos;
+//PPAL
+int admin_memoria(void);
 //FUNCIONES
 void crear_memoria_ppal();
 
@@ -47,6 +63,8 @@ void crear_memoria_ppal();
 bool condicionSegmentoLibrePcb(void* segmento);
 bool ordenar_segun_inicio(void* primero,void* segundo);
 bool condicionSegmentoLibreTcb(void* segmento);
+void* condicionSegmentoLibreTcbBF(void* segmento,void* otroSegmento);
+void* condicionSegmentoLibrePcbBF(void* segmento,void* otroSegmento);
 
 //Creadores de segmentos segun tipo de dato
 segmento_t* buscar_segmento(pcb_t pcb);
@@ -74,4 +92,7 @@ void mostrarEstadoMemoria(void* segmento);
 int desplazar_segmento(segmento_t* sg,uint32_t offset);
 int compactar_memoria(void);
 
+//PROBANDO MERGEAR CON MIRAM POSTA
+void crear_patota2(pcb_t pcb,char* posiciones);
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota);
 #endif /* ADMIN_MIRAM_H_ */
