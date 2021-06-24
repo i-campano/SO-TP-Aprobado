@@ -5,16 +5,16 @@
 #include "MiRAMHQ.h"
 int main(void)
 {
-	/*admin_memoria();
-	return 0;
-	*/
+	logger = log_create("MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
 	crear_memoria_ppal();
+	log_info(logger,"%i",memoria_libre());
+	log_info(logger,"Hola");
 	void iterator(char* value)
 	{
 		printf("%s\n", value);
 	}
 
-	logger = log_create("MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
+
 
 	server_fd = iniciarServidor(5002);
 

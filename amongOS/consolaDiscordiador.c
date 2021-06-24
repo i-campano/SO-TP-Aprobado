@@ -40,7 +40,12 @@ void leer_consola() {
 		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
 			log_info(logger,"CARGAR DATOS PATOTA: ");
 			crear_patota();
-		}else{
+		}
+		else if(strncmp(leido, "GET_DATOS", 3) == 0){
+			sendDeNotificacion(socketServerMiRam, 100);
+			sendDeNotificacion(socketServerMiRam,1);
+		}
+		else{
 			log_info(logger,"COMANDO INVALIDO");
 		}
 		leido = readline(">");

@@ -20,18 +20,15 @@ bool algoritmo = FF;
 int admin_memoria(void)
 {
 	printf("Inicio \n");
-	crear_memoria_ppal();
-	crear_segmento(0,7);
-	crear_segmento(7,20);
-	crear_segmento(20,28);
-	crear_segmento(28,53);
-	crear_segmento(53,77);
-	crear_segmento(77,82);
-	crear_segmento(82,106);
-	crear_segmento(106,130);
-	crear_segmento(130,4096-24);
-	crear_segmento(4096-24,4096);
+	pcb_t pcb2;
+	pcb2.id = 4;
+	pcb2.tareas = "HOla\0";
+	crear_patota2(pcb2,"");
+	list_iterate(listaSegmentos,mostrarEstadoMemoria);
+	printf("---------------------------------- \n");
+	pcb_t pcb = getPcb(1);
 
+	printf("%s \n",pcb.tareas);
 	list_iterate(listaSegmentos,mostrarEstadoMemoria);
 	printf("---------------------------------- \n");
 	list_iterate(listaSegmentos,mostrarMemoriaCompleta);
@@ -259,6 +256,7 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 	id_patota++;
 	pcb_tmp.tareas = NULL;
 	segmentoAsignado = buscar_segmento(pcb_tmp);
+	printf("Agregue a las listas de segmentos \n");
 	list_sort(listaSegmentos,ordenar_segun_inicio);
 	segmentoAsignadoTareas = buscar_segmentoTareas(pcb_tmp,tareas);
 	list_sort(listaSegmentos,ordenar_segun_inicio);
@@ -288,7 +286,6 @@ void crear_patota2(pcb_t pcb,char* posiciones) {
 	segmento_t* segmentoAsignado;
 	segmento_t* segmentoAsignadoTareas;
 	uint32_t offset;
-	id_patota++;
 	segmentoAsignado = buscar_segmento(pcb);
 	list_sort(listaSegmentos,ordenar_segun_inicio);
 	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,pcb.tareas);
@@ -297,7 +294,6 @@ void crear_patota2(pcb_t pcb,char* posiciones) {
 	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
 	offset = segmentoAsignadoTareas->inicio;
 	memcpy(mem_ppal+offset,pcb.tareas,strlen(pcb.tareas)*sizeof(char)+1);
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
 	printf("Agregue a las listas de segmentos \n");
 }
 void crear_tripulante(uint32_t idTrip,uint32_t id_patota){
@@ -462,6 +458,25 @@ int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	free(str);
 	return 0;
 }
+int memoria_libre(void) {
+		segmento_t* actual = NULL;
+		uint32_t cantidad = list_size(listaSegmentos);
+		uint32_t i = 0;
+		uint32_t libre = 0;
+		if(cantidad == 0){
+			return -1;
+		}
+
+		while (i < cantidad){
+			actual = list_get(listaSegmentos,i);
+			if(actual->tipoDato == VACIO){
+				libre += actual->fin - actual->inicio;
+			}
+			i++;
+
+		}
+		return libre;
+}
 int compactar_memoria(void) {
 	segmento_t* anterior = NULL;
 		segmento_t* actual = NULL;
@@ -506,4 +521,36 @@ int compactar_memoria(void) {
 		}
 		crear_segmento(tamanio-offset,tamanio);
 		return 0;
+}
+//Get
+
+pcb_t getPcb (int idPedido){
+	bool getPcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return (segmento_tmp->id == idPedido) && segmento_tmp->tipoDato == DATO_PCB;
+	}
+	segmento_t* sg = list_find(listaSegmentos,getPcbId);
+	pcb_t pcb_temp;
+	uint32_t offset = sg->inicio;
+	memcpy(&pcb_temp,mem_ppal+offset,sizeof(pcb_t));
+	return pcb_temp;
+}
+tcb_t getTcb (int idPedido){
+	bool buscarSegmentosTcb(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TCB;
+	}
+	bool buscarTcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		uint32_t offset = segmento_tmp->inicio;
+		tcb_t temp;
+		memcpy(&temp,mem_ppal+offset,sizeof(tcb_t));
+		return temp.id == idPedido;
+	}
+	t_list* lista_temporal = list_filter(listaSegmentos,buscarSegmentosTcb);
+	tcb_t tcb_temp;
+	segmento_t* sg = list_find(lista_temporal,buscarTcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(&tcb_temp,mem_ppal+offset,sizeof(tcb_t));
+	return tcb_temp;
 }

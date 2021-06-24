@@ -142,9 +142,6 @@ void *atenderNotificacion(void * paqueteSocket){
 			crear_tripulante(trip_id,patota_id);
 			sendDeNotificacion(socket, TRIPULANTE_CREADO);
 			log_info(logger, "tcb creado");
-			list_iterate(listaSegmentos,mostrarEstadoMemoria);
-			list_iterate(listaSegmentos,mostrarMemoriaCompleta);
-			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			break;
 
 		}
@@ -173,6 +170,16 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			break;
 
+		}
+		case GET_PCB:{
+			uint32_t id_trip = recvDeNotificacion(socket);
+			log_info(logger,"%s",getPcb(id_trip).tareas);
+			tcb_t temp = getTcb(id_trip);
+			log_info(logger,"Id-> %i,x-> %i , y-> %i \n",temp.id,temp.x,temp.y);
+			tcb_t temp2 = getTcb(id_trip+1);
+			log_info(logger,"Id-> %i,x-> %i , y-> %i \n",temp2.id,temp2.x,temp2.y);
+			printf("%i \n",memoria_libre());
+			break;
 		}
 
 		default:

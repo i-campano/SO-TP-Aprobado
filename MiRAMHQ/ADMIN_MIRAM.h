@@ -30,7 +30,12 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t fin;
 }segmento_t;
-
+typedef struct {
+	uint32_t dirBase;
+	uint32_t tipoDato; //Que dato hay?
+	uint32_t id; //A que proceso corresponde?
+	uint32_t tamanio;
+}tablaSegmento_t;
 typedef struct{
 	uint32_t nFrame;
 	bool estado;
@@ -91,8 +96,11 @@ void mostrarEstadoMemoria(void* segmento);
 //Funciones compactacion
 int desplazar_segmento(segmento_t* sg,uint32_t offset);
 int compactar_memoria(void);
-
+int memoria_libre(void);
 //PROBANDO MERGEAR CON MIRAM POSTA
 void crear_patota2(pcb_t pcb,char* posiciones);
 void crear_tripulante(uint32_t idTrip,uint32_t id_patota);
+//Get
+pcb_t getPcb (int idPedido);
+tcb_t getTcb (int idPedido);
 #endif /* ADMIN_MIRAM_H_ */

@@ -56,7 +56,7 @@
 #define ACTUALIZAR_UBICACION 18
 
 #define UBICACION_ACTUALIZADA 20
-
+#define GET_PCB 100
 
 int iniciarServidor(int);
 void verificarErrorSocket(int);
