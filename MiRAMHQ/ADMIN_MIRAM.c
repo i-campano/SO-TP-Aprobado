@@ -483,7 +483,7 @@ int compactar_memoria(void) {
 		uint32_t cantidad = list_size(listaSegmentos);
 		uint32_t i = 0;
 		uint32_t offset = 0;
-		if(cantidad == 0){
+		if(cantidad <= 1){
 			return -1;
 		}
 		anterior = list_get(listaSegmentos,i);
