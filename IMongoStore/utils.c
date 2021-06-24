@@ -129,6 +129,8 @@ void iniciar_configuracion(){
 	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
 	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
 	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
+	conf_BYTES_BLOQUE = config_get_string_value (config, "BYTES_BLOQUE");
+	conf_CANTIDAD_BLOQUES = config_get_string_value (config, "CANTIDAD_BLOQUES");
 
 }
 
@@ -477,6 +479,8 @@ short iniciaEstructuraDeArchivos()
 	char* path_basura = string_new();
 	char* path_basura_metadata = string_new();
 
+	char* cadena_auxiliar = string_new();
+
 	//Asignacion de rutas
 	string_append(&path_blocks,conf_PUNTO_MONTAJE);
 	string_append(&path_blocks,"Blocks");
@@ -487,20 +491,20 @@ short iniciaEstructuraDeArchivos()
 	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
 	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 
-	string_append(&path_oxigeno,conf_PUNTO_MONTAJE);
-	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 	string_append(&path_oxigeno_metadata,conf_PUNTO_MONTAJE);
 	string_append(&path_oxigeno_metadata,"Files/");
 	string_append(&path_oxigeno_metadata,conf_ARCHIVO_OXIGENO_NOMBRE);
 
 	string_append(&path_comida,conf_PUNTO_MONTAJE);
 	string_append(&path_comida,conf_ARCHIVO_COMIDA_NOMBRE);
+
 	string_append(&path_comida_metadata,conf_PUNTO_MONTAJE);
 	string_append(&path_comida_metadata,"Files/");
 	string_append(&path_comida_metadata,conf_ARCHIVO_COMIDA_NOMBRE);
 
 	string_append(&path_basura,conf_PUNTO_MONTAJE);
 	string_append(&path_basura,conf_ARCHIVO_BASURA_NOMBRE);
+
 	string_append(&path_basura_metadata,conf_PUNTO_MONTAJE);
 	string_append(&path_basura_metadata,"Files/");
 	string_append(&path_basura_metadata,conf_ARCHIVO_BASURA_NOMBRE);
@@ -531,11 +535,13 @@ short iniciaEstructuraDeArchivos()
 		pthread_mutex_lock(&mut_ARCHIVO_BLOCKS);
 		pthread_mutex_lock(&mut_ARCHIVO_SUPERBLOQUE);
 
+		//path_oxigeno = "/home/utnso/config/oxigeno.ims";
+
 		fd_auxiliar = fopen(path_oxigeno, "w");
-		if (fd_auxiliar == NULL) {
-			perror("Hubo un error al abrir el arhivo");
-			exit(-1);
-		}
+		//if (fd_auxiliar == NULL) {
+		//	perror("Hubo un error al abrir el arhivo");
+		//	exit(-1);
+		//}
 		fclose (fd_auxiliar);
 
 		fd_auxiliar = fopen(path_oxigeno_metadata, "w");
@@ -543,6 +549,8 @@ short iniciaEstructuraDeArchivos()
 			perror("Hubo un error al abrir el arhivo");
 			exit(-1);
 		}
+		cadena_auxiliar = "SIZE=0\nBLOCK_COUNT=0\nBLOCKS=[]\nCARACTER_LLENADO=O\nMD5_ARCHIVO=\n";
+		txt_write_in_file(fd_auxiliar, cadena_auxiliar);
 		fclose (fd_auxiliar);
 
 		fd_auxiliar = fopen(path_comida, "w");
@@ -557,6 +565,8 @@ short iniciaEstructuraDeArchivos()
 			perror("Hubo un error al abrir el arhivo");
 			exit(-1);
 		}
+		cadena_auxiliar = "SIZE=0\nBLOCK_COUNT=0\nBLOCKS=[]\nCARACTER_LLENADO=C\nMD5_ARCHIVO=\n";
+		txt_write_in_file(fd_auxiliar, cadena_auxiliar);
 		fclose (fd_auxiliar);
 
 		fd_auxiliar = fopen(path_basura, "w");
@@ -571,6 +581,8 @@ short iniciaEstructuraDeArchivos()
 			perror("Hubo un error al abrir el arhivo");
 			exit(-1);
 		}
+		cadena_auxiliar = "SIZE=0\nBLOCK_COUNT=0\nBLOCKS=[]\nCARACTER_LLENADO=C\nMD5_ARCHIVO=\n";
+		txt_write_in_file(fd_auxiliar, cadena_auxiliar);
 		fclose (fd_auxiliar);
 
 		fd_auxiliar = fopen(path_blocks, "w");
@@ -585,7 +597,9 @@ short iniciaEstructuraDeArchivos()
 			perror("Hubo un error al abrir el arhivo");
 			exit(-1);
 		}
+
 		fclose (fd_auxiliar);
+
 
 		//TODO Crear la carpeta de bitacoras de cero
 

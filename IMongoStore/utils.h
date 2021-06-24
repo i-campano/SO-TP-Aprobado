@@ -33,6 +33,8 @@ char* conf_ARCHIVO_OXIGENO_NOMBRE;
 char* conf_ARCHIVO_COMIDA_NOMBRE;
 char* conf_ARCHIVO_BASURA_NOMBRE;
 char* conf_PATH_BITACORA;
+char* conf_BYTES_BLOQUE;
+char* conf_CANTIDAD_BLOQUES;
 
 //MUTEX PARA ARCHIVOS
 pthread_mutex_t mut_ARCHIVO_OXIGENO;

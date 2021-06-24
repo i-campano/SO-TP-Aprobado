@@ -31,10 +31,13 @@ int main(void)
 
 	//Inicia escucha de llamados
 	//manejadorDeHilos();
-	escribirBitacora("resuelve sabotaje",1);
+
+	iniciaEstructuraDeArchivos();
+
+	/*escribirBitacora("resuelve sabotaje",1);
 	escribirBitacora("resuelve sabotaje",2);
 	escribirBitacora("resuelve sabotaje",3);
-	escribirBitacora("se mueve saraza22",5);
+	escribirBitacora("se mueve saraza22",5);*/
 
 
 	log_info(logger,"finished");
