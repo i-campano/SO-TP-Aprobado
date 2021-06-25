@@ -25,22 +25,22 @@
 
 #include"utils.h"
 
-struct {
+typedef struct  {
 	uint32_t tamanio_bloque;
 	uint32_t cantidad_bloques;
 	t_bitarray bitmap;
-} superblock;
+} str_superblock;
 
 
 
-struct {
+typedef struct {
 	uint32_t tamanio;
 	uint32_t cantidadBloques;
 	char* bloques;
 	char caracterLlenado;
 	char* md5;
 
-} metadata;
+} str_metadata;
 
 
 
@@ -95,14 +95,14 @@ void consumirOxigeno(uint32_t cantidad);
 void consumirComida(uint32_t cantidad);
 void descartarBasura();
 char *devolverTarea(char* tarea);
-////////FUNCIONES DE TAREAS/////////
 void ejecutarTarea(char* tarea, uint32_t cantidad);
+////////FUNCIONES DE TAREAS/////////
 
 /* Bitacora */
 void escribirBitacora(char* tarea, uint32_t idTripulante);
-
 char* generarIdArchivo(uint32_t idTripulante);
 char* generarPath(char* archivoTripulante);
+/* Bitacora */
 
 
 

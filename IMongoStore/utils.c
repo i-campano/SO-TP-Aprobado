@@ -464,6 +464,8 @@ short iniciaEstructuraDeArchivos()
 	uint32_t iCantidadBloques = 0;
 	uint32_t iCantidadTotalDeBytesEnArchivoBlocks = 0;
 
+	str_superblock str_FileSupeBloque;
+
 	FILE* fd_auxiliar;
 
 	char* path_blocks = string_new();
@@ -541,7 +543,7 @@ short iniciaEstructuraDeArchivos()
 		txt_write_in_file(fd_auxiliar, cadena_auxiliar);
 		fclose (fd_auxiliar);
 
-		//Creacion Blocks
+		//Creacion File Blocks
 		fd_auxiliar = fopen(path_blocks, "w");
 		if (fd_auxiliar == NULL) {
 			perror("Hubo un error al abrir el arhivo");
@@ -551,12 +553,19 @@ short iniciaEstructuraDeArchivos()
 		txt_write_in_file(fd_auxiliar, cadena_auxiliar);
 		fclose (fd_auxiliar);
 
-		//Creacion Superbloque
+		//Creacion File Superbloque
+		cadena_auxiliar = string_repeat('0',iCantidadBloques);
+		//Asigna la estructura del superbloque
+		str_FileSupeBloque.cantidad_bloques = iCantidadBloques;
+		str_FileSupeBloque.tamanio_bloque = iTamanioBloque;
+		str_FileSupeBloque.bitmap = *bitarray_create(cadena_auxiliar, iCantidadBloques);
+
 		fd_auxiliar = fopen(path_superbloque, "w");
 		if (fd_auxiliar == NULL) {
 			perror("Hubo un error al abrir el arhivo");
 			exit(-1);
 		}
+		fwrite(&str_FileSupeBloque, sizeof(str_FileSupeBloque), 1, fd_auxiliar);
 		fclose (fd_auxiliar);
 
 
