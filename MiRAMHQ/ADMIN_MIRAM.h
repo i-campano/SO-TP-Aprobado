@@ -59,6 +59,8 @@ typedef struct {
 }tcb_t;
 
 t_list* listaSegmentos;
+pthread_mutex_t accesoMemoria;
+pthread_mutex_t accesoListaSegmentos;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES
@@ -103,4 +105,9 @@ void crear_tripulante(uint32_t idTrip,uint32_t id_patota);
 //Get
 pcb_t getPcb (int idPedido);
 tcb_t getTcb (int idPedido);
+char* getTarea(int idPedido,uint32_t nTarea);
+void setPcb(pcb_t pcb);
+void setTcb (int idPedido,tcb_t tcb);
+
+char* reconocer_tareas(char* tarea,uint32_t tareaPedida);
 #endif /* ADMIN_MIRAM_H_ */

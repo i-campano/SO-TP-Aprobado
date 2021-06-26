@@ -19,6 +19,8 @@ bool algoritmo = FF;
 
 int admin_memoria(void)
 {
+	pthread_mutex_init(&accesoMemoria,NULL);
+	pthread_mutex_init(&accesoListaSegmentos,NULL);
 	printf("Inicio \n");
 	pcb_t pcb2;
 	pcb2.id = 4;
@@ -424,6 +426,7 @@ void mostrarEstadoMemoria(void* segmento) {
 }
 
 //Funciones de compactacion
+//OJO CON DESPLAZARSEGMENTO NO TIENE MUTEX ADENTRO USAR AFUERA!
 int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	if (offset == 0){
 		return 0;
@@ -478,6 +481,8 @@ int memoria_libre(void) {
 		return libre;
 }
 int compactar_memoria(void) {
+	pthread_mutex_lock(&accesoMemoria);
+	pthread_mutex_lock(&accesoListaSegmentos);
 	segmento_t* anterior = NULL;
 		segmento_t* actual = NULL;
 		uint32_t cantidad = list_size(listaSegmentos);
@@ -520,6 +525,8 @@ int compactar_memoria(void) {
 
 		}
 		crear_segmento(tamanio-offset,tamanio);
+		pthread_mutex_unlock(&accesoMemoria);
+		pthread_mutex_unlock(&accesoListaSegmentos);
 		return 0;
 }
 //Get
@@ -553,4 +560,78 @@ tcb_t getTcb (int idPedido){
 	uint32_t offset = sg->inicio;
 	memcpy(&tcb_temp,mem_ppal+offset,sizeof(tcb_t));
 	return tcb_temp;
+}
+char* getTarea(int idPedido,uint32_t nTarea) {
+	bool buscarSegmentoTareaId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TAREAS && segmento_tmp->id == idPedido;
+	}
+	segmento_t* sg = list_find(listaSegmentos,buscarSegmentoTareaId);
+	char* tarea = malloc(sg->fin - sg->inicio);
+	uint32_t offset = sg->inicio;
+	memcpy(tarea,mem_ppal+offset,sg->fin - sg->inicio);
+
+	return reconocer_tareas(tarea,nTarea);
+}
+
+void setPcb(pcb_t pcb) {
+	bool getPcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return (segmento_tmp->id == pcb.id) && segmento_tmp->tipoDato == DATO_PCB;
+	}
+	segmento_t* sg = list_find(listaSegmentos,getPcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
+}
+void setTcb (int idPedido,tcb_t tcb){
+	bool buscarSegmentosTcb(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TCB;
+	}
+	bool buscarTcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		uint32_t offset = segmento_tmp->inicio;
+		tcb_t temp;
+		memcpy(&temp,mem_ppal+offset,sizeof(tcb_t));
+		return temp.id == idPedido;
+	}
+	t_list* lista_temporal = list_filter(listaSegmentos,buscarSegmentosTcb);
+	segmento_t* sg = list_find(lista_temporal,buscarTcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+}
+//AUXILIAR PARA TAREAS
+char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
+	char anterior;
+	char actual;
+	uint32_t tamanio = strlen(tarea);
+	uint32_t fin = 2;
+	uint32_t nTarea = 0;
+	uint32_t inicio;
+	if(tarea == NULL){
+		return NULL;
+	}
+	anterior = tarea[0];
+	actual = tarea[1];
+	inicio = 0;
+	while (fin < tamanio){
+		anterior = actual;
+		actual = tarea[fin];
+		if (isalpha(actual) && isdigit(anterior)){
+			printf("Tarea %i largo %i \n",nTarea,fin);
+			if(tareaPedida == nTarea) {
+				char* tareaP = malloc(fin-inicio+1);
+				memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+				return tareaP;
+			}
+			inicio = fin;
+			nTarea++;
+		}
+		printf("Actual -> %c, Anterior->%c \n",actual,anterior);
+		fin++;
+
+	}
+	char* tareaP = malloc(fin-inicio+1);
+	memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+	return tareaP;
 }
