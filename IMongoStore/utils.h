@@ -49,10 +49,8 @@ typedef struct {
 } cadena;
 
 typedef struct {
-	char plato[24];
-	uint32_t cantidad;
-	uint32_t cantidad_lista;
-} __attribute__((packed)) t_plato_comanda;
+	char plato[64];
+} __attribute__((packed)) t_bloque;
 
 str_superblock superblock;
 
@@ -60,7 +58,7 @@ char * file_blocks_dir;
 
 FILE * blocks;
 
-char * bloques;
+char * fs_bloques;
 
 void * array_bloques;
 
