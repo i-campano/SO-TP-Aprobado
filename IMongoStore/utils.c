@@ -558,7 +558,7 @@ short iniciaEstructuraDeArchivos()
 		//Asigna la estructura del superbloque
 		str_FileSupeBloque.cantidad_bloques = iCantidadBloques;
 		str_FileSupeBloque.tamanio_bloque = iTamanioBloque;
-		str_FileSupeBloque.bitmap = *bitarray_create(cadena_auxiliar, iCantidadBloques);
+//		str_FileSupeBloque.bitmap = *bitarray_create(cadena_auxiliar, iCantidadBloques);
 
 		fd_auxiliar = fopen(path_superbloque, "w");
 		if (fd_auxiliar == NULL) {

@@ -28,7 +28,7 @@
 typedef struct  {
 	uint32_t tamanio_bloque;
 	uint32_t cantidad_bloques;
-	t_bitarray bitmap;
+	t_bitarray	* bitmap;
 } str_superblock;
 
 
@@ -42,6 +42,27 @@ typedef struct {
 
 } str_metadata;
 
+
+typedef struct {
+	char cadena[20];
+
+} cadena;
+
+typedef struct {
+	char plato[24];
+	uint32_t cantidad;
+	uint32_t cantidad_lista;
+} __attribute__((packed)) t_plato_comanda;
+
+str_superblock superblock;
+
+char * file_blocks_dir;
+
+FILE * blocks;
+
+char * bloques;
+
+void * array_bloques;
 
 
 

@@ -10,6 +10,7 @@
 #include<commons/log.h>
 #include "utils.h"
 #include "socket.h"
+#include <sys/mman.h>
 
 // CODIGO DE TAREAS
 #define GENERAR_OXIGENO 90
@@ -30,5 +31,8 @@ char * archivo_basura = "basura.ims";
 
 void manejadorDeHilos();
 void inicializarMutex();
+
+
+void iniciar_super_block();
 
 #endif /* IMONGOSTORE_H_ */
