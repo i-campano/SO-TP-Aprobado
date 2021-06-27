@@ -75,13 +75,16 @@ void crear_patota(){
 
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
+		log_info(logger,"PATOTA CREADA OK");
 		int * id = malloc(sizeof(int));
 		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
 		_tripulante->id = *id;
 		_tripulante->patota_id = patotaId;
 		_tripulante->cantidad_tareas = cantidad_tareas;
-		log_info(logger,"Creando tripulante: %d de la patota id: %d",*id,patotaId);
+		_tripulante->ubicacionInicio = string_new();
+		asignar_posicion(&(_tripulante->ubicacionInicio),posiciones,i);
+		log_info(logger,"Creando tripulante: %d de la patota id: %d Posicion: %s",*id,patotaId,_tripulante->ubicacionInicio);
 		crearHiloTripulante(_tripulante);
 		free(id); //malloc linea 79 dentro de este while
 	}
@@ -92,7 +95,19 @@ void crear_patota(){
 	free(tareasOk); // linea 31
 }
 //Mallocs Revisados
-
+void asignar_posicion(char** destino,char* posiciones,uint32_t creados) {
+	char** posiciones_separadas = string_split(posiciones," ");
+	uint32_t cantidad_posiciones = 0;
+	while(posiciones_separadas[cantidad_posiciones] != NULL) {
+		cantidad_posiciones++;
+	}
+	if(cantidad_posiciones <= creados){
+		string_append(destino,"0|0");
+	}
+	else {
+		string_append(destino,posiciones_separadas[creados]);
+	}
+}
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {
 	void* buffer_patota = malloc(longitud_tareas + longitud_posiciones + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int) + sizeof(int));

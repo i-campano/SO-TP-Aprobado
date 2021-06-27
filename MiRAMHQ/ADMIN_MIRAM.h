@@ -59,6 +59,9 @@ typedef struct {
 }tcb_t;
 
 t_list* listaSegmentos;
+t_list* tablaSegmentos;
+t_list* listaTablaSegmentos;
+
 pthread_mutex_t accesoMemoria;
 pthread_mutex_t accesoListaSegmentos;
 //PPAL
@@ -77,7 +80,7 @@ void* condicionSegmentoLibrePcbBF(void* segmento,void* otroSegmento);
 segmento_t* buscar_segmento(pcb_t pcb);
 segmento_t* buscar_segmentoTcb(tcb_t tcb,uint32_t patotaId);
 segmento_t* buscar_segmentoTareas(pcb_t pcb,char* tareas);
-
+t_list* buscarTablaPatota(uint32_t id);
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
 void crear_patota(uint32_t cant_trip,char* tareas);
 int unificar_sg_libres(void);
@@ -100,8 +103,8 @@ int desplazar_segmento(segmento_t* sg,uint32_t offset);
 int compactar_memoria(void);
 int memoria_libre(void);
 //PROBANDO MERGEAR CON MIRAM POSTA
-void crear_patota2(pcb_t pcb,char* posiciones);
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota);
+void crear_patota2(pcb_t pcb,char* posiciones,char* tareas);
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x, uint32_t y);
 //Get
 pcb_t getPcb (int idPedido);
 tcb_t getTcb (int idPedido);

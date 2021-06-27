@@ -32,5 +32,5 @@
 void crear_patota();
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones);
-
+void asignar_posicion(char** destino,char* posiciones,uint32_t creados);
 #endif /* PATOTA_H_ */

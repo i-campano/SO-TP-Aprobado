@@ -21,31 +21,7 @@ int admin_memoria(void)
 {
 	pthread_mutex_init(&accesoMemoria,NULL);
 	pthread_mutex_init(&accesoListaSegmentos,NULL);
-	printf("Inicio \n");
-	pcb_t pcb2;
-	pcb2.id = 4;
-	pcb2.tareas = "HOla\0";
-	crear_patota2(pcb2,"");
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	pcb_t pcb = getPcb(1);
-
-	printf("%s \n",pcb.tareas);
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	list_iterate(listaSegmentos,mostrarMemoriaCompleta);
-	printf("---------------------------------- \n");
-	crear_patota(4,"Hola\0");
-	unificar_sg_libres();
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	list_iterate(listaSegmentos,mostrarMemoriaCompleta);
-	printf("-------------COMPAC--------------------- \n");
-	compactar_memoria();
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	list_iterate(listaSegmentos,mostrarMemoriaCompleta);
-	printf("---------------------------------- \n");
+	crear_memoria_ppal();
 	free(mem_ppal);
 	return 0;
 }
@@ -54,6 +30,7 @@ void crear_memoria_ppal() {
 	mem_ppal = malloc(tamanio);
 	memset(mem_ppal,0,tamanio);
 	listaSegmentos = list_create(); //Creo la lista de segmentos
+	listaTablaSegmentos = list_create();
 	printf("Cree la memoria e inicialize la lista de segmentos \n");
 	crear_segmento(0,tamanio);
 }
@@ -246,7 +223,15 @@ segmento_t* buscar_segmentoTareas(pcb_t pcb,char* tareas) {
 		crear_segmento(segmentoMemoria->fin,fin_viejo);
 		return segmentoMemoria;
 }
-
+t_list* buscarTablaPatota(uint32_t id){
+	bool condicionTablaId(void* tablaSegmentos) {
+				t_list* tabla = (t_list*)tablaSegmentos;
+				segmento_t* sg_pcb;
+				sg_pcb = list_get(tabla,0);
+				return sg_pcb->id == id;
+			}
+	return list_find(listaTablaSegmentos,condicionTablaId);
+}
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
 void crear_patota(uint32_t cant_trip,char* tareas) {
 	segmento_t* segmentoAsignado;
@@ -259,9 +244,7 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 	pcb_tmp.tareas = NULL;
 	segmentoAsignado = buscar_segmento(pcb_tmp);
 	printf("Agregue a las listas de segmentos \n");
-	list_sort(listaSegmentos,ordenar_segun_inicio);
 	segmentoAsignadoTareas = buscar_segmentoTareas(pcb_tmp,tareas);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
 	offset = segmentoAsignado->inicio;
 	memcpy(mem_ppal+offset,&pcb_tmp,sizeof(pcb_t));
 	offset = segmentoAsignadoTareas->inicio;
@@ -284,31 +267,35 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 	}
 }
 //PRIMERA APROXIMACION A CREAR PATOTA POSTA
-void crear_patota2(pcb_t pcb,char* posiciones) {
+void crear_patota2(pcb_t pcb,char* posiciones,char* tareas) {
 	segmento_t* segmentoAsignado;
 	segmento_t* segmentoAsignadoTareas;
 	uint32_t offset;
 	segmentoAsignado = buscar_segmento(pcb);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
-	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,pcb.tareas);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
+	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,tareas);
 	offset = segmentoAsignado->inicio;
 	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
 	offset = segmentoAsignadoTareas->inicio;
-	memcpy(mem_ppal+offset,pcb.tareas,strlen(pcb.tareas)*sizeof(char)+1);
+	memcpy(mem_ppal+offset,tareas,strlen(tareas)*sizeof(char)+1);
+	tablaSegmentos = list_create();
+	list_add(tablaSegmentos,segmentoAsignado);
+	list_add(tablaSegmentos,segmentoAsignadoTareas);
+	list_add(listaTablaSegmentos,tablaSegmentos);
 	printf("Agregue a las listas de segmentos \n");
 }
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota){
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y){
 	segmento_t* segmentoTcb;
+	t_list* tablaSegmentos;
 	tcb_t tcb;
 	uint32_t offset;
 	tcb.id = idTrip;
-	tcb.x = 0;
-	tcb.y = 0;
+	tcb.x = x;
+	tcb.y = y;
 	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
 	offset = segmentoTcb->inicio;
 	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+	tablaSegmentos = buscarTablaPatota(id_patota);
+	list_add(tablaSegmentos,segmentoTcb);
 }
 
 //FIN DE FUNCIONES PARA APROXIMAR
@@ -364,7 +351,7 @@ void crear_segmento(uint32_t inicio,uint32_t fin){
 	sg->fin = fin;
 	sg->id = 0;
 	sg->tipoDato = VACIO;
-	list_add(listaSegmentos,sg);
+	list_add_sorted(listaSegmentos,sg,ordenar_segun_inicio);
 }
 //FUNCIONES PARA IMPRIMIR LISTAS ITERANDO
 

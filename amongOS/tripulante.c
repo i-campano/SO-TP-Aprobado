@@ -105,7 +105,10 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
 	sendDeNotificacion(socketRam,tripulante->id);
 	sendDeNotificacion(socketRam,tripulante->patota_id);
-
+	char** posicionesSeparadas = string_split(tripulante->ubicacionInicio,"|");
+	sendDeNotificacion(socketRam,atoi(posicionesSeparadas[0]));
+	sendDeNotificacion(socketRam,atoi(posicionesSeparadas[1]));
+	free(posicionesSeparadas);
 	int creado = recvDeNotificacion(socketRam);
 
 	if(creado==TRIPULANTE_CREADO){
