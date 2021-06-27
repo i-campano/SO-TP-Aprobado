@@ -56,7 +56,7 @@ str_superblock superblock;
 
 char * file_blocks_dir;
 
-FILE * blocks;
+FILE * file_blocks;
 
 char * fs_bloques;
 

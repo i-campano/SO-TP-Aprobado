@@ -36,25 +36,33 @@ int main(void)
 	//Recibe cadena a insertar e indice de bloque
 	agregar_en_bloque("Tripulante termino tarea",8);
 
-	agregar_en_bloque("OOOOOOOOO",5);
+	agregar_en_bloque("OOOOOOOOOOOOOO",5);
 
-	agregar_en_bloque("CCCCCCCCC",5);
+	agregar_en_bloque("CCCCCC",5);
+
+
+	agregar_en_bloque("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",19);
 
 	obtener_bloque(8);
 
 	obtener_bloque(5);
 
-	munmap(fs_bloques, 100*sizeof(t_bloque));
+	obtener_bloque(19);
 
-	close(blocks);
+	munmap(fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
+
+	close(file_blocks);
+
+
 	return EXIT_SUCCESS;
 }
 
 
 void iniciar_super_block(){
 	//cargar desde config la struct de super_bloque
-	log_info(logger,conf_BYTES_BLOQUE);
-	log_info(logger,conf_CANTIDAD_BLOQUES);
+	log_info(logger,"Inicio superbloque: %s", conf_BYTES_BLOQUE);
+	log_info(logger,"Tamanio de Bloque: %s", conf_BYTES_BLOQUE);
+	log_info(logger,"Cantidad de Bloques: %s", conf_CANTIDAD_BLOQUES);
 
 	superblock.tamanio_bloque = (uint32_t)atoi(conf_BYTES_BLOQUE);
 
@@ -62,7 +70,6 @@ void iniciar_super_block(){
 	void * bitmapstr = malloc(10);
 	superblock.bitmap = bitarray_create_with_mode(bitmapstr,superblock.cantidad_bloques,LSB_FIRST);
 
-	log_info(logger,"%s",superblock.bitmap->bitarray);
 
 }
 
@@ -96,13 +103,13 @@ int obtener_bloque(int indice) {
 
 
 void iniciar_blocks(){
-	blocks = open("otroblock.ims", O_RDWR | O_CREAT , (mode_t)0600);
+	file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
 
 	int N=100;
 
-	ftruncate(blocks,N*sizeof(t_bloque));
+	ftruncate(file_blocks,N*sizeof(t_bloque));
 
-	fs_bloques = mmap ( NULL, N*sizeof(t_bloque), PROT_READ | PROT_WRITE, MAP_SHARED , blocks, 0 );
+	fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , file_blocks, 0 );
 
 }
 
