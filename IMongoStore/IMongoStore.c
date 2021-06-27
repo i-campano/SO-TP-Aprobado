@@ -66,19 +66,48 @@ int main(void)
 //	//En el server cuando atiendo a los tripulantes
 //	//En cada hilo
 //	str_metadata bitacora = crear_archivo();
+//
+//	platos_agregar("otromassss",11,8);
+//
+//	platos_agregar("seg",32,5);
 
-	platos_agregar("primer",10,2);
+//	escribir();
 
-	platos_agregar("seg",32,5);
+//	leer();
 
 	obtener_plato(2);
 
-	obtener_plato(5);
+	obtener_plato(8);
 
+	munmap(bloques, 100*sizeof(t_plato_comanda));
 
-
-	while(1);
+	close(blocks);
 	return EXIT_SUCCESS;
+}
+
+int leer(void) {
+  int fd = open("test_file", O_RDWR | O_CREAT, (mode_t)0600);
+  char *map = mmap(0, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  char text[20];
+  memcpy(text, map, 10);
+	log_info(logger,"%s",text);
+  close(fd);
+  return 0;
+}
+
+
+int escribir(void) {
+  int fd = open("test_file", O_RDWR | O_CREAT, (mode_t)0600);
+  const char *text = "hello";
+  size_t textsize = strlen(text) + 1;
+  lseek(fd, textsize-1, SEEK_SET);
+  write(fd, "", 1);
+  char *map = mmap(0, textsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  memcpy(map, text, strlen(text));
+  msync(map, textsize, MS_SYNC);
+  munmap(map, textsize);
+  close(fd);
+  return 0;
 }
 
 
@@ -111,7 +140,7 @@ int platos_agregar(char * cadena_caracteres,uint32_t cantidad,int indice) {
 
 	// Copiar la estructura en el espacio libre
 	memcpy(bloques + (indice*32), &plato_tmp, 32);
-	msync(bloques + (indice*32), 32, MS_SYNC);
+	msync(bloques, 10*32, MS_SYNC);
 
 	return 1;
 }
@@ -132,14 +161,15 @@ int obtener_plato(int indice) {
 
 
 void iniciar_blocks(){
+	blocks = open("otroblock.ims", O_RDWR | O_CREAT , (mode_t)0600);
 
-	blocks = fopen("blocks.ims","rw");
+
 
 
 	int N=100;
+	ftruncate(blocks,N*sizeof(t_plato_comanda));
 
-
-	bloques = mmap ( blocks, N*sizeof(t_plato_comanda), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
+	bloques = mmap ( NULL, N*sizeof(t_plato_comanda), PROT_READ | PROT_WRITE, MAP_SHARED , blocks, 0 );
 
 }
 
