@@ -69,8 +69,9 @@ void *labor_tripulante_new(void * trip){
 
 
 
-
 	t_tripulante * tripulante = (t_tripulante*) trip;
+	char ** coordenadas = string_split(tripulante->ubicacionInicio,"|");
+
 
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
@@ -79,8 +80,8 @@ void *labor_tripulante_new(void * trip){
 
 	tripulante->instrucciones_ejecutadas = 0;
 
-	tripulante->ubi_x = 0;
-	tripulante->ubi_y = 0;
+	tripulante->ubi_x = atoi(coordenadas[0]);
+	tripulante->ubi_y = atoi(coordenadas[1]);
 
 	int firstMove = 0;
 	int moveUp = 0;

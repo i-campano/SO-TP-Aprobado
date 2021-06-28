@@ -8,15 +8,17 @@
 
 
 
-void crear_patota(){
-	char * leido = readline("INGRESAR UBICACION TAREAS>");
-	char * path = string_new();
-	string_append(&path,leido);
+void crear_patota(char * comando){
 
-	free(leido);
+	char ** parametros = string_n_split(comando,5," ");
+//	char * leido = readline("INGRESAR UBICACION TAREAS>");
+	char * path = string_new();
+//	string_append(&path,leido);
+
+//	free(leido);
 
 	char * tareasX = string_new();
-    FILE *archivo = fopen(path, "r"); // Modo lectura
+    FILE *archivo = fopen(parametros[1], "r"); // Modo lectura
     char bufer[1000];         // Aquí vamos a ir almacenando cada línea
     int cantidad_tareas = 0;
     while (fgets(bufer, 1000, archivo))
@@ -40,19 +42,19 @@ void crear_patota(){
 //	free(leido);
 	int longitud_tareas = string_length(tareasOk);
 
-	leido = readline("CANTIDAD TRIPULANTES>");
-	uint32_t cantidad_tripulantes = (uint32_t)atoi(leido);
-	free(leido);
+//	leido = readline("CANTIDAD TRIPULANTES>");
+	uint32_t cantidad_tripulantes = (uint32_t)atoi(parametros[2]);
+//	free(leido);
 
-	leido = readline("ID PATOTA>");
-	uint32_t patotaId = (uint32_t)atoi(leido);
-	free(leido);
+//	leido = readline("ID PATOTA>");
+	uint32_t patotaId = (uint32_t)atoi(parametros[3]);
+//	free(leido);
 
 
 	char * posiciones = string_new();
-	leido = readline("INGRESAR POSICIONES>");
-	string_append(&posiciones,leido);
-	free(leido);
+//	leido = readline("INGRESAR POSICIONES>");
+	string_append(&posiciones,parametros[4]);
+//	free(leido);
 	//string_append(&posiciones,"#12-3|4&#16-5|6");
 	int longitud_posiciones = string_length(posiciones);
 

@@ -34,12 +34,12 @@ void leer_consola() {
 			log_info(logger,"LISTA TRIPULANTES----------------------: ");
 			hilo_mostrar_tripulantes();
 		}
-		else if(strncmp(leido, "INICIAR", 1) == 0){
+		else if(strncmp(leido, "PLANIFICACION", 5) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
-		}else if(strncmp(leido, "CREAR_PATOTA", 1) == 0){
-			log_info(logger,"CARGAR DATOS PATOTA: ");
-			crear_patota();
+		}else if(strncmp(leido, "INICIAR_PATOTA", 14) == 0){
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 11 1|2 3|5
+			crear_patota(leido);
 		}
 		else if(strncmp(leido, "GET_DATOS", 3) == 0){
 			sendDeNotificacion(socketServerMiRam, 100);

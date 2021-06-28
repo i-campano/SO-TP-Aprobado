@@ -26,6 +26,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include<commons/string.h>
+#include "utils.h"
+
+
 #define BACKLOG 20
 
 #define DISCORDIADOR 1
