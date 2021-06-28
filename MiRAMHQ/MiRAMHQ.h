@@ -12,5 +12,5 @@
 #include<commons/log.h>
 #include "utils.h"
 #include "socket.h"
-
+#include "ADMIN_MIRAM.h"
 #endif /* MiRAMHQ_H_ */

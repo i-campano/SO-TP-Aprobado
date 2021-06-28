@@ -46,6 +46,7 @@ typedef struct {
 	pthread_mutex_t ejecutadas;
 	int fin;
 	char estado;
+	char* ubicacionInicio;
 	uint32_t ubi_x;
 	uint32_t ubi_y;
 	int block_io_rafaga;

@@ -7,66 +7,32 @@
 #include "ADMIN_MIRAM.h"
 
 void* mem_ppal = NULL;
-t_list* listaSegmentos;
-t_list* tablaSegmentosPorPatota;
+
 int tamanio = 4096;
 //PRUEBAS -->
 uint32_t id_patota = 1;
 uint32_t id_trip = 1;
-t_list tablaSegmento;
-
+bool algoritmo = FF;
 //UTILIZADAS EN ITERACION DEL DUMP SEGMENTACION
-uint32_t nSegmento = 1; //UTILZADA EN LISTA DE SEGMENTOS POR PATOTA
-uint32_t nProceso = 0;
 //PARA CREAR TAREAS
 //uint32_t tamanioTareas = 0;
 
-int admin_miram(void)
+int admin_memoria(void)
 {
-	printf("Inicio \n");
+	pthread_mutex_init(&accesoMemoria,NULL);
+	pthread_mutex_init(&accesoListaSegmentos,NULL);
 	crear_memoria_ppal();
-	//--------------------------
-	printf("Voy a crear patotas \n");
-	crear_patota(1,"1234567890\0");
-	printf("--------------------------------------------------------- \n");
-	//--------------------------
-	crear_patota(1,"GENERAR_OXIGENO 0;1;1;1GENERAR_OXIGENO 0;1;1;1\0");
-	printf("--------------------------------------------------------- \n");
-	//--------------------------
-	crear_patota(6,"GENERAR_OXIGENO 0;1;1;1GENERAR_OXIGENO 0;1;1;1\0");
-	eliminar_patota(2);
-	crear_patota(1,"1\0");
-	crear_patota(3,"Gernrearajsdkajsdlkasdasd\0");
-	crear_patota(3,"Gernrearajsdkajsdlkasdasd\0");
-	eliminar_patota(1);
-	eliminar_patota(4);
-	crear_patota(3,"Gernrearajsdkajsdlkasdasd\0");
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	compactar_memoria();
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
-	printf("---------------------------------- \n");
-	list_iterate(listaSegmentos,mostrarMemoriaCompleta);
-	printf("---------------------------------- \n");
-
 	free(mem_ppal);
 	return 0;
 }
 
 void crear_memoria_ppal() {
 	mem_ppal = malloc(tamanio);
-	//MEM SETT!!
 	memset(mem_ppal,0,tamanio);
 	listaSegmentos = list_create(); //Creo la lista de segmentos
-	tablaSegmentosPorPatota = list_create();//Con filter vuela
+	listaTablaSegmentos = list_create();
 	printf("Cree la memoria e inicialize la lista de segmentos \n");
-	segmento_t* segmento = malloc(sizeof(segmento_t));
-	segmento->inicio = 0;
-	segmento->fin = tamanio;
-	segmento->id = 0; //0 = VACIO
-	segmento->tipoDato = VACIO;
-	list_add(listaSegmentos,segmento);
-
+	crear_segmento(0,tamanio);
 }
 
 //Criterios para listas de segmentos
@@ -74,6 +40,52 @@ bool condicionSegmentoLibrePcb(void* segmento) {
 	segmento_t* segmento_tmp = (segmento_t*)segmento;
 	uint32_t tamanioTotal = sizeof(pcb_t);
 	return (segmento_tmp->fin - segmento_tmp->inicio) >= tamanioTotal && segmento_tmp->id == 0;
+}
+void* condicionSegmentoLibrePcbBF(void* segmento,void* otroSegmento) {
+	segmento_t* segmento_tmp = (segmento_t*)segmento;
+	segmento_t* segmento_tmp2 = (segmento_t*)otroSegmento;
+	uint32_t tamanioTotal = sizeof(pcb_t);
+	uint32_t tamanio1 = segmento_tmp->fin - segmento_tmp->inicio;
+	uint32_t tamanio2 = segmento_tmp2->fin - segmento_tmp2->inicio;
+	if(segmento_tmp->tipoDato != VACIO){
+		return otroSegmento;
+	}
+	if(segmento_tmp2->tipoDato != VACIO && segmento_tmp->tipoDato == VACIO){
+		return segmento;
+	}
+	if(tamanio1 < tamanioTotal) {
+		return otroSegmento;
+	}
+	if(tamanio2 < tamanioTotal){
+		return segmento;
+	}
+	if(tamanio1 > tamanio2) {
+		return otroSegmento;
+	}
+	return segmento;
+}
+void* condicionSegmentoLibreTcbBF(void* segmento,void* otroSegmento) {
+	segmento_t* segmento_tmp = (segmento_t*)segmento;
+	segmento_t* segmento_tmp2 = (segmento_t*)otroSegmento;
+	uint32_t tamanioTotal = sizeof(tcb_t);
+	uint32_t tamanio1 = segmento_tmp->fin - segmento_tmp->inicio;
+	uint32_t tamanio2 = segmento_tmp2->fin - segmento_tmp2->inicio;
+	if(segmento_tmp->tipoDato != VACIO){
+		return otroSegmento;
+	}
+	if(segmento_tmp2->tipoDato != VACIO && segmento_tmp->tipoDato == VACIO){
+		return segmento;
+	}
+	if(tamanio1 < tamanioTotal) {
+		return otroSegmento;
+	}
+	if(tamanio2 < tamanioTotal){
+		return segmento;
+	}
+	if(tamanio1 > tamanio2) {
+		return otroSegmento;
+	}
+	return segmento;
 }
 bool condicionSegmentoLibreTcb(void* segmento) {
 	segmento_t* segmento_tmp = (segmento_t*)segmento;
@@ -86,67 +98,140 @@ bool ordenar_segun_inicio(void* primero,void* segundo){
 	return unSegmento->inicio < otroSegmento->inicio;
 }
 
-//Creadores de segmentos segun tipo de dato
-segmento_t* buscar_segmento(pcb_t pcb) {
-	    //El segmento que se encontraba en memoria
-		segmento_t* segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibrePcb);
-		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == sizeof(pcb_t)) {
-					return segmentoMemoria;
+//Devuelve segmento segun CONFIGURACION FF BF
+segmento_t* segmentoPcb_segun(bool algoritmoBusqueda) {
+	segmento_t* segmentoMemoria;
+	if(list_size(listaSegmentos) == 1){
+				segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibrePcb);
+			}
+			else{
+				if(algoritmoBusqueda == FF) {
+					segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibrePcb);
 				}
-		segmento_t* nuevoSegmento = malloc(sizeof(segmento_t));
+				else {
+					segmentoMemoria = list_get_minimum(listaSegmentos,condicionSegmentoLibrePcbBF);
+				}
+			}
+	return segmentoMemoria;
+}
+segmento_t* segmentoTcb_segun(bool algoritmoBusqueda) {
+	segmento_t* segmentoMemoria;
+	if(list_size(listaSegmentos) == 1){
+			segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTcb);
+	}
+	else{
+		if(algoritmoBusqueda == FF) {
+			segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTcb);
+		}
+		else {
+			segmentoMemoria = list_get_minimum(listaSegmentos,condicionSegmentoLibreTcbBF);
+		}
+	}
+	return segmentoMemoria;
+}
+segmento_t* segmentoTareas_segun(bool algoritmoBusaqueda, uint32_t tamanioTareas){
+	bool condicionSegmentoLibreTareas(void* segmento) {
+			segmento_t* segmento_tmp = (segmento_t*)segmento;
+			return (segmento_tmp->fin - segmento_tmp->inicio) >= tamanioTareas && segmento_tmp->id == 0;
+		}
+		void* condicionSegmentoLibreTareasBF(void* segmento,void* otroSegmento) {
+			segmento_t* segmento_tmp = (segmento_t*)segmento;
+			segmento_t* segmento_tmp2 = (segmento_t*)otroSegmento;
+			uint32_t tamanio1 = segmento_tmp->fin - segmento_tmp->inicio;
+			uint32_t tamanio2 = segmento_tmp2->fin - segmento_tmp2->inicio;
+			if(segmento_tmp->tipoDato != VACIO){
+				return otroSegmento;
+			}
+			if(segmento_tmp2->tipoDato != VACIO && segmento_tmp->tipoDato == VACIO){
+				return segmento;
+			}
+			if(tamanio1 < tamanioTareas) {
+				return otroSegmento;
+			}
+			if(tamanio2 < tamanioTareas){
+				return segmento;
+			}
+			if(tamanio1 > tamanio2) {
+				return otroSegmento;
+			}
+			return segmento;
+		}
+		segmento_t* segmentoMemoria = NULL;
+				if(list_size(listaSegmentos) == 1){
+					segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
+				}
+				else{
+					if(algoritmo == FF) {
+						segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
+					}
+					else {
+						segmentoMemoria = list_get_minimum(listaSegmentos,condicionSegmentoLibreTareasBF);
+					}
+				}
+		return segmentoMemoria;
+}
+
+//Busca segmentos libres para cada tipo de dato
+segmento_t* buscar_segmento(pcb_t pcb) {
+		segmento_t* segmentoMemoria = segmentoPcb_segun(algoritmo);
+		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == sizeof(pcb_t)) {
+			segmentoMemoria->id = pcb.id;
+			segmentoMemoria->tipoDato = DATO_PCB;
+			return segmentoMemoria;
+		}
 		uint32_t tamanioTotal = sizeof(pcb_t);
-		nuevoSegmento->fin = segmentoMemoria->fin;
+		uint32_t fin_viejo;
+		fin_viejo = segmentoMemoria->fin;
 		segmentoMemoria->fin = tamanioTotal + segmentoMemoria->inicio; //YA CALCULE QUE ENTRA EN EL FIND
 		segmentoMemoria->id = pcb.id;
-		nuevoSegmento->inicio = segmentoMemoria->fin;
-		nuevoSegmento->id = 0; //VACIO
-		nuevoSegmento->tipoDato = VACIO;
-		list_add(listaSegmentos,nuevoSegmento);
 		segmentoMemoria->tipoDato = DATO_PCB;
+		crear_segmento(segmentoMemoria->fin,fin_viejo);
 		return segmentoMemoria;
 }
 segmento_t* buscar_segmentoTcb(tcb_t tcb,uint32_t patotaId) {
-	    //El segmento que se encontraba en memoria
-		segmento_t* segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTcb);
+	segmento_t* segmentoMemoria = segmentoTcb_segun(algoritmo);
+
 		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == sizeof(tcb_t)) {
+			segmentoMemoria->id = patotaId;
+			segmentoMemoria->tipoDato = DATO_TCB;
 			return segmentoMemoria;
 		}
-		segmento_t* nuevoSegmento = malloc(sizeof(segmento_t));
 		uint32_t tamanioTotal = sizeof(tcb_t); // + tamanio tareas
-		nuevoSegmento->fin = segmentoMemoria->fin;
+		uint32_t fin_viejo;
+		fin_viejo = segmentoMemoria->fin;
 		segmentoMemoria->fin = tamanioTotal + segmentoMemoria->inicio; //YA CALCULE QUE ENTRA EN EL FIND
 		segmentoMemoria->id = patotaId;
-		nuevoSegmento->inicio = segmentoMemoria->fin;
-		nuevoSegmento->id = 0; //VACIO
-		nuevoSegmento->tipoDato = VACIO;
-		list_add(listaSegmentos,nuevoSegmento);
 		segmentoMemoria->tipoDato = DATO_TCB;
+		crear_segmento(segmentoMemoria->fin,fin_viejo);
 		return segmentoMemoria;
 }
 segmento_t* buscar_segmentoTareas(pcb_t pcb,char* tareas) {
 	    //El segmento que se encontraba en memoria
 		int tamanioTareas = strlen(tareas)*sizeof(char)+1;
-		bool condicionSegmentoLibreTareas(void* segmento) {
-			segmento_t* segmento_tmp = (segmento_t*)segmento;
-			return (segmento_tmp->fin - segmento_tmp->inicio) >= tamanioTareas && segmento_tmp->id == 0;
-		}
-		segmento_t* segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
+		segmento_t* segmentoMemoria = segmentoTareas_segun(algoritmo,tamanioTareas);
 		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == tamanioTareas) {
-						return segmentoMemoria;
-					}
-		segmento_t* nuevoSegmento = malloc(sizeof(segmento_t));
+			segmentoMemoria->id = pcb.id;
+			segmentoMemoria->tipoDato = DATO_TAREAS;
+			return segmentoMemoria;
+		}
 		uint32_t tamanioTotal = tamanioTareas; // + tamanio tareas
-		nuevoSegmento->fin = segmentoMemoria->fin;
+		uint32_t fin_viejo;
+		fin_viejo = segmentoMemoria->fin;
 		segmentoMemoria->fin = tamanioTotal + segmentoMemoria->inicio; //YA CALCULE QUE ENTRA EN EL FIND
 		segmentoMemoria->id = pcb.id;
-		nuevoSegmento->inicio = segmentoMemoria->fin;
-		nuevoSegmento->id = 0; //VACIO
-		nuevoSegmento->tipoDato = VACIO; //VACIO
-		list_add(listaSegmentos,nuevoSegmento);
 		segmentoMemoria->tipoDato = DATO_TAREAS;
+		crear_segmento(segmentoMemoria->fin,fin_viejo);
 		return segmentoMemoria;
 }
-
+t_list* buscarTablaPatota(uint32_t id){
+	bool condicionTablaId(void* tablaSegmentos) {
+				t_list* tabla = (t_list*)tablaSegmentos;
+				segmento_t* sg_pcb;
+				sg_pcb = list_get(tabla,0);
+				return sg_pcb->id == id;
+			}
+	return list_find(listaTablaSegmentos,condicionTablaId);
+}
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
 void crear_patota(uint32_t cant_trip,char* tareas) {
 	segmento_t* segmentoAsignado;
@@ -158,17 +243,16 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 	id_patota++;
 	pcb_tmp.tareas = NULL;
 	segmentoAsignado = buscar_segmento(pcb_tmp);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
+	printf("Agregue a las listas de segmentos \n");
 	segmentoAsignadoTareas = buscar_segmentoTareas(pcb_tmp,tareas);
-	list_sort(listaSegmentos,ordenar_segun_inicio);
 	offset = segmentoAsignado->inicio;
 	memcpy(mem_ppal+offset,&pcb_tmp,sizeof(pcb_t));
 	offset = segmentoAsignadoTareas->inicio;
 	memcpy(mem_ppal+offset,tareas,strlen(tareas)*sizeof(char)+1);
-
+	list_iterate(listaSegmentos,mostrarEstadoMemoria);
 	printf("Agregue a las listas de segmentos \n");
 	while(creados < cant_trip) {
-		segmento_t* segmentoTcb = malloc(sizeof(segmento_t));
+		segmento_t* segmentoTcb;
 		tcb_t tcb;
 		uint32_t offset;
 		tcb.id = id_trip;
@@ -182,6 +266,39 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 		creados++;
 	}
 }
+//PRIMERA APROXIMACION A CREAR PATOTA POSTA
+void crear_patota2(pcb_t pcb,char* posiciones,char* tareas) {
+	segmento_t* segmentoAsignado;
+	segmento_t* segmentoAsignadoTareas;
+	uint32_t offset;
+	segmentoAsignado = buscar_segmento(pcb);
+	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,tareas);
+	offset = segmentoAsignado->inicio;
+	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
+	offset = segmentoAsignadoTareas->inicio;
+	memcpy(mem_ppal+offset,tareas,strlen(tareas)*sizeof(char)+1);
+	tablaSegmentos = list_create();
+	list_add(tablaSegmentos,segmentoAsignado);
+	list_add(tablaSegmentos,segmentoAsignadoTareas);
+	list_add(listaTablaSegmentos,tablaSegmentos);
+	printf("Agregue a las listas de segmentos \n");
+}
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y){
+	segmento_t* segmentoTcb;
+	t_list* tablaSegmentos;
+	tcb_t tcb;
+	uint32_t offset;
+	tcb.id = idTrip;
+	tcb.x = x;
+	tcb.y = y;
+	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
+	offset = segmentoTcb->inicio;
+	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+	tablaSegmentos = buscarTablaPatota(id_patota);
+	list_add(tablaSegmentos,segmentoTcb);
+}
+
+//FIN DE FUNCIONES PARA APROXIMAR
 int unificar_sg_libres(void) {
 	segmento_t* anterior = NULL;
 	segmento_t* actual = NULL;
@@ -196,7 +313,7 @@ int unificar_sg_libres(void) {
 		actual = list_get(listaSegmentos,i);
 		if(actual->tipoDato == VACIO && anterior ->tipoDato == VACIO) {
 			anterior->fin = actual->fin;
-			list_remove(listaSegmentos,i);
+			free(list_remove(listaSegmentos,i));
 			cantidad--;
 		}
 		else {
@@ -234,7 +351,7 @@ void crear_segmento(uint32_t inicio,uint32_t fin){
 	sg->fin = fin;
 	sg->id = 0;
 	sg->tipoDato = VACIO;
-	list_add(listaSegmentos,sg);
+	list_add_sorted(listaSegmentos,sg,ordenar_segun_inicio);
 }
 //FUNCIONES PARA IMPRIMIR LISTAS ITERANDO
 
@@ -247,26 +364,26 @@ void mostrarMemoriaCompleta(void* segmento) {
 		case DATO_PCB: {
 			pcb_t pcb;
 			memcpy(&pcb,mem_ppal+sg->inicio,sizeof(pcb_t));
-			printf("Pcb-> %i \n",pcb.id);
+			log_info(logger,"Pcb-> %i",pcb.id);
 			break;
 		}
 		case DATO_TCB: {
 			tcb_t tcb;
 			memcpy(&tcb,mem_ppal+sg->inicio,sizeof(tcb_t));
-			printf("Tcb-> %i X-> %i Y-> %i \n",tcb.id,tcb.x,tcb.y);
+			log_info(logger,"Tcb-> %i X-> %i Y-> %i",tcb.id,tcb.x,tcb.y);
+
 			break;
 		}
 		case DATO_TAREAS: {
 			uint32_t tamanio = sg->fin - sg->inicio;
 			char* str = malloc(tamanio*sizeof(char));
-			printf("Inicio -> %i || Fin -> %i \n",sg->inicio,sg->fin);
 			memcpy(str,mem_ppal+sg->inicio,tamanio*sizeof(char));
-			printf("Tarea -> %s \n",str);
-
+			log_info(logger,"Tarea -> %s",str);
+			free(str);
 			break;
 		}
 		case VACIO: {
-			printf("Segmento Libre \n");
+			log_info(logger,"Segmento Libre");
 			break;
 		}
 	}
@@ -277,25 +394,26 @@ void mostrarEstadoMemoria(void* segmento) {
 	uint32_t tamanio = sg->fin - sg->inicio;
 	switch (tipo) {
 		case DATO_PCB: {
-			printf("Pcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t\n",sg->id,sg->inicio,sg->fin,tamanio);
+			log_info(logger,"Pcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
 			break;
 		}
 		case DATO_TCB: {
-			printf("Tcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t\n",sg->id,sg->inicio,sg->fin,tamanio);
+			log_info(logger,"Tcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
 			break;
 		}
 		case DATO_TAREAS: {
-			printf("Tareas-Proceso: %i \t Inicio: %i \t Fin:%i \t Tamanio:%i \t\n",sg->id,sg->inicio,sg->fin,tamanio);
+			log_info(logger,"Tareas-Proceso: %i \t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
 			break;
 		}
 		case VACIO: {
-			printf("Proceso: Libre \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t\n",sg->inicio,sg->fin,tamanio);
+			log_info(logger,"Proceso: Libre \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->inicio,sg->fin,tamanio);
 			break;
 		}
 	}
 }
 
 //Funciones de compactacion
+//OJO CON DESPLAZARSEGMENTO NO TIENE MUTEX ADENTRO USAR AFUERA!
 int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	if (offset == 0){
 		return 0;
@@ -322,7 +440,7 @@ int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 			memcpy(str,mem_ppal+sg->inicio,tamanioTarea);
 			sg->inicio -= offset;
 			sg->fin -= offset;
-			memcpy(mem_ppal+sg->inicio,str,sizeof(tcb_t));
+			memcpy(mem_ppal+sg->inicio,str,tamanioTarea);
 			break;
 		case VACIO:
 			break;
@@ -330,30 +448,52 @@ int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	free(str);
 	return 0;
 }
+int memoria_libre(void) {
+		segmento_t* actual = NULL;
+		uint32_t cantidad = list_size(listaSegmentos);
+		uint32_t i = 0;
+		uint32_t libre = 0;
+		if(cantidad == 0){
+			return -1;
+		}
+
+		while (i < cantidad){
+			actual = list_get(listaSegmentos,i);
+			if(actual->tipoDato == VACIO){
+				libre += actual->fin - actual->inicio;
+			}
+			i++;
+
+		}
+		return libre;
+}
 int compactar_memoria(void) {
+	pthread_mutex_lock(&accesoMemoria);
+	pthread_mutex_lock(&accesoListaSegmentos);
 	segmento_t* anterior = NULL;
 		segmento_t* actual = NULL;
 		uint32_t cantidad = list_size(listaSegmentos);
 		uint32_t i = 0;
 		uint32_t offset = 0;
-		if(cantidad == 0){
+		if(cantidad <= 1){
 			return -1;
 		}
 		anterior = list_get(listaSegmentos,i);
-		actual = list_get(listaSegmentos,i);
 		i++;
+		actual = list_get(listaSegmentos,i);
 		if(anterior->tipoDato == VACIO){
 			offset += anterior->fin - anterior->inicio;
 			desplazar_segmento(actual,offset);
-			list_remove(listaSegmentos,i-1);
+			free(list_remove(listaSegmentos,i-1));
 			cantidad--;
 		}
 		anterior = actual;
 		actual = list_get(listaSegmentos,i);
+		i++;
 		while (i < cantidad-1){
 			if(actual->tipoDato == VACIO) {
 				offset += actual->fin - actual->inicio;
-				list_remove(listaSegmentos,i);
+				free(list_remove(listaSegmentos,i));
 				cantidad--;
 			}
 			else {
@@ -368,8 +508,117 @@ int compactar_memoria(void) {
 		}
 		else {
 			offset += actual->fin - actual->inicio;
-			list_remove(listaSegmentos,i);
-			crear_segmento(tamanio-offset,tamanio);
+			free(list_remove(listaSegmentos,i));
+
 		}
+		crear_segmento(tamanio-offset,tamanio);
+		pthread_mutex_unlock(&accesoMemoria);
+		pthread_mutex_unlock(&accesoListaSegmentos);
 		return 0;
+}
+//Get
+
+pcb_t getPcb (int idPedido){
+	bool getPcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return (segmento_tmp->id == idPedido) && segmento_tmp->tipoDato == DATO_PCB;
+	}
+	segmento_t* sg = list_find(listaSegmentos,getPcbId);
+	pcb_t pcb_temp;
+	uint32_t offset = sg->inicio;
+	memcpy(&pcb_temp,mem_ppal+offset,sizeof(pcb_t));
+	return pcb_temp;
+}
+tcb_t getTcb (int idPedido){
+	bool buscarSegmentosTcb(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TCB;
+	}
+	bool buscarTcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		uint32_t offset = segmento_tmp->inicio;
+		tcb_t temp;
+		memcpy(&temp,mem_ppal+offset,sizeof(tcb_t));
+		return temp.id == idPedido;
+	}
+	t_list* lista_temporal = list_filter(listaSegmentos,buscarSegmentosTcb);
+	tcb_t tcb_temp;
+	segmento_t* sg = list_find(lista_temporal,buscarTcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(&tcb_temp,mem_ppal+offset,sizeof(tcb_t));
+	return tcb_temp;
+}
+char* getTarea(int idPedido,uint32_t nTarea) {
+	bool buscarSegmentoTareaId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TAREAS && segmento_tmp->id == idPedido;
+	}
+	segmento_t* sg = list_find(listaSegmentos,buscarSegmentoTareaId);
+	char* tarea = malloc(sg->fin - sg->inicio);
+	uint32_t offset = sg->inicio;
+	memcpy(tarea,mem_ppal+offset,sg->fin - sg->inicio);
+
+	return reconocer_tareas(tarea,nTarea);
+}
+
+void setPcb(pcb_t pcb) {
+	bool getPcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return (segmento_tmp->id == pcb.id) && segmento_tmp->tipoDato == DATO_PCB;
+	}
+	segmento_t* sg = list_find(listaSegmentos,getPcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
+}
+void setTcb (int idPedido,tcb_t tcb){
+	bool buscarSegmentosTcb(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->tipoDato == DATO_TCB;
+	}
+	bool buscarTcbId(void* segmento) {
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		uint32_t offset = segmento_tmp->inicio;
+		tcb_t temp;
+		memcpy(&temp,mem_ppal+offset,sizeof(tcb_t));
+		return temp.id == idPedido;
+	}
+	t_list* lista_temporal = list_filter(listaSegmentos,buscarSegmentosTcb);
+	segmento_t* sg = list_find(lista_temporal,buscarTcbId);
+	uint32_t offset = sg->inicio;
+	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+}
+//AUXILIAR PARA TAREAS
+char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
+	char anterior;
+	char actual;
+	uint32_t tamanio = strlen(tarea);
+	uint32_t fin = 2;
+	uint32_t nTarea = 0;
+	uint32_t inicio;
+	if(tarea == NULL){
+		return NULL;
+	}
+	anterior = tarea[0];
+	actual = tarea[1];
+	inicio = 0;
+	while (fin < tamanio){
+		anterior = actual;
+		actual = tarea[fin];
+		if (isalpha(actual) && isdigit(anterior)){
+			printf("Tarea %i largo %i \n",nTarea,fin);
+			if(tareaPedida == nTarea) {
+				char* tareaP = malloc(fin-inicio+1);
+				memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+				return tareaP;
+			}
+			inicio = fin;
+			nTarea++;
+		}
+		printf("Actual -> %c, Anterior->%c \n",actual,anterior);
+		fin++;
+
+	}
+	char* tareaP = malloc(fin-inicio+1);
+	memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+	return tareaP;
 }
