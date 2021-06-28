@@ -11,11 +11,8 @@
 void crear_patota(char * comando){
 
 	char ** parametros = string_n_split(comando,5," ");
-//	char * leido = readline("INGRESAR UBICACION TAREAS>");
 	char * path = string_new();
-//	string_append(&path,leido);
 
-//	free(leido);
 
 	char * tareasX = string_new();
     FILE *archivo = fopen(parametros[1], "r"); // Modo lectura
@@ -37,25 +34,16 @@ void crear_patota(char * comando){
     log_info(logger,"%s",tareasOk);
 
 
-//	char * leido = readline("INGRESAR TAREAS>");
-
-//	free(leido);
 	int longitud_tareas = string_length(tareasOk);
 
-//	leido = readline("CANTIDAD TRIPULANTES>");
 	uint32_t cantidad_tripulantes = (uint32_t)atoi(parametros[2]);
-//	free(leido);
 
-//	leido = readline("ID PATOTA>");
 	uint32_t patotaId = (uint32_t)atoi(parametros[3]);
-//	free(leido);
-
 
 	char * posiciones = string_new();
-//	leido = readline("INGRESAR POSICIONES>");
+
 	string_append(&posiciones,parametros[4]);
-//	free(leido);
-	//string_append(&posiciones,"#12-3|4&#16-5|6");
+
 	int longitud_posiciones = string_length(posiciones);
 
 	char * claveGet = string_new();
@@ -63,8 +51,6 @@ void crear_patota(char * comando){
 	string_append(&claveGet,posiciones);
 
 	int tamanioGet = 0;
-
-
 
 	void* buffer_patota = crear_buffer_patota(longitud_tareas,
 			longitud_posiciones, patotaId, cantidad_tripulantes,
