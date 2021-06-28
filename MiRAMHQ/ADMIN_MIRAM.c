@@ -283,7 +283,7 @@ void crear_patota2(pcb_t pcb,char* posiciones,char* tareas) {
 	list_add(listaTablaSegmentos,tablaSegmentos);
 	printf("Agregue a las listas de segmentos \n");
 }
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y){
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,uint32_t idpatota){
 	segmento_t* segmentoTcb;
 	t_list* tablaSegmentos;
 	tcb_t tcb;
@@ -291,6 +291,7 @@ void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y){
 	tcb.id = idTrip;
 	tcb.x = x;
 	tcb.y = y;
+	tcb.pcb = idpatota;
 	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
 	offset = segmentoTcb->inicio;
 	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));

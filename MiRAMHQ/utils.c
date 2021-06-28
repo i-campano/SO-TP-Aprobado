@@ -110,14 +110,13 @@ void *atenderNotificacion(void * paqueteSocket){
 		case PEDIR_TAREA:{
 			uint32_t id_trip = recvDeNotificacion(socket);
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
-
-			//encontrar_trip(id_trip);
-
-			char * tarea = obtener_tarea(tripulante);
-			log_info(logger,"tripulante id: %d, patota id: %d, tarea: %s indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tarea,tripulante->instrucciones_ejecutadas);
+			tcb_t tcb = getTcb((int)(id_trip));
+//			encontrar_trip(id_trip);
+			char * tarea = getTarea(tcb.pcb,0);
+//			log_info(logger,"tripulante id: %d, patota id: %d, tarea: %s indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tarea,tripulante->instrucciones_ejecutadas);
 
 			//Enrealidad hay que crear un atributo Tareas ejecutadas y a ese sumarle 1
-			tripulante->instrucciones_ejecutadas++;
+//			tripulante->instrucciones_ejecutadas++;
 
 			enviar_tarea(socket,tarea);
 			//sendDeNotificacion(socket,85);
@@ -126,26 +125,14 @@ void *atenderNotificacion(void * paqueteSocket){
 			break;
 
 		}
-		case CREAR_TRIPULANTE:{
+		case PEDIR_UBICACION:{
 			log_info(logger,"----------------1---------------------");
 			uint32_t trip_id = recvDeNotificacion(socket);
-			uint32_t patota_id = recvDeNotificacion(socket);
-			uint32_t x = recvDeNotificacion(socket);
-			uint32_t y = recvDeNotificacion(socket);
-			t_tripulante * trip = malloc(sizeof(t_tripulante));
-			trip->id =trip_id;
-			trip->socket = socket;
-			list_add(lista_tcb,trip);
-			tripulante->id = trip_id;
-			tripulante->socket = socket;
-			tripulante->ubi_x = x;
-			tripulante->ubi_y = y;
-			tripulante->instrucciones_ejecutadas = 0;
-			tripulante->patota_id = (int)patota_id;
-			log_info(logger,"Antes de segment");
-			crear_tripulante(trip_id,patota_id,x,y);
-			sendDeNotificacion(socket, TRIPULANTE_CREADO);
-			log_info(logger, "tcb creado");
+			tcb_t tcb  = getTcb((int)trip_id);
+			log_info(logger, "trip: %d, x:%d , y:%d",trip_id,tcb.x,tcb.y);
+			sendDeNotificacion(socket, tcb.x);
+			sendDeNotificacion(socket, tcb.y);
+			log_info(logger, "ubicacion enviada al discordiador");
 			break;
 
 		}
@@ -220,6 +207,7 @@ char * obtener_tarea(t_tripulante * tripulante){
 
 void crear_pcb(int socket) {
 	char* tareas = recibirString(socket);
+
 	char ** arrayTareas = string_split(tareas,"-");
 	t_list * lista = list_create();
 	for(int i = 0; arrayTareas[i]!=NULL; i++){
@@ -243,6 +231,8 @@ void crear_pcb(int socket) {
 
 	string_append(&pcb->id_posicion, id_posiciones);
 
+	log_info(logger,"POSICIONES!! %s",pcb->id_posicion);
+
 	pcb->tareas_list = lista;
 
 
@@ -258,9 +248,46 @@ void crear_pcb(int socket) {
 	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
 
+
+	for(int i = 0 ; i<pcb->cantidad_tripulantes; i++){
+		int * id = malloc(sizeof(int));
+		*id = (int)recibirUint(socket);
+		log_info(logger,"PATOTA CREADA OK");
+		t_tripulante * trip = malloc(sizeof(t_tripulante));
+		trip->id =*id;
+		trip->socket = socket;
+
+		pthread_mutex_lock(&pthread_mutex_tcb_list);
+		list_add(lista_tcb,trip);
+		pthread_mutex_unlock(&pthread_mutex_tcb_list);
+		char * coordenadas = string_new();
+		asignar_posicion(&coordenadas,pcb->id_posicion,i);
+		char ** coordenadas_posicion_inicial = string_split(coordenadas,"|");
+
+		crear_tripulante((uint32_t)*id,patotaid,(uint32_t)atoi(coordenadas_posicion_inicial[0]),(uint32_t)atoi(coordenadas_posicion_inicial[1]),pcbRam.id);
+		sendDeNotificacion(socket,77);
+
+		free(id); //malloc linea 79 dentro de este while
+	}
+
+
 	mostrar_patota(pcb);
 	//printf("%c\n",tcb->estado);
 
+}
+
+void asignar_posicion(char** destino,char* posiciones,uint32_t creados) {
+	char** posiciones_separadas = string_split(posiciones," ");
+	uint32_t cantidad_posiciones = 0;
+	while(posiciones_separadas[cantidad_posiciones] != NULL) {
+		cantidad_posiciones++;
+	}
+	if(cantidad_posiciones <= creados){
+		string_append(destino,"0|0");
+	}
+	else {
+		string_append(destino,posiciones_separadas[creados]);
+	}
 }
 
 void crear_tcb(int socket) {

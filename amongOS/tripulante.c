@@ -2,7 +2,7 @@
 
 char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	//Lo pasamos a Ready
-	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
+//	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
 	sendDeNotificacion(socketRam, PEDIR_TAREA);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
@@ -68,25 +68,22 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea)
 void *labor_tripulante_new(void * trip){
 
 	t_tripulante * tripulante = (t_tripulante*) trip;
-	log_debug(logger,"Hilo tripulante: %d de patota: %d", tripulante->id,tripulante->patota_id );
 
-	char ** coordenadas = string_split(tripulante->ubicacionInicio,"|");
+	sem_wait(&tripulante->creacion);
+
+	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d", tripulante->id,tripulante->patota_id );
+
 
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 	sem_init(&tripulante->bloq,0,0);
 
-	tripulante->instrucciones_ejecutadas = 0;
-
-	tripulante->ubi_x = atoi(coordenadas[0]);
-	tripulante->ubi_y = atoi(coordenadas[1]);
+//	tripulante->instrucciones_ejecutadas = 0;
 
 	int firstMove = 0;
 	int moveUp = 0;
 	int moveRight = 0;
-
-
 
 	//Agregamos a cola de NEW
 	pthread_mutex_lock(&planificacion_mutex_new);
@@ -107,30 +104,34 @@ void *labor_tripulante_new(void * trip){
 
 	//obtener data tripulante - desde tcb
 
-	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
+	sendDeNotificacion(socketRam,PEDIR_UBICACION);
 	sendDeNotificacion(socketRam,tripulante->id);
-	sendDeNotificacion(socketRam,tripulante->patota_id);
+	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
+	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
+	log_info(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
+//	sendDeNotificacion(socketRam,tripulante->patota_id);
+//
+//
+//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[0]));
+//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[1]));
+//	free(coordenadas_posicion_inicial);
+//
+//
+//
+//	if(creado==TRIPULANTE_CREADO){
+//
+//		log_debug(logger,"T%d - P%d : TRIPULANTE CREADO OK", tripulante->id,tripulante->patota_id);
+//	}
 
 
-	char** posicionesSeparadas = string_split(tripulante->ubicacionInicio,"|");
-	sendDeNotificacion(socketRam,atoi(posicionesSeparadas[0]));
-	sendDeNotificacion(socketRam,atoi(posicionesSeparadas[1]));
-	free(posicionesSeparadas);
 
+//	actualizar_estado(socketRam,tripulante,NEW);
+	sem_wait(&tripulante->ready);
 
-	int creado = recvDeNotificacion(socketRam);
-
-	if(creado==TRIPULANTE_CREADO){
-
-		log_debug(logger,"T%d - P%d : TRIPULANTE CREADO OK", tripulante->id,tripulante->patota_id);
-	}
-
-
-
-	actualizar_estado(socketRam,tripulante,NEW);
-
+	log_info(logger,"antes de pedir tareas;");
 	//para simular la cantidad;
 	char* tarea = pedir_tarea(socketRam, tripulante);
+	log_info(logger,"despues de pedir tareas;");
 	int movX = 0 ;
 	int movY= 0;
 	int esIo = 0;
@@ -139,7 +140,7 @@ void *labor_tripulante_new(void * trip){
 
 	parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 
-	sem_wait(&tripulante->ready);
+
 	actualizar_estado(socketRam,tripulante,READY);
 
 

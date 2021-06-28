@@ -64,4 +64,5 @@ void crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);
 void iniciarEstructurasAdministrativas();
 void manejadorDeHilos();
+void asignar_posicion(char** destino,char* posiciones,uint32_t creados);
 #endif /* CONEXIONES_H_ */

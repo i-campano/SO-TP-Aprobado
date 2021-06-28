@@ -10,6 +10,8 @@
 
 void crear_patota(char * comando){
 
+	t_list * list_trip_aux = list_create();
+
 	char ** parametros = string_n_split(comando,5," ");
 	char * path = string_new();
 
@@ -58,24 +60,37 @@ void crear_patota(char * comando){
 
 	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
 
-	recvDeNotificacion(socketServerMiRam);
-	log_info(logger,"PATOTA CREADA OK");
-
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
-		log_info(logger,"PATOTA CREADA OK");
+		sendDeNotificacion(socketServerMiRam,tripulantes_creados);
+		recvDeNotificacion(socketServerMiRam);
 		int * id = malloc(sizeof(int));
 		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
-		_tripulante->id = *id;
+		_tripulante->id = tripulantes_creados;
 		_tripulante->patota_id = patotaId;
-		_tripulante->cantidad_tareas = cantidad_tareas;
-		_tripulante->ubicacionInicio = string_new();
-		asignar_posicion(&(_tripulante->ubicacionInicio),posiciones,i);
-		log_info(logger,"Creando tripulante: %d de la patota id: %d Posicion: %s",*id,patotaId,_tripulante->ubicacionInicio);
+		sem_init(&_tripulante->creacion,0,0);
+
+		list_add(list_trip_aux,_tripulante);
+
+		log_info(logger,"Creando tripulante: %d de la patota id: %d ",*id,patotaId);
 		crearHiloTripulante(_tripulante);
 		free(id); //malloc linea 79 dentro de este while
 	}
+
+
+
+	recvDeNotificacion(socketServerMiRam);
+	while(list_size(list_trip_aux)!=0){
+		t_tripulante * trip = list_remove(list_trip_aux,0);
+		sem_post(&trip->creacion);
+	}
+	list_destroy(list_trip_aux);
+
+	//crear lista de ids y enviar
+	//cuando el tripulante se conecte a miram, atenderlo, buscar su tcb y agregarlo a la lista de sockets conocidos
+
+
 	free(buffer_patota); //Se hace el malloc dentro de crear_buffer_patota
 	free(claveGet); //malloc linea 60
 	free(posiciones); //stringNew linea 52

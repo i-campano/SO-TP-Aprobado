@@ -55,7 +55,8 @@ typedef struct {
 	uint32_t x;
 	uint32_t y;
 	char* prox_tarea;
-	pcb_t* pcb;
+//	pcb_t* pcb;
+	uint32_t pcb;
 }tcb_t;
 
 t_list* listaSegmentos;
@@ -104,7 +105,7 @@ int compactar_memoria(void);
 int memoria_libre(void);
 //PROBANDO MERGEAR CON MIRAM POSTA
 void crear_patota2(pcb_t pcb,char* posiciones,char* tareas);
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x, uint32_t y);
+void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x, uint32_t y,uint32_t idpatota);
 //Get
 pcb_t getPcb (int idPedido);
 tcb_t getTcb (int idPedido);

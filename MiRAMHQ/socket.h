@@ -43,7 +43,7 @@
 
 #define PEDIR_TAREA 7
 
-#define CREAR_TRIPULANTE 10
+#define PEDIR_UBICACION 10
 
 #define TRIPULANTE_CREADO 11
 
