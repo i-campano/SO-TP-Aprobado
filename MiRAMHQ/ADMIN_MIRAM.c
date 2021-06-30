@@ -26,13 +26,18 @@ int admin_memoria(void)
 	return 0;
 }
 
-void crear_memoria_ppal() {
+int crear_memoria_ppal() {
 	mem_ppal = malloc(tamanio);
+	if(mem_ppal == NULL){
+		log_info(logger,"Error al crear la memoria principal");
+		return ERROR_CREACION_MEMORIA;
+	}
 	memset(mem_ppal,0,tamanio);
 	listaSegmentos = list_create(); //Creo la lista de segmentos
 	listaTablaSegmentos = list_create();
 	printf("Cree la memoria e inicialize la lista de segmentos \n");
 	crear_segmento(0,tamanio);
+	return OK;
 }
 
 //Criterios para listas de segmentos
@@ -174,6 +179,12 @@ segmento_t* segmentoTareas_segun(bool algoritmoBusaqueda, uint32_t tamanioTareas
 //Busca segmentos libres para cada tipo de dato
 segmento_t* buscar_segmento(pcb_t pcb) {
 		segmento_t* segmentoMemoria = segmentoPcb_segun(algoritmo);
+		if(segmentoMemoria == NULL){
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoMemoria);
+			segmentoMemoria = segmentoPcb_segun(algoritmo);
+		}
 		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == sizeof(pcb_t)) {
 			segmentoMemoria->id = pcb.id;
 			segmentoMemoria->tipoDato = DATO_PCB;
@@ -190,7 +201,12 @@ segmento_t* buscar_segmento(pcb_t pcb) {
 }
 segmento_t* buscar_segmentoTcb(tcb_t tcb,uint32_t patotaId) {
 	segmento_t* segmentoMemoria = segmentoTcb_segun(algoritmo);
-
+		if(segmentoMemoria == NULL){
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoMemoria);
+			segmentoMemoria = segmentoTcb_segun(algoritmo);
+		}
 		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == sizeof(tcb_t)) {
 			segmentoMemoria->id = patotaId;
 			segmentoMemoria->tipoDato = DATO_TCB;
@@ -209,6 +225,12 @@ segmento_t* buscar_segmentoTareas(pcb_t pcb,char* tareas) {
 	    //El segmento que se encontraba en memoria
 		int tamanioTareas = strlen(tareas)*sizeof(char)+1;
 		segmento_t* segmentoMemoria = segmentoTareas_segun(algoritmo,tamanioTareas);
+		if(segmentoMemoria == NULL){
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoMemoria);
+			segmentoMemoria = segmentoTareas_segun(algoritmo,tamanioTareas);
+		}
 		if ((segmentoMemoria->fin - segmentoMemoria->inicio) == tamanioTareas) {
 			segmentoMemoria->id = pcb.id;
 			segmentoMemoria->tipoDato = DATO_TAREAS;
@@ -267,23 +289,46 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 	}
 }
 //PRIMERA APROXIMACION A CREAR PATOTA POSTA
-void crear_patota2(pcb_t pcb,char* posiciones,char* tareas) {
+int crear_patota2(pcb_t pcb,char* posiciones,char* tareas,uint32_t cantidad_trip) {
 	segmento_t* segmentoAsignado;
 	segmento_t* segmentoAsignadoTareas;
 	uint32_t offset;
+	pthread_mutex_lock(&accesoListaSegmentos);
+	uint32_t espacioLibreMemoria = memoria_libre();
+	uint32_t tamanioNecesario = sizeof(tcb_t)*cantidad_trip + sizeof(pcb_t) + strlen(tareas)*sizeof(char);
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	if(espacioLibreMemoria < tamanioNecesario) {
+		log_info(logger,"No hay espacio para crear la patota. Disponible: %i Necesario: %i",espacioLibreMemoria,tamanioNecesario);
+		return ERROR_MEMORIA_LLENA;
+	}
+	pthread_mutex_lock(&accesoListaSegmentos);
 	segmentoAsignado = buscar_segmento(pcb);
+	if(segmentoAsignado == NULL){
+		log_info(logger,"Ha ocurrido un error durante la creacion del pcb");
+		return ERROR;
+	}
 	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,tareas);
+	if(segmentoAsignado == NULL){
+		log_info(logger,"Ha ocurrido un error durante la creacion de las tareas");
+		return ERROR;
+	}
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	pthread_mutex_lock(&accesoMemoria);
 	offset = segmentoAsignado->inicio;
 	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
 	offset = segmentoAsignadoTareas->inicio;
 	memcpy(mem_ppal+offset,tareas,strlen(tareas)*sizeof(char)+1);
-	tablaSegmentos = list_create();
+	pthread_mutex_unlock(&accesoMemoria);
+	t_list* tablaSegmentos = list_create();
+	pthread_mutex_lock(&accesoListaTablas);
 	list_add(tablaSegmentos,segmentoAsignado);
 	list_add(tablaSegmentos,segmentoAsignadoTareas);
 	list_add(listaTablaSegmentos,tablaSegmentos);
-	printf("Agregue a las listas de segmentos \n");
+	pthread_mutex_unlock(&accesoListaTablas);
+	return PATOTA_CREADA;
 }
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,uint32_t idpatota){
+//No es necesario verificar porque si no había espacio disponible nunca la llama!!
+int crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,uint32_t idpatota){
 	segmento_t* segmentoTcb;
 	t_list* tablaSegmentos;
 	tcb_t tcb;
@@ -292,11 +337,22 @@ void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,u
 	tcb.x = x;
 	tcb.y = y;
 	tcb.pcb = idpatota;
+	pthread_mutex_lock(&accesoListaSegmentos);
 	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	if(segmentoTcb == NULL){
+		log_info(logger,"Ha ocurrido un error durante la creacion del tripulante");
+		return ERROR;
+	}
 	offset = segmentoTcb->inicio;
+	pthread_mutex_lock(&accesoMemoria);
 	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+	pthread_mutex_unlock(&accesoMemoria);
+	pthread_mutex_lock(&accesoListaTablas);
 	tablaSegmentos = buscarTablaPatota(id_patota);
 	list_add(tablaSegmentos,segmentoTcb);
+	pthread_mutex_unlock(&accesoListaTablas);
+	return TRIPULANTE_CREADO;
 }
 
 //FIN DE FUNCIONES PARA APROXIMAR
@@ -346,6 +402,7 @@ int eliminar_patota(int id){
 	unificar_sg_libres();
 	return 0;
 }
+//FUNCION SIN MUTEX USARLOS ANTES DE LLAMARLA
 void crear_segmento(uint32_t inicio,uint32_t fin){
 	segmento_t* sg = malloc(sizeof(segmento_t));
 	sg->inicio = inicio;
@@ -356,9 +413,11 @@ void crear_segmento(uint32_t inicio,uint32_t fin){
 }
 //FUNCIONES PARA IMPRIMIR LISTAS ITERANDO
 
-//Funciones para mostrar por consola (Modificar a loggers!)
+//Funciones para mostrar por consola (Modificar a loggers!) Mutex Seteados
 
 void mostrarMemoriaCompleta(void* segmento) {
+	pthread_mutex_lock(&accesoListaSegmentos);
+	pthread_mutex_lock(&accesoMemoria);
 	segmento_t* sg = (segmento_t*)segmento;
 	short int tipo = sg->tipoDato;
 	switch (tipo) {
@@ -388,8 +447,11 @@ void mostrarMemoriaCompleta(void* segmento) {
 			break;
 		}
 	}
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	pthread_mutex_unlock(&accesoMemoria);
 }
 void mostrarEstadoMemoria(void* segmento) {
+	pthread_mutex_lock(&accesoListaSegmentos);
 	segmento_t* sg = (segmento_t*)segmento;
 	short int tipo = sg->tipoDato;
 	uint32_t tamanio = sg->fin - sg->inicio;
@@ -411,9 +473,10 @@ void mostrarEstadoMemoria(void* segmento) {
 			break;
 		}
 	}
+	pthread_mutex_unlock(&accesoListaSegmentos);
 }
 
-//Funciones de compactacion
+//Funciones de compactacion Las 3 funciones tienen Mutex
 //OJO CON DESPLAZARSEGMENTO NO TIENE MUTEX ADENTRO USAR AFUERA!
 int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	if (offset == 0){
@@ -469,8 +532,6 @@ int memoria_libre(void) {
 		return libre;
 }
 int compactar_memoria(void) {
-	pthread_mutex_lock(&accesoMemoria);
-	pthread_mutex_lock(&accesoListaSegmentos);
 	segmento_t* anterior = NULL;
 		segmento_t* actual = NULL;
 		uint32_t cantidad = list_size(listaSegmentos);
@@ -513,8 +574,6 @@ int compactar_memoria(void) {
 
 		}
 		crear_segmento(tamanio-offset,tamanio);
-		pthread_mutex_unlock(&accesoMemoria);
-		pthread_mutex_unlock(&accesoListaSegmentos);
 		return 0;
 }
 //Get

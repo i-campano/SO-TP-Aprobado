@@ -16,13 +16,22 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include "utils.h"
-
+#include "socket.h"
 #define DATO_PCB 0
 #define DATO_TCB 1
 #define DATO_TAREAS 2
 #define VACIO 3
 #define FF 0
 #define BF 1
+
+//Manejo de errores
+#define OK 0
+//#define PATOTA_CREADA 1 YA ESTAN DEFINIDOS
+//#define TRIPULANTE_CREADO 2
+#define ERROR_MEMORIA_LLENA -1
+#define ERROR_CREACION_MEMORIA -2
+#define ERROR -3
+
 
 typedef struct {
 	uint32_t inicio;
@@ -65,10 +74,11 @@ t_list* listaTablaSegmentos;
 
 pthread_mutex_t accesoMemoria;
 pthread_mutex_t accesoListaSegmentos;
+pthread_mutex_t accesoListaTablas;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES
-void crear_memoria_ppal();
+int crear_memoria_ppal();
 
 //Criterios para listas de segmentos
 bool condicionSegmentoLibrePcb(void* segmento);
@@ -104,8 +114,8 @@ int desplazar_segmento(segmento_t* sg,uint32_t offset);
 int compactar_memoria(void);
 int memoria_libre(void);
 //PROBANDO MERGEAR CON MIRAM POSTA
-void crear_patota2(pcb_t pcb,char* posiciones,char* tareas);
-void crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x, uint32_t y,uint32_t idpatota);
+int crear_patota2(pcb_t pcb,char* posiciones,char* tareas,uint32_t cantidad_trip);
+int crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x, uint32_t y,uint32_t idpatota);
 //Get
 pcb_t getPcb (int idPedido);
 tcb_t getTcb (int idPedido);

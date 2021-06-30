@@ -75,7 +75,7 @@ void *atenderNotificacion(void * paqueteSocket){
 
 	int socket = *(int*)paqueteSocket;
 
-	t_tripulante * tripulante = malloc(sizeof(t_tripulante));
+	//t_tripulante * tripulante = malloc(sizeof(t_tripulante));
 	while(1){
 
 	uint32_t nroNotificacion = recvDeNotificacion(socket);
@@ -217,7 +217,8 @@ void crear_pcb(int socket) {
 		tarea->nombre_tarea = string_new();
 		tarea->nombre_tarea = string_duplicate(arrayTareas[i]);
 
-		string_append(&tarea,arrayTareas[i]);
+		string_append(&tarea,arrayTareas[i]); //TE COMENTE ESTO PORQUE NO TIENE SENTIDO
+		//Las mayusculas es por si lo ves, estas appendeando a un t_tarea* y despues no lo estas usando
 		list_add(lista,(void*)tarea);
 	}
 
@@ -243,7 +244,7 @@ void crear_pcb(int socket) {
 	pcb_t pcbRam;
 	pcbRam.id = patotaid;
 	log_info(logger, "agregando patota en lista_pcb");
-	crear_patota2(pcbRam,id_posiciones,tareas);
+	crear_patota2(pcbRam,id_posiciones,tareas,cantidad_patota);
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
 	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
