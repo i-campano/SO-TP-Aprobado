@@ -21,11 +21,13 @@
 #define DESCARTAR_BASURA 112
 
 
-typedef struct _tablaDeEntrada{
+typedef struct _archivo{
 	char* clave;
 	t_list * blocks;
 	FILE * file;
 } _archivo;
+
+_archivo archivo;
 
 t_bitarray * bitArrayStorage;
 
@@ -45,6 +47,7 @@ int agregar_en_bloque(char * cadena_caracteres,int indice);
 uint32_t escribirEnMemoria(char* valor);
 t_bitarray * crearBitArray(uint32_t cantBloques);
 int calcularEntradasLibres();
+uint32_t leer_de_archivo(char* valor);
 
 
 void iniciar_super_block();

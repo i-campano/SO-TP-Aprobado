@@ -38,7 +38,16 @@ int main(void)
 	int libres = calcularEntradasLibres();
 	log_info(logger,"libres = %d",libres);
 
-	escribirEnMemoria("OOOOOOO");
+
+
+
+
+	archivo.blocks = list_create();
+
+	escribirEnMemoria("Tripulante termino tarea");
+
+	leer_de_archivo("ads");
+
 
 //	agregar_en_bloque("Tripulante termino tarea",8);
 //
@@ -49,12 +58,16 @@ int main(void)
 //
 //	agregar_en_bloque("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",19);
 //
+
+	log_info(logger,"bloques:");
+
+	obtener_bloque(2);
+
+//
 	obtener_bloque(0);
+//
 	obtener_bloque(1);
-//
-//	obtener_bloque(5);
-//
-//	obtener_bloque(19);
+
 
 	munmap(fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
 
@@ -76,8 +89,6 @@ void iniciar_super_block(){
 	superblock.cantidad_bloques = atoi(conf_CANTIDAD_BLOQUES);
 	char * bitmapstr = malloc(100);
 	bitmap = crearBitArray(superblock.cantidad_bloques);
-
-
 
 }
 
@@ -123,7 +134,7 @@ int obtener_bloque(int indice) {
 	// Copiar la estructura en el espacio libre
 	memcpy(&plato_tmp,fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
 
-	log_info(logger,"%s",plato_tmp.plato);
+	printf("%s",plato_tmp.plato);
 
 	return 1;
 }
@@ -208,10 +219,28 @@ uint32_t escribirEnMemoria(char* valor){
 		int posicion = devolverIndexParaAlmacenarValor(valorAux);
 
 		agregar_en_bloque(valorAux,posicion);
+		list_add(archivo.blocks,posicion);
 
 		bitarray_set_bit(bitmap, posicion);
 		inicioValor += superblock.tamanio_bloque;
 	}
+	return 1;
+
+}
+
+uint32_t leer_de_archivo(char* valor){
+
+	int i;
+
+
+	for(i=0; i < list_size(archivo.blocks); i++){
+
+		int indice = list_get(archivo.blocks,i);
+		obtener_bloque(indice);
+
+
+	}
+	printf("\n");
 	return 1;
 
 }
