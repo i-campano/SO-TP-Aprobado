@@ -23,14 +23,12 @@ int main(void)
 	iniciar_super_block();
 	iniciar_blocks();
 
-	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE);
-	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE);
-	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE);
+	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno");
+	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida");
+	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,&archivo_basura,"basura");
 
 	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora
 
-
-	//Recibe cadena a insertar e indice de bloque
 
 	int libres = calcularEntradasLibres();
 	log_info(logger,"libres = %d",libres);
@@ -38,16 +36,21 @@ int main(void)
 
 
 
-	archivo_oxigeno.blocks = list_create();
-
-	escribir_en_fs("Tripulante termino tarea");
 
 
+	escribir_en_fs("Tripulante termino tarea",archivo_oxigeno);
 
-	leer_de_archivo("ads");
+	escribir_en_fs("Tripulante otra cosaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",archivo_comida);
+
+	leer_contenido_archivo("ads",&archivo_oxigeno);
 
 
-	leer_archivo("asd",1,archivo_oxigeno);
+	leer_metadata_archivo("asd",1,archivo_oxigeno);
+
+
+	leer_contenido_archivo("ads",&archivo_comida);
+
+	leer_metadata_archivo("asd",1,archivo_comida);
 
 	libres = calcularEntradasLibres();
 	log_info(logger,"libres = %d",libres);
@@ -127,7 +130,9 @@ int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 	return 1;
 }
 
-int leer_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
+int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
+
+	//	implementacion con diccionario  ¿¿
 
 	t_registros_archivo registros_archivo;
 	bzero(&registros_archivo, sizeof(t_registros_archivo));
@@ -136,7 +141,7 @@ int leer_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_archivo)), sizeof(t_registros_archivo));
 	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
 
-	printf("%s",registros_archivo.campo);
+	log_info(logger,"Metadata : %s",registros_archivo.campo);
 
 	return 1;
 }
@@ -166,14 +171,22 @@ void iniciar_blocks(){
 
 }
 
-void iniciar_archivo(char * name_file){
-	archivo_oxigeno.file = open(name_file, O_RDWR | O_CREAT , (mode_t)0600);
+void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
+	archivo->clave = string_new();
+	string_append(&(archivo->clave),key_file);
+
+	(*archivo).blocks = list_create();
+
+	pthread_mutex_init(&(*archivo).mutex_file, NULL);
+
+
+	(*archivo).file = open(name_file, O_RDWR | O_CREAT , (mode_t)0600);
 
 	int N=100;
 
-	ftruncate(archivo_oxigeno.file,N*sizeof(t_bloque));
+	ftruncate((*archivo).file,N*sizeof(t_bloque));
 
-	archivo_oxigeno.contenido = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , archivo_oxigeno.file, 0 );
+	(*archivo).contenido = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED ,(*archivo).file, 0 );
 
 }
 
@@ -250,7 +263,7 @@ void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux){
 
 }
 
-uint32_t escribir_en_fs(char* valor){
+uint32_t escribir_en_fs(char* valor,_archivo archivo){
 
 	uint32_t resultado;
 
@@ -264,7 +277,7 @@ uint32_t escribir_en_fs(char* valor){
 		int posicion = devolverIndexParaAlmacenarValor(valorAux);
 
 
-		escribir_en_archivo(archivo_oxigeno,posicion,valorAux);
+		escribir_en_archivo(archivo,posicion,valorAux);
 
 
 		bitarray_set_bit(superblock.bitmap, posicion);
@@ -274,16 +287,14 @@ uint32_t escribir_en_fs(char* valor){
 
 }
 
-uint32_t leer_de_archivo(char* valor){
-
+uint32_t leer_contenido_archivo(char * c,_archivo * archivo){
 	int i;
 
+	log_info(logger,"Contenido del archivo: %s",archivo->clave);
+	for(i=0; i < list_size(archivo->blocks); i++){
 
-	for(i=0; i < list_size(archivo_oxigeno.blocks); i++){
-
-		int indice = list_get(archivo_oxigeno.blocks,i);
+		int indice = list_get(archivo->blocks,i);
 		obtener_bloque(indice);
-
 
 	}
 	printf("\n");
