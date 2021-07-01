@@ -34,10 +34,6 @@ int main(void)
 	log_info(logger,"libres = %d",libres);
 
 
-
-
-
-
 	escribir_en_fs("Tripulante termino tarea",archivo_oxigeno);
 
 	escribir_en_fs("Tripulante otra cosaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",archivo_comida);
@@ -105,12 +101,10 @@ int agregar_en_bloque(char * cadena_caracteres,int indice) {
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
-	// copiar a estructura temporal
-	strcpy(bloque.plato, cadena_caracteres);
+	strcpy(bloque.data, cadena_caracteres);
 
-	// Copiar la estructura en el espacio libre
 	memcpy(fs_bloques + (indice*sizeof(t_bloque)), &bloque, sizeof(t_bloque));
-	msync(fs_bloques, 100*sizeof(t_bloque), MS_SYNC);
+	msync(fs_bloques, superblock.cantidad_bloques*sizeof(t_bloque), MS_SYNC);
 
 	return 1;
 }
@@ -120,10 +114,8 @@ int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 	t_registros_archivo registros_archivo;
 	bzero(&registros_archivo, sizeof(t_registros_archivo));
 
-	// copiar a estructura temporal
 	strcpy(registros_archivo.campo, cadena_caracteres);
 
-	// Copiar la estructura en el espacio libre
 	memcpy(archivo.contenido + (indice*sizeof(t_registros_archivo)), &registros_archivo, sizeof(t_registros_archivo));
 	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
 
@@ -131,13 +123,11 @@ int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 }
 
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
-
 	//	implementacion con diccionario  ¿¿
 
 	t_registros_archivo registros_archivo;
 	bzero(&registros_archivo, sizeof(t_registros_archivo));
 
-	// Copiar la estructura en el espacio libre
 	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_archivo)), sizeof(t_registros_archivo));
 	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
 
@@ -148,13 +138,12 @@ int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo)
 
 
 int obtener_bloque(int indice) {
-	t_bloque plato_tmp;
-	bzero(&plato_tmp, sizeof(t_bloque));
+	t_bloque bloque;
+	bzero(&bloque, sizeof(t_bloque));
 
-	// Copiar la estructura en el espacio libre
-	memcpy(&plato_tmp,fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
+	memcpy(&bloque,fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
 
-	printf("%s",plato_tmp.plato);
+	printf("%s",bloque.data);
 
 	return 1;
 }
@@ -230,12 +219,9 @@ int calcularEntradasLibres(){
 
 	for(i=0;i<cantidadDePosiciones;i++){
 
-		// Si la posicion del bitarray NO esta SETEADA es porque esta libre.
-//		pthread_mutex_lock(&mutexStorage);
 		if(!bitarray_test_bit(superblock.bitmap,i)){
 			resultado++;
 		}
-//		pthread_mutex_unlock(&mutexStorage);
 	}
 
 	return resultado;

@@ -50,7 +50,7 @@ typedef struct {
 } cadena;
 
 typedef struct {
-	char plato[4];
+	char data[4];
 } __attribute__((packed)) t_bloque;
 
 typedef struct {
