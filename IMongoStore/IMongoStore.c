@@ -23,14 +23,11 @@ int main(void)
 	iniciar_super_block();
 	iniciar_blocks();
 
-//	str_metadata oxigeno = crear_archivo();
-//	str_metadata basura = crear_archivo();
-//	str_metadata comida = crear_archivo();
+	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE);
+	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE);
+	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE);
 
-
-//	En el server cuando atiendo a los tripulantes
-//	En cada hilo
-//	str_metadata bitacora = crear_archivo();
+	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora
 
 
 	//Recibe cadena a insertar e indice de bloque
@@ -41,32 +38,19 @@ int main(void)
 
 
 
+	archivo_oxigeno.blocks = list_create();
 
-	archivo.blocks = list_create();
+	escribir_en_fs("Tripulante termino tarea");
 
-	escribirEnMemoria("Tripulante termino tarea");
+
 
 	leer_de_archivo("ads");
 
 
-//	agregar_en_bloque("Tripulante termino tarea",8);
-//
-//	agregar_en_bloque("OOOOOOOOOOOOOO",5);
-//
-//	agregar_en_bloque("CCCCCC",5);
-//
-//
-//	agregar_en_bloque("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",19);
-//
+	leer_archivo("asd",1,archivo_oxigeno);
 
-	log_info(logger,"bloques:");
-
-	obtener_bloque(2);
-
-//
-	obtener_bloque(0);
-//
-	obtener_bloque(1);
+	libres = calcularEntradasLibres();
+	log_info(logger,"libres = %d",libres);
 
 
 	munmap(fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
@@ -87,8 +71,10 @@ void iniciar_super_block(){
 	superblock.tamanio_bloque = (uint32_t)atoi(conf_BYTES_BLOQUE);
 
 	superblock.cantidad_bloques = atoi(conf_CANTIDAD_BLOQUES);
-	char * bitmapstr = malloc(100);
-	bitmap = crearBitArray(superblock.cantidad_bloques);
+
+	superblock.bitmapstr = malloc(superblock.cantidad_bloques);
+
+	superblock.bitmap = crearBitArray(superblock.cantidad_bloques);
 
 }
 
@@ -126,6 +112,35 @@ int agregar_en_bloque(char * cadena_caracteres,int indice) {
 	return 1;
 }
 
+int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
+
+	t_registros_archivo registros_archivo;
+	bzero(&registros_archivo, sizeof(t_registros_archivo));
+
+	// copiar a estructura temporal
+	strcpy(registros_archivo.campo, cadena_caracteres);
+
+	// Copiar la estructura en el espacio libre
+	memcpy(archivo.contenido + (indice*sizeof(t_registros_archivo)), &registros_archivo, sizeof(t_registros_archivo));
+	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
+
+	return 1;
+}
+
+int leer_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
+
+	t_registros_archivo registros_archivo;
+	bzero(&registros_archivo, sizeof(t_registros_archivo));
+
+	// Copiar la estructura en el espacio libre
+	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_archivo)), sizeof(t_registros_archivo));
+	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
+
+	printf("%s",registros_archivo.campo);
+
+	return 1;
+}
+
 
 int obtener_bloque(int indice) {
 	t_bloque plato_tmp;
@@ -151,6 +166,16 @@ void iniciar_blocks(){
 
 }
 
+void iniciar_archivo(char * name_file){
+	archivo_oxigeno.file = open(name_file, O_RDWR | O_CREAT , (mode_t)0600);
+
+	int N=100;
+
+	ftruncate(archivo_oxigeno.file,N*sizeof(t_bloque));
+
+	archivo_oxigeno.contenido = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , archivo_oxigeno.file, 0 );
+
+}
 
 int calcularCantidadDeEntradasAOcupar(char* palabra){
 	int cantidadDeEntradas = string_length(palabra)/superblock.tamanio_bloque;
@@ -162,7 +187,6 @@ int calcularCantidadDeEntradasAOcupar(char* palabra){
 	return cantidadDeEntradas;
 }
 
-
 int devolverIndexParaAlmacenarValor(char * valor){
 	int lugares = calcularCantidadDeEntradasAOcupar(valor);
 	int cont = 0;
@@ -171,7 +195,7 @@ int devolverIndexParaAlmacenarValor(char * valor){
 
 	for(i=0;i<cantidadDePosiciones;i++){
 
-		if(bitarray_test_bit(bitmap,i)){
+		if(bitarray_test_bit(superblock.bitmap,i)){
 			cont = 0;
 		} else{
 			cont++;
@@ -185,7 +209,6 @@ int devolverIndexParaAlmacenarValor(char * valor){
 	return 99999;
 }
 
-
 int calcularEntradasLibres(){
 
 	int resultado = 0;
@@ -196,7 +219,7 @@ int calcularEntradasLibres(){
 
 		// Si la posicion del bitarray NO esta SETEADA es porque esta libre.
 //		pthread_mutex_lock(&mutexStorage);
-		if(!bitarray_test_bit(bitmap,i)){
+		if(!bitarray_test_bit(superblock.bitmap,i)){
 			resultado++;
 		}
 //		pthread_mutex_unlock(&mutexStorage);
@@ -205,7 +228,29 @@ int calcularEntradasLibres(){
 	return resultado;
 }
 
-uint32_t escribirEnMemoria(char* valor){
+
+void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux){
+
+	agregar_en_bloque(valorAux,n_block);
+
+	list_add(archivo.blocks,n_block);
+
+	int cantidad_bloques = list_size(archivo.blocks);
+
+	char * cantidad = string_from_format("%d",cantidad_bloques);
+
+	agregar_en_archivo("cantidad bloques",0,archivo);
+
+	agregar_en_archivo(cantidad,1,archivo);
+
+	agregar_en_archivo("bloques",2,archivo);
+
+	//agregar indice a la lista de bloques
+
+
+}
+
+uint32_t escribir_en_fs(char* valor){
 
 	uint32_t resultado;
 
@@ -218,10 +263,11 @@ uint32_t escribirEnMemoria(char* valor){
 		char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
 		int posicion = devolverIndexParaAlmacenarValor(valorAux);
 
-		agregar_en_bloque(valorAux,posicion);
-		list_add(archivo.blocks,posicion);
 
-		bitarray_set_bit(bitmap, posicion);
+		escribir_en_archivo(archivo_oxigeno,posicion,valorAux);
+
+
+		bitarray_set_bit(superblock.bitmap, posicion);
 		inicioValor += superblock.tamanio_bloque;
 	}
 	return 1;
@@ -233,9 +279,9 @@ uint32_t leer_de_archivo(char* valor){
 	int i;
 
 
-	for(i=0; i < list_size(archivo.blocks); i++){
+	for(i=0; i < list_size(archivo_oxigeno.blocks); i++){
 
-		int indice = list_get(archivo.blocks,i);
+		int indice = list_get(archivo_oxigeno.blocks,i);
 		obtener_bloque(indice);
 
 

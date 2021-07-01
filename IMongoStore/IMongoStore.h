@@ -25,9 +25,15 @@ typedef struct _archivo{
 	char* clave;
 	t_list * blocks;
 	FILE * file;
+	char * contenido;
+	pthread_mutex_t mutex_file;
 } _archivo;
 
-_archivo archivo;
+_archivo archivo_oxigeno;
+_archivo archivo_comida;
+_archivo archivo_basura;
+
+
 
 t_bitarray * bitArrayStorage;
 
@@ -37,17 +43,17 @@ t_bitarray * bitArrayStorage;
 
 
 int server_fd;
-char * archivo_oxigeno = "oxigeno.ims";
-char * archivo_comida = "comida.ims";
-char * archivo_basura = "basura.ims";
+
 
 void manejadorDeHilos();
 void inicializarMutex();
 int agregar_en_bloque(char * cadena_caracteres,int indice);
-uint32_t escribirEnMemoria(char* valor);
+uint32_t escribir_en_fs(char* valor);
 t_bitarray * crearBitArray(uint32_t cantBloques);
 int calcularEntradasLibres();
 uint32_t leer_de_archivo(char* valor);
+int leer_archivo(char * cadena_caracteres,int indice, _archivo archivo);
+void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux);
 
 
 void iniciar_super_block();
