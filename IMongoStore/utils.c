@@ -156,7 +156,6 @@ void generarOxigeno(uint32_t cantidad)
 	string_append(&path_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
 
 	//escribe el archivo
 	log_info(logger,"EJECUTO TAREA - GENERAR OXIGENO: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
@@ -175,7 +174,6 @@ void generarOxigeno(uint32_t cantidad)
 	txt_close_file(fd_oxigeno);
 	free(path_oxigeno);
 	//ulock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 
 void generarComida(uint32_t cantidad)
@@ -190,7 +188,6 @@ void generarComida(uint32_t cantidad)
 	string_append(&path_comida, conf_ARCHIVO_COMIDA_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
 
 	//escribe el archivo
 	log_info(logger,"EJECUTO TAREA - GENERAR COMIDA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
@@ -209,7 +206,6 @@ void generarComida(uint32_t cantidad)
 	txt_close_file(fd_comida);
 	free(path_comida);
 	//ulock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_COMIDA);
 }
 
 void generarBasura(uint32_t cantidad)
@@ -224,7 +220,6 @@ void generarBasura(uint32_t cantidad)
 	string_append(&path_basura ,conf_ARCHIVO_BASURA_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_BASURA);
 
 	//escribe el archivo
 	log_info(logger,"EJECUTO TAREA - GENERAR BASURA: ABRO ARCHIVO"); //TODO agregar path y cantidad al log
@@ -242,7 +237,6 @@ void generarBasura(uint32_t cantidad)
 	txt_close_file(fd_basura);
 
 	//ulock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
 }
 
 
@@ -262,7 +256,6 @@ void consumirOxigeno(uint32_t cantidad)
 	string_append(&path_oxigeno, conf_ARCHIVO_OXIGENO_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_OXIGENO);
 
 	//lee la cadena dentro del archivo
 	fd_oxigeno = fopen(path_oxigeno, "r");
@@ -293,7 +286,6 @@ void consumirOxigeno(uint32_t cantidad)
 
 
 	//unlock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO);
 }
 
 void consumirComida(uint32_t cantidad)
@@ -311,7 +303,6 @@ void consumirComida(uint32_t cantidad)
 
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_COMIDA);
 
 	//lee la cadena dentro del archivo
 	fd_comida = fopen(path_comida, "r");
@@ -342,7 +333,6 @@ void consumirComida(uint32_t cantidad)
 
 
 	//unlock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_COMIDA);
 }
 
 void descartarBasura()
@@ -356,7 +346,6 @@ void descartarBasura()
 	string_append(&path_basura, conf_ARCHIVO_BASURA_NOMBRE);
 
 	//lock del mutex para el manejo del archivo
-	pthread_mutex_lock(&mut_ARCHIVO_BASURA);
 
 	fd_basura = fopen(path_basura, "w");
 	if (fd_basura == NULL) {
@@ -367,7 +356,6 @@ void descartarBasura()
 
 
 	//unlock del mutex para el manejo del archivo
-	pthread_mutex_unlock(&mut_ARCHIVO_BASURA);
 }
 
 char* generarIdArchivo(uint32_t idTripulante) {
@@ -504,11 +492,7 @@ short iniciaEstructuraDeArchivos()
 	//Crea la estructura en caso de corresponder
 	if(cantidadArchivos != 0)
 	{
-		pthread_mutex_lock(&mut_ARCHIVO_OXIGENO_METADATA);
-		pthread_mutex_lock(&mut_ARCHIVO_COMIDA_METADATA);
-		pthread_mutex_lock(&mut_ARCHIVO_BASURA_METADATA);
-		pthread_mutex_lock(&mut_ARCHIVO_BLOCKS);
-		pthread_mutex_lock(&mut_ARCHIVO_SUPERBLOQUE);
+
 
 		//Asignacion de variables para manejo de bloques
 		iTamanioBloque = atoi(conf_BYTES_BLOQUE);
@@ -571,11 +555,7 @@ short iniciaEstructuraDeArchivos()
 
 		//TODO Crear la carpeta de bitacoras de cero
 
-		pthread_mutex_unlock(&mut_ARCHIVO_OXIGENO_METADATA);
-		pthread_mutex_unlock(&mut_ARCHIVO_COMIDA_METADATA);
-		pthread_mutex_unlock(&mut_ARCHIVO_BASURA_METADATA);
-		pthread_mutex_unlock(&mut_ARCHIVO_BLOCKS);
-		pthread_mutex_unlock(&mut_ARCHIVO_SUPERBLOQUE);
+
 	}
 
 	return 0;

@@ -3,16 +3,6 @@
 
 #include "IMongoStore.h"
 
-void inicializarMutex() {
-	pthread_mutex_init(&mut_ARCHIVO_OXIGENO, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_COMIDA, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_BASURA, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_OXIGENO_METADATA, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_COMIDA_METADATA, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_BASURA_METADATA, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_BLOCKS, NULL);
-	pthread_mutex_init(&mut_ARCHIVO_SUPERBLOQUE, NULL);
-}
 
 int main(void)
 {
@@ -24,6 +14,7 @@ int main(void)
 	iniciar_blocks();
 
 	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno");
+
 	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida");
 	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,&archivo_basura,"basura");
 
@@ -52,9 +43,9 @@ int main(void)
 	log_info(logger,"libres = %d",libres);
 
 
-	munmap(fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
+	munmap(_blocks.fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
 
-	close(file_blocks);
+	close(_blocks.file_blocks);
 
 
 	return EXIT_SUCCESS;
@@ -103,21 +94,21 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	strcpy(bloque.data, cadena_caracteres);
 
-	memcpy(fs_bloques + (indice*sizeof(t_bloque)), &bloque, sizeof(t_bloque));
-	msync(fs_bloques, superblock.cantidad_bloques*sizeof(t_bloque), MS_SYNC);
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &bloque, sizeof(t_bloque));
+	msync(_blocks.fs_bloques, superblock.cantidad_bloques*sizeof(t_bloque), MS_SYNC);
 
 	return 1;
 }
 
 int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 
-	t_registros_archivo registros_archivo;
-	bzero(&registros_archivo, sizeof(t_registros_archivo));
+	t_registros_metadata registros_archivo;
+	bzero(&registros_archivo, sizeof(t_registros_metadata));
 
 	strcpy(registros_archivo.campo, cadena_caracteres);
 
-	memcpy(archivo.contenido + (indice*sizeof(t_registros_archivo)), &registros_archivo, sizeof(t_registros_archivo));
-	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
+	memcpy(archivo.contenido + (indice*sizeof(t_registros_metadata)), &registros_archivo, sizeof(t_registros_metadata));
+	msync(archivo.contenido, 100*sizeof(t_registros_metadata), MS_SYNC);
 
 	return 1;
 }
@@ -125,38 +116,36 @@ int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 	//	implementacion con diccionario  ¿¿
 
-	t_registros_archivo registros_archivo;
-	bzero(&registros_archivo, sizeof(t_registros_archivo));
+	t_registros_metadata registros_archivo;
+	bzero(&registros_archivo, sizeof(t_registros_metadata));
 
-	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_archivo)), sizeof(t_registros_archivo));
-	msync(archivo.contenido, 100*sizeof(t_registros_archivo), MS_SYNC);
+	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_metadata)), sizeof(t_registros_metadata));
+	msync(archivo.contenido, 100*sizeof(t_registros_metadata), MS_SYNC);
 
 	log_info(logger,"Metadata : %s",registros_archivo.campo);
 
 	return 1;
 }
 
-
 int obtener_bloque(int indice) {
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
-	memcpy(&bloque,fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
+	memcpy(&bloque,_blocks.fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
 
 	printf("%s",bloque.data);
 
 	return 1;
 }
 
-
 void iniciar_blocks(){
-	file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
+	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
 
 	int N=100;
 
-	ftruncate(file_blocks,N*sizeof(t_bloque));
+	ftruncate(_blocks.file_blocks,N*sizeof(t_bloque));
 
-	fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , file_blocks, 0 );
+	_blocks.fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 
 }
 
@@ -226,9 +215,6 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 	return 99999;
 }
-
-
-
 
 void actualizar_metadata(_archivo archivo,int indice_bloque,char * valorAux){
 

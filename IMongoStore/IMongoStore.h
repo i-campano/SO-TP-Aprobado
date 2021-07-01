@@ -21,30 +21,6 @@
 #define DESCARTAR_BASURA 112
 
 
-typedef struct _archivo{
-	char* clave;
-	t_list * blocks;
-	FILE * file;
-	char * contenido;
-	pthread_mutex_t mutex_file;
-} _archivo;
-
-_archivo archivo_oxigeno;
-_archivo archivo_comida;
-_archivo archivo_basura;
-
-
-
-t_bitarray * bitArrayStorage;
-
-
-
-t_bitarray * bitArrayStorage;
-
-
-int server_fd;
-
-
 void manejadorDeHilos();
 void inicializarMutex();
 int write_blocks(char * cadena_caracteres,int indice);
@@ -54,6 +30,8 @@ int calcular_bloques_libres();
 uint32_t leer_contenido_archivo(char* valor,_archivo * arch);
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo);
 void actualizar_metadata(_archivo archivo,int n_block,char * valorAux);
+void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file);
+void iniciar_blocks();
 
 
 void iniciar_super_block();
