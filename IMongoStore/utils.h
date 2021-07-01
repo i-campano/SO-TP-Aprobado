@@ -28,10 +28,10 @@
 typedef struct  {
 	uint32_t tamanio_bloque;
 	uint32_t cantidad_bloques;
-	t_bitarray	* bitmap;
+
 } str_superblock;
 
-
+t_bitarray	* bitmap;
 
 typedef struct {
 	uint32_t tamanio;
@@ -49,7 +49,7 @@ typedef struct {
 } cadena;
 
 typedef struct {
-	char plato[64];
+	char plato[5];
 } __attribute__((packed)) t_bloque;
 
 str_superblock superblock;
