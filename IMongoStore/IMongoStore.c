@@ -30,13 +30,13 @@ int main(void)
 	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora
 
 
-	int libres = calcularEntradasLibres();
+	int libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
 
 
-	escribir_en_fs("Tripulante termino tarea",archivo_oxigeno);
+	write_archivo("Tripulante termino tarea",archivo_oxigeno);
 
-	escribir_en_fs("Tripulante otra cosaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",archivo_comida);
+	write_archivo("Tripulante otra cosaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",archivo_comida);
 
 	leer_contenido_archivo("ads",&archivo_oxigeno);
 
@@ -48,7 +48,7 @@ int main(void)
 
 	leer_metadata_archivo("asd",1,archivo_comida);
 
-	libres = calcularEntradasLibres();
+	libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
 
 
@@ -73,11 +73,11 @@ void iniciar_super_block(){
 
 	superblock.bitmapstr = malloc(superblock.cantidad_bloques);
 
-	superblock.bitmap = crearBitArray(superblock.cantidad_bloques);
+	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
 
 }
 
-t_bitarray * crearBitArray(uint32_t cantBloques){
+t_bitarray * crear_bit_array(uint32_t cantBloques){
 
 	int tamanioBitarray=cantBloques/8;
 	if(cantBloques % 8 != 0){
@@ -96,7 +96,7 @@ t_bitarray * crearBitArray(uint32_t cantBloques){
 	return bitarray;
 }
 
-int agregar_en_bloque(char * cadena_caracteres,int indice) {
+int write_blocks(char * cadena_caracteres,int indice) {
 
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
@@ -179,18 +179,34 @@ void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
 
 }
 
-int calcularCantidadDeEntradasAOcupar(char* palabra){
-	int cantidadDeEntradas = string_length(palabra)/superblock.tamanio_bloque;
+int calcular_bloques_libres(){
 
-	if(string_length(palabra) % superblock.tamanio_bloque > 0 ){
-		cantidadDeEntradas++;
+	int resultado = 0;
+	int i;
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+
+	for(i=0;i<cantidadDePosiciones;i++){
+
+		if(!bitarray_test_bit(superblock.bitmap,i)){
+			resultado++;
+		}
 	}
 
-	return cantidadDeEntradas;
+	return resultado;
 }
 
-int devolverIndexParaAlmacenarValor(char * valor){
-	int lugares = calcularCantidadDeEntradasAOcupar(valor);
+int calcular_cantidad_bloques_requeridos(char* cadenaAGuardar){
+	int cantidadBloques = string_length(cadenaAGuardar)/superblock.tamanio_bloque;
+
+	if(string_length(cadenaAGuardar) % superblock.tamanio_bloque > 0 ){
+		cantidadBloques++;
+	}
+
+	return cantidadBloques;
+}
+
+int obtener_indice_para_guardar_en_bloque(char * valor){
+	int lugares = calcular_cantidad_bloques_requeridos(valor);
 	int cont = 0;
 	int i;
 	int cantidadDePosiciones = superblock.cantidad_bloques;
@@ -211,28 +227,12 @@ int devolverIndexParaAlmacenarValor(char * valor){
 	return 99999;
 }
 
-int calcularEntradasLibres(){
-
-	int resultado = 0;
-	int i;
-	int cantidadDePosiciones = superblock.cantidad_bloques;
-
-	for(i=0;i<cantidadDePosiciones;i++){
-
-		if(!bitarray_test_bit(superblock.bitmap,i)){
-			resultado++;
-		}
-	}
-
-	return resultado;
-}
 
 
-void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux){
 
-	agregar_en_bloque(valorAux,n_block);
+void actualizar_metadata(_archivo archivo,int indice_bloque,char * valorAux){
 
-	list_add(archivo.blocks,n_block);
+	list_add(archivo.blocks,indice_bloque);
 
 	int cantidad_bloques = list_size(archivo.blocks);
 
@@ -249,24 +249,26 @@ void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux){
 
 }
 
-uint32_t escribir_en_fs(char* valor,_archivo archivo){
+uint32_t write_archivo(char* valor,_archivo archivo){
 
 	uint32_t resultado;
 
-	int posicionesStorageAOcupar = calcularCantidadDeEntradasAOcupar(valor);
+	int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(valor);
 	int i;
 	int inicioValor = 0;
 
 	for(i=0; i < posicionesStorageAOcupar; i++){
 
 		char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
-		int posicion = devolverIndexParaAlmacenarValor(valorAux);
 
+		int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
 
-		escribir_en_archivo(archivo,posicion,valorAux);
+		write_blocks(valorAux,indice_bloque);
 
+		actualizar_metadata(archivo,indice_bloque,valorAux);
 
-		bitarray_set_bit(superblock.bitmap, posicion);
+		bitarray_set_bit(superblock.bitmap, indice_bloque);
+
 		inicioValor += superblock.tamanio_bloque;
 	}
 	return 1;

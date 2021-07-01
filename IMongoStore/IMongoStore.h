@@ -47,13 +47,13 @@ int server_fd;
 
 void manejadorDeHilos();
 void inicializarMutex();
-int agregar_en_bloque(char * cadena_caracteres,int indice);
-uint32_t escribir_en_fs(char* valor,_archivo archivo);
-t_bitarray * crearBitArray(uint32_t cantBloques);
-int calcularEntradasLibres();
+int write_blocks(char * cadena_caracteres,int indice);
+uint32_t write_archivo(char* valor,_archivo archivo);
+t_bitarray * crear_bit_array(uint32_t cantBloques);
+int calcular_bloques_libres();
 uint32_t leer_contenido_archivo(char* valor,_archivo * arch);
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo);
-void escribir_en_archivo(_archivo archivo,int n_block,char * valorAux);
+void actualizar_metadata(_archivo archivo,int n_block,char * valorAux);
 
 
 void iniciar_super_block();
