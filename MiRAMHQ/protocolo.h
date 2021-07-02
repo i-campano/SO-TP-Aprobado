@@ -2,25 +2,29 @@
 #define MIRAM 2
 #define IMONGOSTORE 3
 
-#define BACKLOG 20
 
+//-----------------------------------MENSAJES--------------------------
 #define CREAR_PATOTA 4
 #define HANDSHAKE_TRIPULANTE 5
-#define TRIPULANTE 6
-#define PEDIR_TAREA 7
-#define ENVIAR_TAREA 8
-#define EJECUTAR_TAREA 9
-#define PEDIR_UBICACION 10
-#define TRIPULANTE_CREADO 11
-#define ACTUALIZAR_ESTADO_MIRAM 14
-#define ESTADO_ACTUALIZADO_MIRAM 16
-#define ACTUALIZAR_UBICACION 18
-#define UBICACION_ACTUALIZADA 20
-#define PATOTA_CREADA 22
-#define ACTUALIZACION_IMONGOSTORE 15
-#define LISTA_ID_TRIPULANTES 45
-#define GET_PCB 100
-#define FIN_TAREAS 999
+#define PEDIR_TAREA 6
+#define ENVIAR_TAREA 7
+#define EJECUTAR_TAREA 8
+#define PEDIR_UBICACION 9
+#define TRIPULANTE_CREADO 10
+#define ACTUALIZAR_ESTADO_MIRAM 11
+#define ESTADO_ACTUALIZADO_MIRAM 12
+#define ACTUALIZAR_UBICACION 13
+#define UBICACION_ACTUALIZADA 14
+#define PATOTA_CREADA 15
+#define ACTUALIZACION_IMONGOSTORE 16
+#define LISTA_ID_TRIPULANTES 17
+#define FIN_TAREAS 18
+#define GET_PCB 19
+//--------------------------------------------------------------------
+
+
+//------------------------------CONSTANTES------
+#define BACKLOG 20
 
 
 

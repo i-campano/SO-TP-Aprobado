@@ -104,10 +104,6 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger, "----------------FIN PATOTA CREADA----------------");
 			break;
 		}
-
-		case TRIPULANTE:{
-			break;
-		}
 		case PEDIR_TAREA:{
 			uint32_t id_trip = recvDeNotificacion(socket);
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);

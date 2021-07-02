@@ -42,7 +42,7 @@ void leer_consola() {
 			crear_patota(leido);
 		}
 		else if(strncmp(leido, "GET_DATOS", 3) == 0){
-			sendDeNotificacion(socketServerMiRam, 100);
+			sendDeNotificacion(socketServerMiRam, GET_PCB);
 			sendDeNotificacion(socketServerMiRam,1);
 		}
 		else{
