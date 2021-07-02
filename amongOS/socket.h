@@ -38,7 +38,7 @@
 #define PATOTA_CREADA 22
 
 #define CREAR_PATOTA 4
-
+#define FIN_TAREAS 999
 int conectarAServer(char *ip, int puerto);
 int iniciarServidor(int);
 void verificarErrorSocket(int);
@@ -55,7 +55,7 @@ char* recibirString(int);
 int recvDeNotificacion(int);
 int conectarAServer(char*, int);
 void realizarHandshake(int, uint32_t,uint32_t);
-
+void liberar_conexion (int socket);
 
 
 #endif /* SOCKET_H_ */

@@ -59,7 +59,6 @@ void crear_patota(char * comando){
 			&tamanioGet, tareasOk, posiciones);
 
 	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
-	recvDeNotificacion(socketServerMiRam); //AGREGADO
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		sendDeNotificacion(socketServerMiRam,tripulantes_creados);

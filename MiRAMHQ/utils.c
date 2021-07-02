@@ -98,9 +98,10 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			crear_pcb(socket);
 
-			log_info(logger, "----------------FIN PATOTA CREADA----------------");
+
 			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			sendDeNotificacion(socket, PATOTA_CREADA);
+			log_info(logger, "----------------FIN PATOTA CREADA----------------");
 			break;
 		}
 
@@ -112,7 +113,10 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
 			tcb_t tcb = getTcb((int)(id_trip));
 //			encontrar_trip(id_trip);
-			char * tarea = getTarea(tcb.pcb,0);
+			char * tarea = getTarea(tcb.pcb,tcb.prox_tarea);
+			tcb.prox_tarea++;
+			setTcb(tcb.id,tcb);
+			log_info(logger,"La tarea encontrada es %s",tarea);
 //			log_info(logger,"tripulante id: %d, patota id: %d, tarea: %s indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tarea,tripulante->instrucciones_ejecutadas);
 
 			//Enrealidad hay que crear un atributo Tareas ejecutadas y a ese sumarle 1
@@ -142,7 +146,6 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t estado = recvDeNotificacion(socket);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
 			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %d",id_trip,estado);
-
 			break;
 
 		}
@@ -172,7 +175,12 @@ void *atenderNotificacion(void * paqueteSocket){
 			printf("%i \n",memoria_libre());
 			break;
 		}
-
+		case FIN_TAREAS: {
+			uint32_t id_trip = recvDeNotificacion(socket);
+			log_info(logger,"Fin de tripulante %i",id_trip);
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
+			break;
+		}
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
 			break;
@@ -207,7 +215,7 @@ char * obtener_tarea(t_tripulante * tripulante){
 
 void crear_pcb(int socket) {
 	char* tareas = recibirString(socket);
-
+	char* tareaRam = string_new();
 	char ** arrayTareas = string_split(tareas,"-");
 	t_list * lista = list_create();
 	for(int i = 0; arrayTareas[i]!=NULL; i++){
@@ -216,7 +224,7 @@ void crear_pcb(int socket) {
 		t_tarea * tarea = malloc(sizeof(tarea));
 		tarea->nombre_tarea = string_new();
 		tarea->nombre_tarea = string_duplicate(arrayTareas[i]);
-
+		string_append(&tareaRam,arrayTareas[i]);//LE PASO ESTO ASI GUARDO SIN -
 		string_append(&tarea,arrayTareas[i]); //TE COMENTE ESTO PORQUE NO TIENE SENTIDO
 		//Las mayusculas es por si lo ves, estas appendeando a un t_tarea* y despues no lo estas usando
 		list_add(lista,(void*)tarea);
@@ -244,16 +252,17 @@ void crear_pcb(int socket) {
 	pcb_t pcbRam;
 	pcbRam.id = patotaid;
 	log_info(logger, "agregando patota en lista_pcb");
-	crear_patota2(pcbRam,id_posiciones,tareas,cantidad_patota);
+
+	crear_patota2(pcbRam,id_posiciones,tareaRam,cantidad_patota);
+	list_iterate(listaSegmentos,mostrarEstadoMemoria);
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
 	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
 
-
 	for(int i = 0 ; i<pcb->cantidad_tripulantes; i++){
 		int * id = malloc(sizeof(int));
 		*id = (int)recibirUint(socket);
-		log_info(logger,"PATOTA CREADA OK");
+		log_info(logger,"Trip Creado OK");
 		t_tripulante * trip = malloc(sizeof(t_tripulante));
 		trip->id =*id;
 		trip->socket = socket;

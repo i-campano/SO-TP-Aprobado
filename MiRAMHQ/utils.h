@@ -21,7 +21,6 @@
 #include "ADMIN_MIRAM.h"
 #define IP "127.0.0.1"
 #define PUERTO "5002"
-
 int server_fd;
 
 typedef enum

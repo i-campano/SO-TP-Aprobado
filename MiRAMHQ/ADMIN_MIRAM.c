@@ -8,7 +8,7 @@
 
 void* mem_ppal = NULL;
 
-int tamanio = 4096;
+int tamanio = 1024;
 //PRUEBAS -->
 uint32_t id_patota = 1;
 uint32_t id_trip = 1;
@@ -21,13 +21,13 @@ int admin_memoria(void)
 {
 	pthread_mutex_init(&accesoMemoria,NULL);
 	pthread_mutex_init(&accesoListaSegmentos,NULL);
-	crear_memoria_ppal();
-	free(mem_ppal);
+	crear_memoria_ppal(tamanio);
+	//free(mem_ppal);
 	return 0;
 }
 
-int crear_memoria_ppal() {
-	mem_ppal = malloc(tamanio);
+int crear_memoria_ppal(uint32_t size) {
+	mem_ppal = malloc(size);
 	if(mem_ppal == NULL){
 		log_info(logger,"Error al crear la memoria principal");
 		return ERROR_CREACION_MEMORIA;
@@ -41,6 +41,7 @@ int crear_memoria_ppal() {
 }
 
 //Criterios para listas de segmentos
+
 bool condicionSegmentoLibrePcb(void* segmento) {
 	segmento_t* segmento_tmp = (segmento_t*)segmento;
 	uint32_t tamanioTotal = sizeof(pcb_t);
@@ -337,6 +338,7 @@ int crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,ui
 	tcb.x = x;
 	tcb.y = y;
 	tcb.pcb = idpatota;
+	tcb.prox_tarea = 0;
 	pthread_mutex_lock(&accesoListaSegmentos);
 	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
 	pthread_mutex_unlock(&accesoListaSegmentos);
@@ -386,17 +388,31 @@ void liberar_segmento(segmento_t* sg){
 
 }
 int eliminar_patota(int id){
-	segmento_t* actual;
-	uint32_t cantidad = list_size(listaSegmentos);
+	bool condicionTablaId(void* tablaSegmentos) {
+					t_list* tabla = (t_list*)tablaSegmentos;
+					segmento_t* sg_pcb;
+					sg_pcb = list_get(tabla,0);
+					return sg_pcb->id == id;
+				}
+	t_list* tabla = list_remove_by_condition(listaTablaSegmentos,condicionTablaId);
+	uint32_t cantidad = list_size(tabla);
 	uint32_t i = 0;
 	if(cantidad == 0){
 		return -1;
 	}
 	while(cantidad > i) {
-		actual = list_get(listaSegmentos,i);
-		if(actual->id == id){
-			liberar_segmento(actual);
-		}
+		free(list_remove(tabla,i));
+		i++;
+	}
+	list_destroy(tabla);
+	bool filtro_id(void* segmento){
+		segmento_t* segmento_tmp = (segmento_t*)segmento;
+		return segmento_tmp->id == id;
+	}
+	t_list* listaS = list_filter(listaSegmentos,filtro_id);
+	i = 0;
+	while (i < cantidad){
+		liberar_segmento(list_get(listaS,i));
 		i++;
 	}
 	unificar_sg_libres();
@@ -651,6 +667,7 @@ void setTcb (int idPedido,tcb_t tcb){
 char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
 	char anterior;
 	char actual;
+	log_info(logger,"Quiero la tarea %i",tareaPedida);
 	uint32_t tamanio = strlen(tarea);
 	uint32_t fin = 2;
 	uint32_t nTarea = 0;
@@ -674,11 +691,20 @@ char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
 			inicio = fin;
 			nTarea++;
 		}
-		printf("Actual -> %c, Anterior->%c \n",actual,anterior);
 		fin++;
 
 	}
+	if (nTarea < tareaPedida){
+		return "FIN";
+	}
+	if(nTarea == tareaPedida){
+		log_info(logger,"Ultima Tarea");
+		char* tareaP = malloc(fin-inicio);
+		memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+		return tareaP;
+	}
 	char* tareaP = malloc(fin-inicio+1);
 	memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+	string_trim_right(&tareaP);
 	return tareaP;
 }

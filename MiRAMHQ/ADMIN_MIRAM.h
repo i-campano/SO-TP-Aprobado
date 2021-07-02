@@ -63,7 +63,7 @@ typedef struct {
 	char estado;
 	uint32_t x;
 	uint32_t y;
-	char* prox_tarea;
+	uint32_t prox_tarea;
 //	pcb_t* pcb;
 	uint32_t pcb;
 }tcb_t;
@@ -78,7 +78,7 @@ pthread_mutex_t accesoListaTablas;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES
-int crear_memoria_ppal();
+int crear_memoria_ppal(uint32_t size);
 
 //Criterios para listas de segmentos
 bool condicionSegmentoLibrePcb(void* segmento);

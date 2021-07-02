@@ -57,7 +57,7 @@
 
 #define UBICACION_ACTUALIZADA 20
 #define GET_PCB 100
-
+#define FIN_TAREAS 999
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

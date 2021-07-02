@@ -60,7 +60,7 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea)
 		*esIo = 0;
 	}
 
-	log_debug(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
+	log_info(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
 	free(tarea_parametro);//stringsplit
 	return tarea_separada[0];
 }
@@ -100,7 +100,7 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	log_debug(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
+	log_info(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	//obtener data tripulante - desde tcb
 
@@ -128,10 +128,10 @@ void *labor_tripulante_new(void * trip){
 //	actualizar_estado(socketRam,tripulante,NEW);
 	sem_wait(&tripulante->ready);
 
-	log_info(logger,"antes de pedir tareas;");
+	log_info(logger,"Pido la proxima tarea");
 	//para simular la cantidad;
 	char* tarea = pedir_tarea(socketRam, tripulante);
-	log_info(logger,"despues de pedir tareas;");
+	log_info(logger,"Recibi tarea %s",tarea);
 	int movX = 0 ;
 	int movY= 0;
 	int esIo = 0;
@@ -145,20 +145,20 @@ void *labor_tripulante_new(void * trip){
 
 
 	char* claveNueva = string_new();
-
-	int tareas_pedidas = 0;
+	tripulante->instrucciones_ejecutadas = 0;
+	//int tareas_pedidas = 0;
 	int rafaga = 0;
 
 	string_append(&claveNueva,tarea);
 
 	sem_wait(&tripulante->exec);
 	actualizar_estado(socketRam,tripulante,EXEC);
-	while(strcmp(tarea,"--")!=0){
+	while(strcmp(tarea,"FIN")!=0){
 
 		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
-
+		log_info(logger,"Valor de moveBound 2linea --->%i",moveBound);
 		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
 
 			sem_wait(&detenerReaunudarEjecucion);
@@ -268,8 +268,8 @@ void *labor_tripulante_new(void * trip){
 		}
 		//Fin tarea
 			tarea = pedir_tarea(socketRam, tripulante);
-
-			if(strcmp(tarea,"--")!=0){
+			log_info(logger,"Tarea Recibida %s",tarea);
+			if(strcmp(tarea,"FIN")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 				tripulante->instrucciones_ejecutadas = 0;
 				tripulante->cantidad_tareas--;
@@ -287,9 +287,11 @@ void *labor_tripulante_new(void * trip){
 	sem_post(&colaEjecutados);
 	sem_post(&exec);
 	actualizar_estado(socketRam,tripulante,FIN);
+	sendDeNotificacion(socketRam,FIN_TAREAS);
+	sendDeNotificacion(socketRam,tripulante->id);
+	//liberar_conexion(socketRam);
+	//liberar_conexion(socketMongo);
 	free(claveNueva);
-	liberar_conexion(socketMongo);
-	liberar_conexion(socketRam);
 
 	return 0; //Para que no moleste el warning
 }
