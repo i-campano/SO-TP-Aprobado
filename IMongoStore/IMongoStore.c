@@ -24,20 +24,40 @@ int main(void)
 	int libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
 
+	write_archivo("12345678",archivo_comida);
 
-	write_archivo("Tripulante termino tarea",archivo_oxigeno);
+	leer_contenido_archivo("ads",&archivo_comida);
 
-	write_archivo("Tripulante otra cosaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",archivo_comida);
+	leer_metadata_archivo("asd",1,archivo_comida);
 
-	leer_contenido_archivo("ads",&archivo_oxigeno);
+	consumir_arch(&archivo_comida,7); // borro 7
 
 
-	leer_metadata_archivo("asd",1,archivo_oxigeno);
+	write_archivo("8",archivo_comida);
 
 
 	leer_contenido_archivo("ads",&archivo_comida);
 
 	leer_metadata_archivo("asd",1,archivo_comida);
+
+
+	consumir_arch(&archivo_comida,1); // borro 1
+
+
+	leer_contenido_archivo("ads",&archivo_comida);
+
+	leer_metadata_archivo("asd",1,archivo_comida);
+
+
+
+
+
+
+
+
+
+
+
 
 	libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
@@ -123,6 +143,18 @@ int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo)
 	msync(archivo.contenido, 100*sizeof(t_registros_metadata), MS_SYNC);
 
 	log_info(logger,"Metadata : %s",registros_archivo.campo);
+
+	return 1;
+}
+
+int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
+	t_bloque bloque;
+	bzero(&bloque, sizeof(t_bloque));
+
+	memcpy(&bloque,_blocks.fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
+
+//	printf("%s",bloque.data);
+	string_append(bloqueReturned,(bloque.data));
 
 	return 1;
 }
@@ -235,6 +267,24 @@ void actualizar_metadata(_archivo archivo,int indice_bloque,char * valorAux){
 
 }
 
+
+void actualizar_metadata_borrado(_archivo * archivo){
+
+	int cantidad_bloques = list_size(archivo->blocks);
+
+	char * cantidad = string_from_format("%d",cantidad_bloques);
+
+	agregar_en_archivo("cantidad bloques",0,*archivo);
+
+	agregar_en_archivo(cantidad,1,*archivo);
+
+	agregar_en_archivo("bloques",2,*archivo);
+
+	//agregar indice a la lista de bloques
+
+
+}
+
 uint32_t write_archivo(char* valor,_archivo archivo){
 
 	uint32_t resultado;
@@ -242,6 +292,8 @@ uint32_t write_archivo(char* valor,_archivo archivo){
 	int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(valor);
 	int i;
 	int inicioValor = 0;
+
+	//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
 
 	for(i=0; i < posicionesStorageAOcupar; i++){
 
@@ -258,6 +310,49 @@ uint32_t write_archivo(char* valor,_archivo archivo){
 		inicioValor += superblock.tamanio_bloque;
 	}
 	return 1;
+
+}
+
+void remover_bloque(int indice,_archivo * archivo){
+	list_remove(archivo->blocks,indice);
+	bitarray_clean_bit(superblock.bitmap, indice);
+	actualizar_metadata_borrado(archivo);
+
+}
+
+void consumir_arch(_archivo * archivo,int cantidadAConsumir){
+
+	int ultimo = (int)list_get(archivo->blocks,list_size(archivo->blocks)-1);
+
+	char * contenidoBloque = string_new();
+
+	obtener_contenido_bloque(ultimo,&contenidoBloque);
+
+	int longitudBloque = string_length(contenidoBloque);
+
+	while(cantidadAConsumir>=longitudBloque){
+
+		remover_bloque(ultimo,archivo);
+
+		cantidadAConsumir-=longitudBloque;
+
+		ultimo = (int)list_get(archivo->blocks,list_size(archivo->blocks)-1);
+		free(contenidoBloque);
+		contenidoBloque = string_new();
+		obtener_contenido_bloque(ultimo,&contenidoBloque);
+		longitudBloque = string_length(contenidoBloque);
+
+	}
+	if(cantidadAConsumir>0){
+		free(contenidoBloque);
+		contenidoBloque = string_new();
+		obtener_contenido_bloque(ultimo,&contenidoBloque);
+		contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
+
+		write_blocks(contenidoBloque,ultimo);
+
+	}
+
 
 }
 
