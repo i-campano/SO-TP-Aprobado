@@ -9,7 +9,7 @@
 int programa_ejecucion = 1;
 void leer_consola() {
 	log_info(logger,"INGRESE UN COMANDO: ");
-	tripulantes_creados = 0;
+
 	char* leido = readline(">");
 	while(strncmp(leido, "TERM", 4) != 0) {
 		log_info(logger, leido);

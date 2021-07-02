@@ -12,24 +12,11 @@
 #include "socket.h"
 int tripulantes_creados;
 
-//BOOL
-#define TRUE 1
-#define FALSE 0
-
-//Estados de los trip segun cola
 #define NEW 0
 #define READY 1
 #define BLOCK 2
 #define EXEC 3
 #define FIN 4
-
-//Estado Planificacion
-#define ACTIVE 1
-#define PAUSE 0
-
-//Modos planificacion
-#define FIFO 0
-#define RR 1
 
 typedef struct {
 	int id;
@@ -52,15 +39,6 @@ typedef struct {
 	uint32_t ubi_y;
 	int block_io_rafaga;
 }t_tripulante;
-
-
-typedef struct {
-
-	unsigned int grado_multitareas;
-	unsigned int trip_en_exec;
-	short int modo_planificacion; //FIFO = 0 RR = 1
-
-} config_planif;
 
 
 void *labor_tripulante_new(void * id_tripulante);

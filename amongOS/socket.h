@@ -29,16 +29,7 @@
 #include "utils.h"
 
 
-#define BACKLOG 20
 
-#define DISCORDIADOR 1
-#define MIRAM 2
-#define IMONGOSTORE 3
-
-#define PATOTA_CREADA 22
-
-#define CREAR_PATOTA 4
-#define FIN_TAREAS 999
 int conectarAServer(char *ip, int puerto);
 int iniciarServidor(int);
 void verificarErrorSocket(int);
