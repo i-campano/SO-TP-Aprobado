@@ -4,13 +4,48 @@
 
 #include"utils.h"
 
+void iniciar_configuracion(){
 
+	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
+
+	t_config* config = leer_config();
+
+	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
+	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
+	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
+	//conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
+	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
+	//conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
+	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
+	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
+	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
+	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
+	conf_BYTES_BLOQUE = config_get_string_value (config, "BYTES_BLOQUE");
+	conf_CANTIDAD_BLOQUES = config_get_string_value (config, "CANTIDAD_BLOQUES");
+
+}
+
+t_config* leer_config() {
+	t_config *config;
+	if((config = config_create("config/IMongoStore.config"))==NULL) {
+		perror("No se pudo leer de la config. Revise. \n");
+		exit(-1);
+	}
+	return config;
+}
+
+
+void init_server(){
+	fs_server = iniciarServidor(conf_PUERTO_IMONGO);
+
+	log_info(logger, "FS_SERVER OK");
+}
 
 void manejadorDeHilos(){
 	int socketCliente;
 
 	// Funcion principal
-	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
+	while((socketCliente = aceptarConexionDeCliente(fs_server))) { 	// hago el accept
 		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
@@ -85,7 +120,22 @@ void *atenderNotificacion(void * paqueteSocket){
 	}
 	return 0;
 }
-//TODO, mejorar con codigos como est'a hecho arriba
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////FUNCIONES DE TAREAS/////////////////////////////////////
 void ejecutarTarea(char* tarea, uint32_t  cantidad){
 
 	if (strcmp("GENERAR_OXIGENO", tarea)==0){
@@ -116,34 +166,11 @@ void loggearBitacora(char* infoALoggear, uint32_t idTripulante) {
 	escribirBitacora(infoALoggear, idTripulante);
 }
 
-void iniciar_configuracion(){
-	t_config* config = leer_config();
 
-	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
-	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
-	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
-	//conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
-	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
-	//conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
-	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
-	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
-	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
-	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
-	conf_BYTES_BLOQUE = config_get_string_value (config, "BYTES_BLOQUE");
-	conf_CANTIDAD_BLOQUES = config_get_string_value (config, "CANTIDAD_BLOQUES");
 
-}
 
-t_config* leer_config() {
-	t_config *config;
-	if((config = config_create("config/IMongoStore.config"))==NULL) {
-		perror("No se pudo leer de la config. Revise. \n");
-		exit(-1);
-	}
-	return config;
-}
 
-////////////////////////////////////////////FUNCIONES DE TAREAS/////////////////////////////////////
+
 void generarOxigeno(uint32_t cantidad)
 {
 	//definiciones de variables

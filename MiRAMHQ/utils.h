@@ -22,7 +22,7 @@
 #define IP "127.0.0.1"
 #define PUERTO "5002"
 
-int server_fd;
+int fs_server;
 
 typedef enum
 {

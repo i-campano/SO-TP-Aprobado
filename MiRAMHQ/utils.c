@@ -12,7 +12,7 @@ void manejadorDeHilos(){
 	int socketCliente;
 
 	// Funcion principal
-	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
+	while((socketCliente = aceptarConexionDeCliente(fs_server))) { 	// hago el accept
 		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);

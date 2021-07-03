@@ -23,56 +23,8 @@
 #include "socket.h"
 #include<time.h>
 
-#include"utils.h"
+#include "fs_estructuras.h"
 
-typedef struct {
-	uint32_t tamanio;
-	uint32_t cantidadBloques;
-	char* bloques;
-	char caracterLlenado;
-	char* md5;
-} str_metadata;
-
-typedef struct _archivo{
-	char* clave;
-	t_list * blocks;
-	FILE * file;
-	char * contenido;
-	pthread_mutex_t mutex_file;
-} _archivo;
-
-_archivo archivo_oxigeno;
-_archivo archivo_comida;
-_archivo archivo_basura;
-
-
-typedef struct blocks{
-	FILE * file_blocks;
-	char * fs_bloques;
-	pthread_mutex_t mutex_blocks;
-} blocks;
-
-blocks _blocks;
-
-typedef struct  {
-	uint32_t tamanio_bloque;
-	uint32_t cantidad_bloques;
-	t_bitarray	* bitmap;
-	char * bitmapstr;
-} str_superblock;
-
-str_superblock superblock;
-
-typedef struct {
-	char data[4];
-} __attribute__((packed)) t_bloque;
-
-typedef struct {
-	char campo[100];
-} __attribute__((packed)) t_registros_metadata;
-
-
-int server_fd;
 
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
@@ -89,22 +41,18 @@ char* conf_PATH_BITACORA;
 char* conf_BYTES_BLOQUE;
 char* conf_CANTIDAD_BLOQUES;
 
-
-typedef enum
-{
-	MENSAJE = 7,
-	PAQUETE = 8
-}op_code;
-
 t_log* logger;
 
+
+
+//-------------------------------------------------
+void iniciar_configuracion();
+t_config* leer_config();
+
+void init_server();
+void manejadorDeHilos();
 void *atenderNotificacion(void * paqueteSocket);
 
-void iniciar_configuracion();
-
-void iniciar_logger();
-
-t_config* leer_config();
 
 ////////FUNCIONES DE TAREAS/////////
 void generarOxigeno(uint32_t cantidad);
