@@ -1,10 +1,3 @@
-/*
- * patota.h
- *
- *  Created on: 11 jun. 2021
- *      Author: utnso
- */
-
 #ifndef PATOTA_H_
 #define PATOTA_H_
 
@@ -15,7 +8,6 @@
 #include<sys/socket.h>
 #include<netdb.h>
 #include<string.h>
-#include "mylibrary.h"
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>

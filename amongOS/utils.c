@@ -9,6 +9,9 @@
 
 
 void iniciar_configuracion(){
+
+	tripulantes_creados = 0;
+
 	t_config* config = leer_config();
 
 	IP_MONGO = config_get_string_value(config, "IP_MONGO");

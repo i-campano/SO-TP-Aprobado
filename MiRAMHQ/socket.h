@@ -26,38 +26,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include<commons/string.h>
+#include "protocolo.h"
 
-
-#define BACKLOG 20
-
-#define DISCORDIADOR 1
-#define MIRAM 2
-
-#define PATOTA_CREADA 22
-
-#define CREAR_PATOTA 4
-
-#define HANDSHAKE_TRIPULANTE 5
-
-#define TRIPULANTE 6
-
-#define PEDIR_TAREA 7
-
-#define PEDIR_UBICACION 10
-
-#define TRIPULANTE_CREADO 11
-
-#define ENVIAR_TAREA 8
-
-#define ACTUALIZAR_ESTADO_MIRAM 14
-
-#define ESTADO_ACTUALIZADO_MIRAM 16
-
-#define ACTUALIZAR_UBICACION 18
-
-#define UBICACION_ACTUALIZADA 20
-#define GET_PCB 100
-#define FIN_TAREAS 999
 int iniciarServidor(int);
 void verificarErrorSocket(int);
 void verificarErrorSetsockopt(int);

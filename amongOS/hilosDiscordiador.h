@@ -1,13 +1,3 @@
-/*
- * hilosDiscordiador.h
- *
- *  Created on: 7 jun. 2021
- *      Author: utnso
- */
-
-
-
-
 #ifndef HILOSDISCORDIADOR_H_
 #define HILOSDISCORDIADOR_H_
 

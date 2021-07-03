@@ -8,7 +8,6 @@
 #include<sys/socket.h>
 #include<netdb.h>
 #include<string.h>
-#include "mylibrary.h"
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
@@ -17,6 +16,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "tripulante.h"
+#include "protocolo.h"
 
 
 char* IP_MONGO;
@@ -32,36 +32,6 @@ char * ALGORITMO;
 
 int CICLO_IO;
 int CICLO_CPU;
-
-
-
-
-
-#define PATOTA_CREADA 22
-#define ACTUALIZACION_IMONGOSTORE 15
-#define CREAR_PATOTA 4
-
-#define HANDSHAKE_TRIPULANTE 5
-
-#define PEDIR_TAREA 7
-
-#define PEDIR_UBICACION 10
-
-#define TRIPULANTE_CREADO 11
-
-#define ENVIAR_TAREA 8
-
-#define LISTA_ID_TRIPULANTES 45
-
-#define EJECUTAR_TAREA 9
-
-#define ACTUALIZAR_ESTADO_MIRAM 14
-
-#define ESTADO_ACTUALIZADO_MIRAM 16
-
-#define ACTUALIZAR_UBICACION 18
-
-#define UBICACION_ACTUALIZADA 20
 
 
 t_log* logger;
@@ -151,11 +121,6 @@ typedef struct
 	void* stream;
 } t_buffer;
 
-typedef struct
-{
-	op_code codigo_operacion;
-	t_buffer* buffer;
-} t_paquete;
 
 
 void iniciar_configuracion();
