@@ -8,11 +8,14 @@
 
 void* mem_ppal = NULL;
 
-int tamanio = 1024;
-//PRUEBAS -->
-uint32_t id_patota = 1;
-uint32_t id_trip = 1;
 bool algoritmo = FF;
+uint32_t tamanio = 1024;
+
+
+//PRUEBAS -->
+//uint32_t id_patota = 1;
+//uint32_t id_trip = 1;
+
 //UTILIZADAS EN ITERACION DEL DUMP SEGMENTACION
 //PARA CREAR TAREAS
 //uint32_t tamanioTareas = 0;
@@ -256,7 +259,7 @@ t_list* buscarTablaPatota(uint32_t id){
 	return list_find(listaTablaSegmentos,condicionTablaId);
 }
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
-void crear_patota(uint32_t cant_trip,char* tareas) {
+/*void crear_patota(uint32_t cant_trip,char* tareas) {
 	segmento_t* segmentoAsignado;
 	segmento_t* segmentoAsignadoTareas;
 	uint32_t offset;
@@ -288,7 +291,7 @@ void crear_patota(uint32_t cant_trip,char* tareas) {
 		memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
 		creados++;
 	}
-}
+}*/
 //PRIMERA APROXIMACION A CREAR PATOTA POSTA
 int crear_patota2(pcb_t pcb,char* posiciones,char* tareas,uint32_t cantidad_trip) {
 	segmento_t* segmentoAsignado;
@@ -387,35 +390,61 @@ void liberar_segmento(segmento_t* sg){
 	sg->id = 0;
 
 }
-int eliminar_patota(int id){
-	bool condicionTablaId(void* tablaSegmentos) {
-					t_list* tabla = (t_list*)tablaSegmentos;
-					segmento_t* sg_pcb;
-					sg_pcb = list_get(tabla,0);
-					return sg_pcb->id == id;
-				}
-	t_list* tabla = list_remove_by_condition(listaTablaSegmentos,condicionTablaId);
-	uint32_t cantidad = list_size(tabla);
-	uint32_t i = 0;
-	if(cantidad == 0){
-		return -1;
+t_list* buscarTablaPatotaTrip(uint32_t id_trip) {
+	bool buscarTabla(void* tabla){
+		t_list* tablaPatota = (t_list*)tabla;
+		uint32_t tamanio = list_size(tablaPatota);
+		uint32_t i = 2;
+		if(tamanio >= 2){
+			return false;
+		}
+		while (tamanio > i){
+			segmento_t* sg = list_get(tablaPatota,i);
+			tcb_t temp;
+			memcpy(&temp,mem_ppal+sg->inicio,sizeof(tcb_t));
+			if (temp.id == id_trip){
+				return true;
+			}
+			i++;
+		}
+		return false;
 	}
-	while(cantidad > i) {
-		free(list_remove(tabla,i));
-		i++;
+	return list_find(listaTablaSegmentos,buscarTabla);
+}
+
+int eliminar_tripulante(uint32_t id_trip,uint32_t id_patota){
+	pthread_mutex_lock(&accesoMemoria);
+	pthread_mutex_lock(&accesoListaSegmentos);
+	bool buscarsgTcb(void* seg) {
+		segmento_t* sg = (segmento_t*)seg;
+		if(sg->tipoDato != DATO_TCB){
+			return false;
+		}
+		tcb_t temp;
+		memcpy(&temp,mem_ppal+sg->inicio,sizeof(tcb_t));
+		return temp.id == id_trip;
 	}
-	list_destroy(tabla);
-	bool filtro_id(void* segmento){
-		segmento_t* segmento_tmp = (segmento_t*)segmento;
-		return segmento_tmp->id == id;
+	segmento_t* sg = list_find(listaSegmentos,buscarsgTcb);
+	t_list* tablaPatota = buscarTablaPatota(id_patota);
+	list_remove_by_condition(tablaPatota,buscarsgTcb);
+	if(list_size(tablaPatota) <= 2) {
+		eliminar_patota(id_patota);
 	}
-	t_list* listaS = list_filter(listaSegmentos,filtro_id);
-	i = 0;
-	while (i < cantidad){
-		liberar_segmento(list_get(listaS,i));
-		i++;
-	}
+	liberar_segmento(sg);
 	unificar_sg_libres();
+	//t_list* tablaPatota = buscarTablaPatota(id_trip);
+	pthread_mutex_unlock(&accesoMemoria);
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	return 0;
+}
+int eliminar_patota(int id){
+	bool listaId(void* seg){
+		segmento_t* sg = (segmento_t*)seg;
+		return sg->id == id;
+	}
+	t_list* lista = list_filter(listaSegmentos,listaId);
+	liberar_segmento(list_get(lista,0));
+	liberar_segmento(list_get(lista,1));
 	return 0;
 }
 //FUNCION SIN MUTEX USARLOS ANTES DE LLAMARLA
@@ -553,6 +582,8 @@ int compactar_memoria(void) {
 		uint32_t cantidad = list_size(listaSegmentos);
 		uint32_t i = 0;
 		uint32_t offset = 0;
+		list_iterate(listaSegmentos,mostrarEstadoMemoria);
+		log_info(logger,"--------Procediendo a compactar-------");
 		if(cantidad <= 1){
 			return -1;
 		}
@@ -682,10 +713,11 @@ char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
 		anterior = actual;
 		actual = tarea[fin];
 		if (isalpha(actual) && isdigit(anterior)){
-			printf("Tarea %i largo %i \n",nTarea,fin);
 			if(tareaPedida == nTarea) {
 				char* tareaP = malloc(fin-inicio+1);
+				tareaP = memset(tareaP,0,fin-inicio+1);
 				memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+				tareaP[fin] = '\0';
 				return tareaP;
 			}
 			inicio = fin;
@@ -698,13 +730,16 @@ char* reconocer_tareas(char* tarea,uint32_t tareaPedida){
 		return "FIN";
 	}
 	if(nTarea == tareaPedida){
-		log_info(logger,"Ultima Tarea");
-		char* tareaP = malloc(fin-inicio);
+		log_debug(logger,"Ultima Tarea");
+		char* tareaP = malloc(fin-inicio+1);
+		tareaP = memset(tareaP,0,fin-inicio+1);
 		memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
+		tareaP[fin] = '\0';
 		return tareaP;
 	}
 	char* tareaP = malloc(fin-inicio+1);
+	tareaP = memset(tareaP,0,fin-inicio+1);
 	memcpy(tareaP,tarea+inicio,(fin-inicio) * sizeof(char));
-	string_trim_right(&tareaP);
+	tareaP[fin] = '\0';
 	return tareaP;
 }

@@ -177,7 +177,9 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 		case FIN_TAREAS: {
 			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
 			log_info(logger,"Fin de tripulante %i",id_trip);
+			eliminar_tripulante(id_trip,id_patota);
 			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			break;
 		}
