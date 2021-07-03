@@ -67,15 +67,15 @@ void listar_tripulantes(){
 	log_info(logger,"Estado de la Nave");
 
 	pthread_mutex_lock(&planificacion_mutex_new);
-	mostrar_lista_tripulantes_new();
+	mostrar_lista_tripulantes(planificacion_cola_new,"NEW");
 	pthread_mutex_unlock(&planificacion_mutex_new);
 
 	pthread_mutex_lock(&planificacion_mutex_ready);
-	mostrar_lista_tripulantes_ready();
+	mostrar_lista_tripulantes(planificacion_cola_ready,"READY");
 	pthread_mutex_unlock(&planificacion_mutex_ready);
 
 	pthread_mutex_lock(&planificacion_mutex_bloq);
-	mostrar_lista_tripulantes_bloq();
+	mostrar_lista_tripulantes(planificacion_cola_bloq,"BLOQ");
 	pthread_mutex_unlock(&planificacion_mutex_bloq);
 
 	pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -83,37 +83,16 @@ void listar_tripulantes(){
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
 
 	pthread_mutex_lock(&planificacion_mutex_fin);
-	mostrar_lista_tripulantes_fin();
+	mostrar_lista_tripulantes(planificacion_cola_fin,"FIN");
 	pthread_mutex_unlock(&planificacion_mutex_fin);
 }
 
 
-void mostrar_lista_tripulantes_new(){
+void mostrar_lista_tripulantes(t_queue* queue,char * nombre_cola){
 	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status NEW", tripulante->id,tripulante->patota_id);
+		log_info(logger,"Tripulante: %d   Patota: %d    Status: %s", tripulante->id,tripulante->patota_id,nombre_cola);
 	}
-	list_iterate(planificacion_cola_new->elements, (void*) mostrar_patota);
-}
-
-void mostrar_lista_tripulantes_fin(){
-	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status FIN", tripulante->id,tripulante->patota_id);
-	}
-	list_iterate(planificacion_cola_fin->elements, (void*) mostrar_patota);
-}
-
-void mostrar_lista_tripulantes_bloq(){
-	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status BLOCK I/O", tripulante->id,tripulante->patota_id);
-	}
-	list_iterate(planificacion_cola_bloq->elements, (void*) mostrar_patota);
-}
-
-void mostrar_lista_tripulantes_ready(){
-	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status READY", tripulante->id,tripulante->patota_id);
-	}
-	list_iterate(planificacion_cola_ready->elements, (void*) mostrar_patota);
+	list_iterate(queue->elements, (void*) mostrar_patota);
 }
 
 void mostrar_lista_tripulantes_exec(){
