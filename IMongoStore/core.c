@@ -42,8 +42,32 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	strcpy(bloque.data, cadena_caracteres);
 
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &bloque, sizeof(t_bloque));
-	msync(_blocks.fs_bloques, superblock.cantidad_bloques*sizeof(t_bloque), MS_SYNC);
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
+	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
+
+	return 1;
+}
+
+int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
+
+	t_bloque bloque;
+	bzero(&bloque, sizeof(t_bloque));
+
+	strcpy(bloque.data, cadena_caracteres);
+
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, &(bloque.data), sizeof(t_bloque));
+	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
+
+	return 1;
+}
+
+int clean_block(char * cadena_caracteres,int indice) {
+
+	t_bloque bloque;
+	bzero(&bloque, sizeof(t_bloque));
+
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
+	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 
 	return 1;
 }
@@ -63,6 +87,7 @@ int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
 	//	implementacion con diccionario  ¿¿
+
 
 	t_registros_metadata registros_archivo;
 	bzero(&registros_archivo, sizeof(t_registros_metadata));
@@ -112,17 +137,18 @@ void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
 	string_append(&(archivo->clave),key_file);
 
 	(*archivo).blocks = list_create();
+	archivo->metadata = malloc(10000);
+	archivo->metadata = config_create("hola.asd");
+
+	config_set_value(archivo->metadata,"CARACTER_LLENADO","O");
+
+	config_set_value(archivo->metadata,"MD5","XXXX");
+	config_set_value(archivo->metadata,"SIZE","0");
+	config_set_value(archivo->metadata,"BLOCKS","[]");
+	config_set_value(archivo->metadata,"BLOCK_COUNT","0");
+
 
 	pthread_mutex_init(&(*archivo).mutex_file, NULL);
-
-
-	(*archivo).file = open(name_file, O_RDWR | O_CREAT , (mode_t)0600);
-
-	int N=100;
-
-	ftruncate((*archivo).file,N*sizeof(t_bloque));
-
-	(*archivo).contenido = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED ,(*archivo).file, 0 );
 
 }
 
@@ -174,109 +200,180 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 	return 99999;
 }
 
-void actualizar_metadata(_archivo archivo,int indice_bloque,char * valorAux){
+void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 
-	list_add(archivo.blocks,indice_bloque);
+	char * md5 = string_new();
+	md5 = config_get_string_value (archivo->metadata, "MD5");
 
-	int cantidad_bloques = list_size(archivo.blocks);
+	string_length(valorAux);
+	int bytes = string_length(valorAux);
 
-	char * cantidad = string_from_format("%d",cantidad_bloques);
-
-	agregar_en_archivo("cantidad bloques",0,archivo);
-
-	agregar_en_archivo(cantidad,1,archivo);
-
-	agregar_en_archivo("bloques",2,archivo);
-
-	//agregar indice a la lista de bloques
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	size+=bytes;
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 
 
+	char ** array;
+	array = config_get_array_value(archivo->metadata,"BLOCKS");
+	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
+
+	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(longitud_array(nuevo)));
+
+	char * cadena = array_to_string(nuevo);
+	int i = 0;
+	while(nuevo[i]!=NULL){
+		free(nuevo[i]);
+		i++;
+	}
+	free(nuevo[i]);
+	free(nuevo);
+	config_set_value(archivo->metadata,"BLOCKS",cadena);
+	config_save(archivo->metadata);
 }
 
 
-void actualizar_metadata_borrado(_archivo * archivo){
 
-	int cantidad_bloques = list_size(archivo->blocks);
 
-	char * cantidad = string_from_format("%d",cantidad_bloques);
 
-	agregar_en_archivo("cantidad bloques",0,*archivo);
 
-	agregar_en_archivo(cantidad,1,*archivo);
+void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
 
-	agregar_en_archivo("bloques",2,*archivo);
-
-	//agregar indice a la lista de bloques
-
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	size-=cantidadABorrar;
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	config_save(archivo->metadata);
 
 }
 
-uint32_t write_archivo(char* valor,_archivo archivo){
+void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
+
+	char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
+	int block_count = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	blocks[block_count-1]=NULL;
+
+	char * bloques_str = array_to_string(blocks);
+
+	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
+	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size-4));
+	config_save(archivo->metadata);
+
+}
+
+uint32_t write_archivo(char* valor,_archivo * archivo){
 
 	uint32_t resultado;
+	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
 
-	int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(valor);
-	int i;
-	int inicioValor = 0;
+	if(bytesArchivo%superblock.tamanio_bloque==0){
 
-	//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
 
-	for(i=0; i < posicionesStorageAOcupar; i++){
 
-		char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
+		int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(valor);
+		int i;
+		int inicioValor = 0;
 
-		int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
+		//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
 
-		write_blocks(valorAux,indice_bloque);
+		for(i=0; i < posicionesStorageAOcupar; i++){
 
-		actualizar_metadata(archivo,indice_bloque,valorAux);
+			char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
 
-		bitarray_set_bit(superblock.bitmap, indice_bloque);
+			int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
 
-		inicioValor += superblock.tamanio_bloque;
+			write_blocks(valorAux,indice_bloque);
+
+			actualizar_metadata(archivo,indice_bloque,valorAux);
+
+			bitarray_set_bit(superblock.bitmap, indice_bloque);
+
+			inicioValor += superblock.tamanio_bloque;
+		}
+	}else{
+		while(bytesArchivo>superblock.tamanio_bloque) bytesArchivo-=superblock.tamanio_bloque;
+		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
+		int count_block = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+		char * last_block = blocks[count_block-1];
+		if(string_length(valor)<=bytesArchivo){
+
+			write_blocks_with_offset(valor,atoi(last_block),bytesArchivo);
+		}else{
+			char * primera_parte  = string_substring_until(valor,bytesArchivo);
+			char * desde = string_substring_from(valor,bytesArchivo);
+			write_blocks(primera_parte,atoi(last_block));
+
+			int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(desde);
+			int i;
+			int inicioValor = 0;
+
+			//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
+
+			for(i=0; i < posicionesStorageAOcupar; i++){
+
+				char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
+
+				int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
+
+				write_blocks(valorAux,indice_bloque);
+
+				actualizar_metadata(archivo,indice_bloque,valorAux);
+
+				bitarray_set_bit(superblock.bitmap, indice_bloque);
+
+				inicioValor += superblock.tamanio_bloque;
+			}
+		}
 	}
 	return 1;
 
 }
 
-void remover_bloque(int indice,_archivo * archivo){
-	list_remove(archivo->blocks,indice);
-	bitarray_clean_bit(superblock.bitmap, indice);
-	actualizar_metadata_borrado(archivo);
+void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
+	bitarray_clean_bit(superblock.bitmap,indice);
+	clean_block("asd,b",indice);
+
+	actualizar_metadata_elimina_bloque(archivo,cantidadAConsumir);
 
 }
 
 void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
-	int ultimo = (int)list_get(archivo->blocks,list_size(archivo->blocks)-1);
+	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
+	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+
+	char * bloque = bloques[cantidad_bloques-1];
 
 	char * contenidoBloque = string_new();
 
-	obtener_contenido_bloque(ultimo,&contenidoBloque);
+	int indice = atoi(bloque);
+	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = string_length(contenidoBloque);
-
+	int i = 1;
 	while(cantidadAConsumir>=longitudBloque){
 
-		remover_bloque(ultimo,archivo);
+		remover_bloque(indice,archivo,cantidadAConsumir);
 
 		cantidadAConsumir-=longitudBloque;
 
-		ultimo = (int)list_get(archivo->blocks,list_size(archivo->blocks)-1);
-		free(contenidoBloque);
+
 		contenidoBloque = string_new();
-		obtener_contenido_bloque(ultimo,&contenidoBloque);
+		i++;
+		bloque = bloques[cantidad_bloques-i];
+		indice = atoi(bloque);
+		obtener_contenido_bloque(indice,&contenidoBloque);
 		longitudBloque = string_length(contenidoBloque);
 
 	}
 	if(cantidadAConsumir>0){
-		free(contenidoBloque);
-		contenidoBloque = string_new();
-		obtener_contenido_bloque(ultimo,&contenidoBloque);
+		actualizar_metadata_borrado(archivo,cantidadAConsumir);
+
 		contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
 
-		write_blocks(contenidoBloque,ultimo);
-
+		write_blocks(contenidoBloque,indice);
+//
 	}
 
 

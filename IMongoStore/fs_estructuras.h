@@ -8,6 +8,7 @@
 #ifndef FS_ESTRUCTURAS_H_
 #define FS_ESTRUCTURAS_H_
 
+typedef t_config str_metadata;
 
 typedef struct {
 	uint32_t tamanio;
@@ -15,13 +16,14 @@ typedef struct {
 	char* bloques;
 	char caracterLlenado;
 	char* md5;
-} str_metadata;
+} str_metadata2;
 
 typedef struct _archivo{
 	char* clave;
 	t_list * blocks;
 	FILE * file;
 	char * contenido;
+	t_config * metadata;
 	pthread_mutex_t mutex_file;
 } _archivo;
 

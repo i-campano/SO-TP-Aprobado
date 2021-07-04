@@ -135,6 +135,21 @@ void *atenderNotificacion(void * paqueteSocket){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ////////////////////////////////////////////FUNCIONES DE TAREAS/////////////////////////////////////
 void ejecutarTarea(char* tarea, uint32_t  cantidad){
 
