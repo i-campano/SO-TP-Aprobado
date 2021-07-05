@@ -41,11 +41,10 @@ void prueba_func_core_ejecucion(){
 	int libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
 
-	write_archivo("1234567890123456789012345678901234567890",&archivo_oxigeno);
 	write_archivo("1244",&archivo_oxigeno);
 	write_archivo("1233",&archivo_oxigeno);
 
-//	consumir_arch(&archivo_oxigeno,8);
+	consumir_arch(&archivo_oxigeno,5);
 
 
 	libres = calcular_bloques_libres();

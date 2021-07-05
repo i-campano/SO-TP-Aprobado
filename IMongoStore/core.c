@@ -359,8 +359,8 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
-
-	char * bloque = bloques[cantidad_bloques-1];
+	cantidad_bloques--;
+	char * bloque = bloques[cantidad_bloques];
 
 	char * contenidoBloque = string_new();
 
@@ -369,7 +369,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 	int longitudBloque = string_length(contenidoBloque);
 
-	while(cantidadAConsumir>=longitudBloque && cantidad_bloques-1>=0){
+	while(cantidadAConsumir>=longitudBloque || cantidadAConsumir==superblock.tamanio_bloque){
 
 		cantidadAConsumir-=longitudBloque;
 		remover_bloque(indice,archivo,longitudBloque);
@@ -378,7 +378,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 		contenidoBloque = string_new();
 		cantidad_bloques--;
-		bloque = bloques[cantidad_bloques-1];
+		bloque = bloques[cantidad_bloques];
 		indice = atoi(bloque);
 		obtener_contenido_bloque(indice,&contenidoBloque);
 		longitudBloque = string_length(contenidoBloque);
