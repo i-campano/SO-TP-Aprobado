@@ -8,13 +8,13 @@ int main(void) {
 
 	iniciarEstructurasAdministrativasPlanificador();
 
-	socketServerMiRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
+	socketServerMiRam = conectarAServer("127.0.0.1", 5002);
 
-	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
+//	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
-	socketServerIMongoStore = conectarAServer(IP_MONGO, PUERTO_MONGO);
+	socketServerIMongoStore = conectarAServer("127.0.0.1", 5003);
 
 	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
 

@@ -26,21 +26,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include<commons/string.h>
+#include "protocolo.h"
 
 
-#define DISCORDIADOR 1
-#define IMONGOSTORE 3
-
-#define EJECUTAR_TAREA 9
-
-
-#define ACTUALIZACION_IMONGOSTORE 15
-
-
-#define PATOTA_CREADA 22
-#define CREAR_PATOTA 4
-
-#define BACKLOG 20
 
 int iniciarServidor(int);
 void verificarErrorSocket(int);

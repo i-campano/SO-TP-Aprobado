@@ -23,6 +23,7 @@
 #define PUERTO "5002"
 int server_fd;
 
+
 typedef enum
 {
 	MENSAJE = 7,

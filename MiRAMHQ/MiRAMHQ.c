@@ -13,6 +13,10 @@ int main(void)
 
 	admin_memoria();
 	server_fd = iniciarServidor(5002);
+	logger = log_create("MiRAMHQ.log", "MiRAMHQ", 1, LOG_LEVEL_DEBUG);
+
+	
+
 	iniciarEstructurasAdministrativas();
 
 
