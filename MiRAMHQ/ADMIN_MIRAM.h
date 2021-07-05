@@ -45,14 +45,7 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t tamanio;
 }tablaSegmento_t;
-typedef struct{
-	uint32_t nFrame;
-	bool estado;
-}frame_t;
-typedef struct{
-	uint32_t nPagina;
-	uint32_t id_patota;
-}pagina_t;
+
 typedef struct {
 	uint32_t id;
 	char* tareas;
