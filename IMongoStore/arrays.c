@@ -34,7 +34,9 @@ char * array_to_string(char ** array){
 		string_append_with_format(&cadena,"%s,",array[i]);
 		i++;
 	}
-	cadena = string_substring_until(cadena,string_length(cadena)-1);
+	if(i>0){
+		cadena = string_substring_until(cadena,string_length(cadena)-1);
+	}
 	string_append(&cadena,"]");
 	return cadena;
 }

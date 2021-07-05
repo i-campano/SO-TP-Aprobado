@@ -232,6 +232,21 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 }
 
 
+void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
+
+	char * md5 = string_new();
+	md5 = config_get_string_value (archivo->metadata, "MD5");
+
+	string_length(valorAux);
+	int bytes = string_length(valorAux);
+
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	size+=bytes;
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	config_save(archivo->metadata);
+
+}
+
 
 
 
@@ -256,7 +271,7 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 
 	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size-4));
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
 
 }
@@ -295,13 +310,15 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 		int count_block = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 		char * last_block = blocks[count_block-1];
-		if(string_length(valor)<=bytesArchivo){
+		if(string_length(valor)<=superblock.tamanio_bloque-bytesArchivo){
 
 			write_blocks_with_offset(valor,atoi(last_block),bytesArchivo);
+			actualizar_metadata_sin_crear_bloque(archivo,valor);
 		}else{
-			char * primera_parte  = string_substring_until(valor,bytesArchivo);
-			char * desde = string_substring_from(valor,bytesArchivo);
-			write_blocks(primera_parte,atoi(last_block));
+			char * primera_parte  = string_substring_until(valor,superblock.tamanio_bloque-bytesArchivo);
+			char * desde = string_substring_from(valor,superblock.tamanio_bloque-bytesArchivo);
+			write_blocks_with_offset(primera_parte,atoi(last_block),bytesArchivo);
+			actualizar_metadata_sin_crear_bloque(archivo,primera_parte);
 
 			int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(desde);
 			int i;
@@ -311,7 +328,7 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 
 			for(i=0; i < posicionesStorageAOcupar; i++){
 
-				char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
+				char* valorAux = string_substring(desde,inicioValor,superblock.tamanio_bloque);
 
 				int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
 
@@ -351,17 +368,17 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = string_length(contenidoBloque);
-	int i = 1;
-	while(cantidadAConsumir>=longitudBloque){
 
-		remover_bloque(indice,archivo,cantidadAConsumir);
+	while(cantidadAConsumir>=longitudBloque && cantidad_bloques-1>=0){
 
 		cantidadAConsumir-=longitudBloque;
+		remover_bloque(indice,archivo,longitudBloque);
+
 
 
 		contenidoBloque = string_new();
-		i++;
-		bloque = bloques[cantidad_bloques-i];
+		cantidad_bloques--;
+		bloque = bloques[cantidad_bloques-1];
 		indice = atoi(bloque);
 		obtener_contenido_bloque(indice,&contenidoBloque);
 		longitudBloque = string_length(contenidoBloque);
