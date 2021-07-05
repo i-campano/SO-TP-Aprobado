@@ -36,7 +36,7 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 }
 
 int write_blocks(char * cadena_caracteres,int indice) {
-
+	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -44,12 +44,13 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 
 	return 1;
 }
 
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
-
+	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -57,18 +58,18 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, &(bloque.data), sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
-
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
 int clean_block(char * cadena_caracteres,int indice) {
-
+	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
-
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
@@ -129,6 +130,8 @@ void iniciar_blocks(){
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
 
 	_blocks.fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+
+	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
 
 }
 
@@ -363,7 +366,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = string_length(contenidoBloque);
-//borrar el primero que si supera
+
 	while((cantidadAConsumir>0)){
 
 		if(cantidadAConsumir>longitudBloque){
