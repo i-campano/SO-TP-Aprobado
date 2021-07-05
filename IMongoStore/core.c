@@ -132,7 +132,7 @@ void iniciar_blocks(){
 
 }
 
-void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
+void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file,char * caracter_llenado){
 	archivo->clave = string_new();
 	string_append(&(archivo->clave),key_file);
 
@@ -140,7 +140,7 @@ void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
 	archivo->metadata = malloc(10000);
 	archivo->metadata = config_create(name_file);
 
-	config_set_value(archivo->metadata,"CARACTER_LLENADO","O");
+	config_set_value(archivo->metadata,"CARACTER_LLENADO",caracter_llenado);
 
 	config_set_value(archivo->metadata,"MD5","XXXX");
 	config_set_value(archivo->metadata,"SIZE","0");
