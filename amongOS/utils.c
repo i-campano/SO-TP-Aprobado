@@ -140,7 +140,7 @@ int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger) {
 	return 0;
 }
 void iniciar_logger() {
-	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_INFO))==NULL){
+	if( (logger = log_create("discordiador.log", "DISCORDIADOR", 1, LOG_LEVEL_DEBUG))==NULL){
 		printf("No se pudo crear el logger. Revise parametros\n");
 		exit(1);
 	}

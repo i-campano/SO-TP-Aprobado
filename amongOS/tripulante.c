@@ -186,8 +186,8 @@ void *labor_tripulante_new(void * trip){
 
 				sem_wait(&tripulante->bloq);
 
-				enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
-				recvDeNotificacion(socketMongo);
+				//enviar_tarea_a_ejecutar(socketMongo, tripulante->id, claveNueva);
+				//recvDeNotificacion(socketMongo);
 
 				tripulante->instrucciones_ejecutadas+=tiempo_tarea;
 
