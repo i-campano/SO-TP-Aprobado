@@ -17,7 +17,8 @@ int main(void)
 	iniciar_blocks();
 
 	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno");
-//	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida");
+
+	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida");
 //	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,&archivo_basura,"basura");
 
 
@@ -45,6 +46,11 @@ void prueba_func_core_ejecucion(){
 	write_archivo("1233",&archivo_oxigeno);
 
 	consumir_arch(&archivo_oxigeno,5);
+	write_archivo("BBBB",&archivo_comida);
+	consumir_arch(&archivo_oxigeno,3);
+	write_archivo("BBBB",&archivo_comida);
+	consumir_arch(&archivo_comida,8);
+
 
 
 	libres = calcular_bloques_libres();

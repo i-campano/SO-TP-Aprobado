@@ -138,7 +138,7 @@ void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file){
 
 	(*archivo).blocks = list_create();
 	archivo->metadata = malloc(10000);
-	archivo->metadata = config_create("hola.asd");
+	archivo->metadata = config_create(name_file);
 
 	config_set_value(archivo->metadata,"CARACTER_LLENADO","O");
 
@@ -231,7 +231,6 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	config_save(archivo->metadata);
 }
 
-
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 
 	char * md5 = string_new();
@@ -246,10 +245,6 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	config_save(archivo->metadata);
 
 }
-
-
-
-
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
 
@@ -368,31 +363,34 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = string_length(contenidoBloque);
+//borrar el primero que si supera
+	while((cantidadAConsumir>0)){
 
-	while(cantidadAConsumir>=longitudBloque || cantidadAConsumir==superblock.tamanio_bloque){
+		if(cantidadAConsumir>longitudBloque){
 
-		cantidadAConsumir-=longitudBloque;
-		remover_bloque(indice,archivo,longitudBloque);
+			cantidadAConsumir-=longitudBloque;
+			remover_bloque(indice,archivo,longitudBloque);
+			contenidoBloque = string_new();
+			cantidad_bloques--;
+			bloque = bloques[cantidad_bloques];
+			indice = atoi(bloque);
+			obtener_contenido_bloque(indice,&contenidoBloque);
+			longitudBloque = string_length(contenidoBloque);
+		}
+		else if(cantidadAConsumir==longitudBloque){
+			cantidadAConsumir-=longitudBloque;
+			remover_bloque(indice,archivo,longitudBloque);
+		}
+		else if (cantidadAConsumir<longitudBloque){
+			actualizar_metadata_borrado(archivo,cantidadAConsumir);
 
+			contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
 
-
-		contenidoBloque = string_new();
-		cantidad_bloques--;
-		bloque = bloques[cantidad_bloques];
-		indice = atoi(bloque);
-		obtener_contenido_bloque(indice,&contenidoBloque);
-		longitudBloque = string_length(contenidoBloque);
+			write_blocks(contenidoBloque,indice);
+			cantidadAConsumir=0;
+		}
 
 	}
-	if(cantidadAConsumir>0){
-		actualizar_metadata_borrado(archivo,cantidadAConsumir);
-
-		contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
-
-		write_blocks(contenidoBloque,indice);
-//
-	}
-
 
 }
 
