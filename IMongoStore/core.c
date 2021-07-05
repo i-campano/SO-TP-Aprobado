@@ -1,20 +1,6 @@
 #include "core.h"
 
-void iniciar_super_block(){
-	//cargar desde config la struct de super_bloque
-	log_info(logger,"Inicio superbloque: %s", conf_BYTES_BLOQUE);
-	log_info(logger,"Tamanio de Bloque: %s", conf_BYTES_BLOQUE);
-	log_info(logger,"Cantidad de Bloques: %s", conf_CANTIDAD_BLOQUES);
 
-	superblock.tamanio_bloque = (uint32_t)atoi(conf_BYTES_BLOQUE);
-
-	superblock.cantidad_bloques = atoi(conf_CANTIDAD_BLOQUES);
-
-	superblock.bitmapstr = malloc(superblock.cantidad_bloques);
-
-	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
-
-}
 
 t_bitarray * crear_bit_array(uint32_t cantBloques){
 
@@ -33,6 +19,17 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 	}
 
 	return bitarray;
+}
+
+void iniciar_blocks(){
+	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
+
+	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
+
+	_blocks.fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+
+	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
+
 }
 
 int write_blocks(char * cadena_caracteres,int indice) {
@@ -73,35 +70,8 @@ int clean_block(char * cadena_caracteres,int indice) {
 	return 1;
 }
 
-int agregar_en_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
-
-	t_registros_metadata registros_archivo;
-	bzero(&registros_archivo, sizeof(t_registros_metadata));
-
-	strcpy(registros_archivo.campo, cadena_caracteres);
-
-	memcpy(archivo.contenido + (indice*sizeof(t_registros_metadata)), &registros_archivo, sizeof(t_registros_metadata));
-	msync(archivo.contenido, 100*sizeof(t_registros_metadata), MS_SYNC);
-
-	return 1;
-}
-
-int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo) {
-	//	implementacion con diccionario  ¿¿
-
-
-	t_registros_metadata registros_archivo;
-	bzero(&registros_archivo, sizeof(t_registros_metadata));
-
-	memcpy(&registros_archivo.campo,archivo.contenido + (indice*sizeof(t_registros_metadata)), sizeof(t_registros_metadata));
-	msync(archivo.contenido, 100*sizeof(t_registros_metadata), MS_SYNC);
-
-	log_info(logger,"Metadata : %s",registros_archivo.campo);
-
-	return 1;
-}
-
 int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
+	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -109,11 +79,13 @@ int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
 
 //	printf("%s",bloque.data);
 	string_append(bloqueReturned,(bloque.data));
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 
 	return 1;
 }
 
 int obtener_bloque(int indice) {
+	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -121,55 +93,13 @@ int obtener_bloque(int indice) {
 
 	printf("%s",bloque.data);
 
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
-void iniciar_blocks(){
-	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
-
-	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
-
-	_blocks.fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
-
-	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
-
-}
-
-void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file,char * caracter_llenado){
-	archivo->clave = string_new();
-	string_append(&(archivo->clave),key_file);
-
-	(*archivo).blocks = list_create();
-	archivo->metadata = malloc(10000);
-	archivo->metadata = config_create(name_file);
-
-	config_set_value(archivo->metadata,"CARACTER_LLENADO",caracter_llenado);
-
-	config_set_value(archivo->metadata,"MD5","XXXX");
-	config_set_value(archivo->metadata,"SIZE","0");
-	config_set_value(archivo->metadata,"BLOCKS","[]");
-	config_set_value(archivo->metadata,"BLOCK_COUNT","0");
 
 
-	pthread_mutex_init(&(*archivo).mutex_file, NULL);
-
-}
-
-int calcular_bloques_libres(){
-
-	int resultado = 0;
-	int i;
-	int cantidadDePosiciones = superblock.cantidad_bloques;
-
-	for(i=0;i<cantidadDePosiciones;i++){
-
-		if(!bitarray_test_bit(superblock.bitmap,i)){
-			resultado++;
-		}
-	}
-
-	return resultado;
-}
+//---------------------------METADATA------------------------------------------------
 
 int calcular_cantidad_bloques_requeridos(char* cadenaAGuardar){
 	int cantidadBloques = string_length(cadenaAGuardar)/superblock.tamanio_bloque;
@@ -181,10 +111,50 @@ int calcular_cantidad_bloques_requeridos(char* cadenaAGuardar){
 	return cantidadBloques;
 }
 
+
+//--------------------------SUPER BLOQUE--------------------------------------------
+void iniciar_super_block(){
+	//cargar desde config la struct de super_bloque
+	log_info(logger,"Inicio superbloque: %s", conf_BYTES_BLOQUE);
+	log_info(logger,"Tamanio de Bloque: %s", conf_BYTES_BLOQUE);
+	log_info(logger,"Cantidad de Bloques: %s", conf_CANTIDAD_BLOQUES);
+
+	superblock.tamanio_bloque = (uint32_t)atoi(conf_BYTES_BLOQUE);
+
+	superblock.cantidad_bloques = atoi(conf_CANTIDAD_BLOQUES);
+
+	superblock.bitmapstr = malloc(superblock.cantidad_bloques);
+
+	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
+
+	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
+
+}
+
+int calcular_bloques_libres(){
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	int resultado = 0;
+	int i;
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+
+	for(i=0;i<cantidadDePosiciones;i++){
+
+		if(!bitarray_test_bit(superblock.bitmap,i)){
+			resultado++;
+		}
+	}
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+	return resultado;
+}
+
+
+
 int obtener_indice_para_guardar_en_bloque(char * valor){
+	pthread_mutex_lock(&superblock.mutex_superbloque);
 	int lugares = calcular_cantidad_bloques_requeridos(valor);
 	int cont = 0;
 	int i;
+	int resultado = 0;
 	int cantidadDePosiciones = superblock.cantidad_bloques;
 
 	for(i=0;i<cantidadDePosiciones;i++){
@@ -196,15 +166,36 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 		}
 
 		if(cont >= lugares){
-			return i - lugares + 1;
+			resultado= i - lugares + 1;
+			break;
 		}
 	}
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
 
-	return 99999;
+	return resultado;
+}
+
+
+void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file,char * caracter_llenado){
+	archivo->clave = string_new();
+	string_append(&(archivo->clave),key_file);
+
+	(*archivo).blocks = list_create();
+	archivo->metadata = config_create(name_file);
+
+	config_set_value(archivo->metadata,"CARACTER_LLENADO",caracter_llenado);
+
+	config_set_value(archivo->metadata,"MD5","XXXX");
+	config_set_value(archivo->metadata,"SIZE","0");
+	config_set_value(archivo->metadata,"BLOCKS","[]");
+	config_set_value(archivo->metadata,"BLOCK_COUNT","0");
+
+	pthread_mutex_init(&(*archivo).mutex_file, NULL);
+
 }
 
 void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
-
+	pthread_mutex_lock(&archivo->mutex_file);
 	char * md5 = string_new();
 	md5 = config_get_string_value (archivo->metadata, "MD5");
 
@@ -232,10 +223,11 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	free(nuevo);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
-
+	pthread_mutex_lock(&archivo->mutex_file);
 	char * md5 = string_new();
 	md5 = config_get_string_value (archivo->metadata, "MD5");
 
@@ -246,20 +238,21 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	size+=bytes;
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 	config_save(archivo->metadata);
+	pthread_mutex_unlock(&archivo->mutex_file);
 
 }
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
-
+	pthread_mutex_lock(&archivo->mutex_file);
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size-=cantidadABorrar;
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 	config_save(archivo->metadata);
-
+	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
-
+	pthread_mutex_lock(&archivo->mutex_file);
 	char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 	int block_count = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
@@ -271,7 +264,7 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
-
+	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 uint32_t write_archivo(char* valor,_archivo * archivo){
@@ -298,8 +291,9 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 			write_blocks(valorAux,indice_bloque);
 
 			actualizar_metadata(archivo,indice_bloque,valorAux);
-
+			pthread_mutex_lock(&superblock.mutex_superbloque);
 			bitarray_set_bit(superblock.bitmap, indice_bloque);
+			pthread_mutex_unlock(&superblock.mutex_superbloque);
 
 			inicioValor += superblock.tamanio_bloque;
 		}
@@ -333,9 +327,9 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 				write_blocks(valorAux,indice_bloque);
 
 				actualizar_metadata(archivo,indice_bloque,valorAux);
-
+				pthread_mutex_lock(&superblock.mutex_superbloque);
 				bitarray_set_bit(superblock.bitmap, indice_bloque);
-
+				pthread_mutex_unlock(&superblock.mutex_superbloque);
 				inicioValor += superblock.tamanio_bloque;
 			}
 		}
@@ -345,7 +339,9 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 }
 
 void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
+	pthread_mutex_lock(&superblock.mutex_superbloque);
 	bitarray_clean_bit(superblock.bitmap,indice);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	clean_block("asd,b",indice);
 
 	actualizar_metadata_elimina_bloque(archivo,cantidadAConsumir);
@@ -353,7 +349,6 @@ void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
 }
 
 void consumir_arch(_archivo * archivo,int cantidadAConsumir){
-
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
@@ -397,17 +392,4 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 }
 
-uint32_t leer_contenido_archivo(char * c,_archivo * archivo){
-	int i;
 
-	log_info(logger,"Contenido del archivo: %s",archivo->clave);
-	for(i=0; i < list_size(archivo->blocks); i++){
-
-		int indice = list_get(archivo->blocks,i);
-		obtener_bloque(indice);
-
-	}
-	printf("\n");
-	return 1;
-
-}

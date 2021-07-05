@@ -45,6 +45,7 @@ typedef struct  {
 	uint32_t cantidad_bloques;
 	t_bitarray	* bitmap;
 	char * bitmapstr;
+	pthread_mutex_t mutex_superbloque;
 } str_superblock;
 
 str_superblock superblock;

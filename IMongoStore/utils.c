@@ -90,14 +90,14 @@ void *atenderNotificacion(void * paqueteSocket){
 
 			case EJECUTAR_TAREA:
 
-				/*char * tarea = recibirString(socket);
-				//Case para hacer HANDSHAKE = Chequear la conexion
-				char * accionTarea = devolverDeTarea(tarea,0); "GENERAR_OXIGENO"
-				uint32_t cantidad = atoi(devolverDeTarea(tarea,1)); 10
-				uint32_t id_trip = recvDeNotificacion(socket);
-				ejecutar_tarea(accionTarea, 1);
-				sendDeNotificacion(socket,198);
-				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);*/
+//				char * tarea = recibirString(socket);
+//				//Case para hacer HANDSHAKE = Chequear la conexion
+//				char * accionTarea = devolverDeTarea(tarea,0);
+//				uint32_t cantidad = atoi(devolverDeTarea(tarea,1));
+//				uint32_t id_trip = recvDeNotificacion(socket);
+//				ejecutar_tarea(accionTarea, 1);
+//				sendDeNotificacion(socket,198);
+//				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
 
 				break;
 
