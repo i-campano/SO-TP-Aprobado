@@ -17,11 +17,12 @@ int main(void)
 	iniciar_blocks();
 
 	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno","O");
-//	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,archivo_comida,"comida","C");
+	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida","C");
 //	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,archivo_basura,"basura","B");
 //	prueba_func_core_ejecucion();
 
-	init_server();
+	fs_server = iniciarServidor(5003);
+
 	manejadorDeHilos();
 
 	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora

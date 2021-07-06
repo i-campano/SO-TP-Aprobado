@@ -36,16 +36,18 @@ t_config* leer_config() {
 
 
 void init_server(){
-	fs_server = iniciarServidor(5003);
+
 
 	log_info(logger, "FS_SERVER OK");
 }
 
 void manejadorDeHilos(){
+	log_info(logger,"1");
 	int socketCliente;
 
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(fs_server))) { 	// hago el accept
+		log_info(logger,"2");
 		pthread_t * thread_id = malloc(sizeof(pthread_t));
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
@@ -86,39 +88,46 @@ void *atenderNotificacion(void * paqueteSocket){
 					//log_info(logger,"ENVIANDO TAREAS");
 					//sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
 				//}
-			}
 				break;
+			}
 
-
-			case EJECUTAR_TAREA:{
+			case 8:{
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				uint32_t id_trip = recvDeNotificacion(socket);
 				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
-				//ejecutar_tarea(tarea);
+				tipoTarea(tarea);
 				sendDeNotificacion(socket,198);
 
 
 				break;
-
-			case LOGUEAR_BITACORA:
-
-						/*char * tarea = recibirString(socket);
-						//Case para hacer HANDSHAKE = Chequear la conexion
-						char * accionTarea = devolverDeTarea(tarea,0); "GENERAR_OXIGENO"
-						uint32_t cantidad = atoi(devolverDeTarea(tarea,1)); 10
-						uint32_t id_trip = recvDeNotificacion(socket);
-						ejecutar_tarea(accionTarea, 1);
-						sendDeNotificacion(socket,198);
-						log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);*/
-
-						break;
+			}
 			default:
 				log_warning(logger, "La conexion recibida es erronea");
 				break;
 		}
 	}
 	return 0;
+}
+
+void ejecutar_tarea(char * tarea,char caracter_tarea,_archivo * archivo){
+	int cantidad = parsear_tarea(tarea);
+	char * cadena = string_repeat(caracter_tarea,cantidad);
+	write_archivo(cadena,archivo_oxigeno);
+}
+
+int parsear_tarea(char* tarea,int cantidad_caracteres) {
+	char** tarea_separada = string_split(tarea,";");
+	char** tarea_parametro = string_split(tarea_separada[0]," ");
+
+	if(tarea_parametro[1] == NULL) {
+		cantidad_caracteres = 0;
+	}else{
+		cantidad_caracteres = atoi(tarea_parametro[1]);
+	}
+	log_info(logger,"cantidad de caracteres %d",cantidad_caracteres);
+	free(tarea_parametro);//stringsplit
+	return cantidad_caracteres;
 }
 
 
@@ -143,33 +152,27 @@ void *atenderNotificacion(void * paqueteSocket){
 
 
 
-
-
-
-
-
-
-
 ////////////////////////////////////////////FUNCIONES DE TAREAS/////////////////////////////////////
-void ejecutarTarea(char* tarea, uint32_t  cantidad){
+void tipoTarea(char* tarea){
 
-	if (strcmp("GENERAR_OXIGENO", tarea)==0){
-		generarOxigeno(cantidad);
+	if (strncmp("GENERAR_OXIGENO", tarea,12)==0){
+		ejecutar_tarea(tarea,'O',archivo_oxigeno);
 	}
-	else if (strcmp("GENERAR_COMIDA", tarea)==0){
-		generarComida(cantidad);
+	else if (strncmp("GENERAR_COMIDA", tarea,12)==0){
+		log_info(logger,"GENERANDO COMIDA...");
+		ejecutar_tarea(tarea,'C',archivo_comida);
 	}
-	else if ( strcmp("GENERAR_BASURA", tarea)==0) {
-		generarBasura(cantidad);
+	else if ( strncmp("GENERAR_BASURA", tarea,12)==0) {
+//		ejecutar_tarea(tarea,'B',);
 	}
-	else if (strcmp("CONSUMIR_OXIGENO", tarea)==0) {
-		consumirOxigeno(cantidad);
+	else if (strncmp("CONSUMIR_OXIGENO", tarea,12)==0) {
+//		ejecutar_tarea(tarea,'O');
 	}
-	else if ( strcmp("CONSUMIR_COMIDA", tarea)==0) {
-		consumirComida(cantidad);
+	else if ( strncmp("CONSUMIR_COMIDA", tarea,12)==0) {
+//		ejecutar_tarea(tarea,'C');
 	}
-	else if (strcmp("DESCARTAR_BASURA", tarea)==0){
-		descartarBasura();
+	else if (strncmp("DESCARTAR_BASURA", tarea,12)==0){
+//		ejecutar_tarea(tarea,'B');
 	}
 	else {
 			printf("Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
@@ -604,6 +607,3 @@ short iniciaEstructuraDeArchivos()
 
 }
 
-
-}
-////////////////////////////////////////////FUNCIONES DE INICIO/  ////////////////////////////////////

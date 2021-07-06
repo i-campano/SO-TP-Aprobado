@@ -198,7 +198,6 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 }
 
 void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
-	pthread_mutex_lock(&archivo->mutex_file);
 	char * md5 = string_new();
 	md5 = config_get_string_value (archivo->metadata, "MD5");
 
@@ -226,11 +225,9 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	free(nuevo);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
-	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
-	pthread_mutex_lock(&archivo->mutex_file);
 	char * md5 = string_new();
 	md5 = config_get_string_value (archivo->metadata, "MD5");
 
@@ -241,21 +238,17 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	size+=bytes;
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 	config_save(archivo->metadata);
-	pthread_mutex_unlock(&archivo->mutex_file);
 
 }
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
-	pthread_mutex_lock(&archivo->mutex_file);
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size-=cantidadABorrar;
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 	config_save(archivo->metadata);
-	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
-	pthread_mutex_lock(&archivo->mutex_file);
 	char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 	int block_count = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
@@ -267,10 +260,10 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
-	pthread_mutex_unlock(&archivo->mutex_file);
 }
 
 uint32_t write_archivo(char* valor,_archivo * archivo){
+	pthread_mutex_lock(&(archivo->mutex_file));
 
 	uint32_t resultado;
 	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
@@ -337,8 +330,8 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 			}
 		}
 	}
+	pthread_mutex_unlock(&(archivo->mutex_file));
 	return 1;
-
 }
 
 void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
