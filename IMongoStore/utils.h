@@ -22,9 +22,10 @@
 #include<string.h>
 #include "socket.h"
 #include<time.h>
+#include "estructurasFileSystem.h"
 
-#include "fs_estructuras.h"
 int fs_server;
+
 
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION

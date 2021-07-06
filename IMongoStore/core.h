@@ -16,7 +16,7 @@
 #include "utils.h"
 #include "socket.h"
 #include <sys/mman.h>
-#include "fs_estructuras.h"
+#include "estructurasFileSystem.h"
 #include "protocolo.h"
 #include "arrays.h"
 
@@ -28,7 +28,7 @@ int calcular_bloques_libres();
 uint32_t leer_contenido_archivo(char* valor,_archivo * arch);
 int leer_metadata_archivo(char * cadena_caracteres,int indice, _archivo archivo);
 void actualizar_metadata(_archivo * archivo,int n_block,char * valorAux);
-void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file,char * caracter_llenado);
+void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * caracter_llenado);
 void iniciar_blocks();
 void consumir_arch(_archivo * archivo,int cantidadAConsumir);
 void remover_bloque(int indice,_archivo * archivo,int cantidadAConsumir);
