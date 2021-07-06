@@ -1,12 +1,14 @@
 /*
- * fs_estructuras.h
+ * estructurasFileSystem.h
  *
- *  Created on: 3 jul. 2021
+ *  Created on: 5 jul. 2021
  *      Author: utnso
  */
 
-#ifndef FS_ESTRUCTURAS_H_
-#define FS_ESTRUCTURAS_H_
+#ifndef ESTRUCTURASFILESYSTEM_H_
+#define ESTRUCTURASFILESYSTEM_H_
+
+
 
 typedef t_config str_metadata;
 
@@ -27,9 +29,10 @@ typedef struct _archivo{
 	pthread_mutex_t mutex_file;
 } _archivo;
 
-_archivo archivo_oxigeno;
-_archivo archivo_comida;
-_archivo archivo_basura;
+_archivo * archivo_oxigeno;
+
+//_archivo archivo_comida;
+//_archivo archivo_basura;
 
 
 typedef struct blocks{
@@ -62,4 +65,4 @@ typedef struct {
 int fs_server;
 
 
-#endif /* FS_ESTRUCTURAS_H_ */
+#endif /* ESTRUCTURASFILESYSTEM_H_ */

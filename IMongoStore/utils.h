@@ -23,7 +23,7 @@
 #include "socket.h"
 #include<time.h>
 
-#include "fs_estructuras.h"
+#include "estructurasFileSystem.h"
 
 
 

@@ -176,21 +176,24 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 }
 
 
-void iniciar_archivo(char * name_file,_archivo *archivo,char * key_file,char * caracter_llenado){
-	archivo->clave = string_new();
-	string_append(&(archivo->clave),key_file);
+void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * caracter_llenado){
+	*archivo = (_archivo*)malloc(sizeof(_archivo));
+	(*archivo)->metadata = malloc(sizeof(t_config));
+	(*archivo)->clave = string_new();
+	string_append(&((*archivo)->clave),key_file);
 
-	(*archivo).blocks = list_create();
-	archivo->metadata = config_create(name_file);
+	(*archivo)->blocks = list_create();
+	(*archivo)->metadata = config_create(name_file);
 
-	config_set_value(archivo->metadata,"CARACTER_LLENADO",caracter_llenado);
+	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
 
-	config_set_value(archivo->metadata,"MD5","XXXX");
-	config_set_value(archivo->metadata,"SIZE","0");
-	config_set_value(archivo->metadata,"BLOCKS","[]");
-	config_set_value(archivo->metadata,"BLOCK_COUNT","0");
+	config_set_value((*archivo)->metadata,"MD5","XXXX");
+	config_set_value((*archivo)->metadata,"SIZE","0");
+	config_set_value((*archivo)->metadata,"BLOCKS","[]");
+	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
 
-	pthread_mutex_init(&(*archivo).mutex_file, NULL);
+	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
+
 
 }
 
