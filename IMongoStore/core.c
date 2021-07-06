@@ -61,7 +61,7 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 	strcpy(bloque.data, cadena);
 
-
+//	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, cadena, string_length(cadena));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
@@ -191,6 +191,13 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	string_append(&((*archivo)->clave),key_file);
 
 	(*archivo)->blocks = list_create();
+
+	t_config *config;
+	if((config = config_create(name_file))!=NULL) {
+		FILE * metadata = open(name_file, O_RDWR | O_CREAT | O_TRUNC , (mode_t)0600);
+		ftruncate(metadata,1000);
+	}
+
 	(*archivo)->metadata = config_create(name_file);
 
 	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
@@ -270,7 +277,33 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 	config_save(archivo->metadata);
 }
 
-uint32_t write_archivo(char* valor,_archivo * archivo){
+void bitarray_set_bit_monitor(int indice_bloque) {
+	//TODO: set bit a funcion
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	bitarray_set_bit(superblock.bitmap, indice_bloque);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+}
+
+void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
+	//Si el ultiimo bloque esta completo -> creo los bloques nuevos que necesito para almacenar la cadena
+	int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(
+			cadenaAGuardar);
+	int offsetBytesAlmacenados = 0;
+	int bloqueslibres = calcular_bloques_libres();
+	for (int i = 0; i < posicionesStorageAOcupar; i++) {
+		char* valorAux = string_substring(cadenaAGuardar,
+				offsetBytesAlmacenados, superblock.tamanio_bloque);
+		int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
+		log_info(logger, "indice de bloque asignado a %s, :%d", archivo->clave,
+				indice_bloque);
+		write_blocks(valorAux, indice_bloque);
+		actualizar_metadata(archivo, indice_bloque, valorAux);
+		bitarray_set_bit_monitor(indice_bloque);
+		offsetBytesAlmacenados += superblock.tamanio_bloque;
+	}
+}
+
+uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	uint32_t resultado;
@@ -278,66 +311,45 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 
 	log_debug(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
 
+	//Chequeo si hay lugar en el ultimo bloque
 	if(bytesArchivo%superblock.tamanio_bloque==0){
 
+		//Si el ultiimo bloque esta completo -> creo los bloques nuevos que necesito para almacenar la cadena
+		llenar_nuevo_bloque(cadenaAGuardar, archivo);
 
-
-		int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(valor);
-		int i;
-		int inicioValor = 0;
-
-		//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
-
-		for(i=0; i < posicionesStorageAOcupar; i++){
-
-			char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
-
-			int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
-			log_info(logger,"indice de bloque asignado a %s, :%d", archivo->clave,indice_bloque);
-			write_blocks(valorAux,indice_bloque);
-
-			actualizar_metadata(archivo,indice_bloque,valorAux);
-			pthread_mutex_lock(&superblock.mutex_superbloque);
-			bitarray_set_bit(superblock.bitmap, indice_bloque);
-			pthread_mutex_unlock(&superblock.mutex_superbloque);
-
-			inicioValor += superblock.tamanio_bloque;
-		}
 	}else{
+		//bytesArchivo : restas sucesivas para quedarme con el espacio OCUPADO del ultimo bloque.
 		while(bytesArchivo>superblock.tamanio_bloque) bytesArchivo-=superblock.tamanio_bloque;
+
+		int espacioLibreUltimoBloque = superblock.tamanio_bloque-bytesArchivo;
+
 		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
+
 		int count_block = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+
 		char * last_block = blocks[count_block-1];
-		if(string_length(valor)<=superblock.tamanio_bloque-bytesArchivo){
+
+		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
+
 			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
-			write_blocks_with_offset(valor,atoi(last_block),bytesArchivo);
-			actualizar_metadata_sin_crear_bloque(archivo,valor);
+
+			write_blocks_with_offset(cadenaAGuardar,atoi(last_block),bytesArchivo);
+
+			//TODO: podria armar un actualizar metadata mas generico con varios if
+			actualizar_metadata_sin_crear_bloque(archivo,cadenaAGuardar);
+
 		}else{
-			char * primera_parte  = string_substring_until(valor,superblock.tamanio_bloque-bytesArchivo);
-			char * desde = string_substring_from(valor,superblock.tamanio_bloque-bytesArchivo);
-			write_blocks_with_offset(primera_parte,atoi(last_block),bytesArchivo);
-			actualizar_metadata_sin_crear_bloque(archivo,primera_parte);
 
-			int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(desde);
-			int i;
-			int inicioValor = 0;
+			char * rellenoDeUltimoBloque  = string_substring_until(cadenaAGuardar,espacioLibreUltimoBloque);
 
-			//chequear si hay lugar en el ultimo bloque antes de agregar uno nuevo
+			write_blocks_with_offset(rellenoDeUltimoBloque,atoi(last_block),bytesArchivo);
 
-			for(i=0; i < posicionesStorageAOcupar; i++){
+			actualizar_metadata_sin_crear_bloque(archivo,rellenoDeUltimoBloque);
 
-				char* valorAux = string_substring(desde,inicioValor,superblock.tamanio_bloque);
+			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
-				int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
+			llenar_nuevo_bloque(contenidoProximoBloque, archivo);
 
-				write_blocks(valorAux,indice_bloque);
-
-				actualizar_metadata(archivo,indice_bloque,valorAux);
-				pthread_mutex_lock(&superblock.mutex_superbloque);
-				bitarray_set_bit(superblock.bitmap, indice_bloque);
-				pthread_mutex_unlock(&superblock.mutex_superbloque);
-				inicioValor += superblock.tamanio_bloque;
-			}
 		}
 	}
 	pthread_mutex_unlock(&(archivo->mutex_file));
