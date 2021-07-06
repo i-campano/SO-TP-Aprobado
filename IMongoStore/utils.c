@@ -116,6 +116,14 @@ void ejecutar_tarea(char * tarea,char caracter_tarea,_archivo * archivo){
 	write_archivo(cadena,archivo);
 }
 
+
+void ejecutar_tarea_consumir(char * tarea,char caracter_tarea,_archivo * archivo){
+	int cantidad = parsear_tarea(tarea);
+	char * cadena = string_repeat(caracter_tarea,cantidad);
+	consumir_arch(archivo,cantidad);
+}
+
+
 int parsear_tarea(char* tarea,int cantidad_caracteres) {
 	char** tarea_separada = string_split(tarea,";");
 	char** tarea_parametro = string_split(tarea_separada[0]," ");
@@ -156,6 +164,7 @@ int parsear_tarea(char* tarea,int cantidad_caracteres) {
 void tipoTarea(char* tarea){
 
 	if (strncmp("GENERAR_OXIGENO", tarea,12)==0){
+		log_info(logger,"generando OXIGENO...");
 		ejecutar_tarea(tarea,'O',archivo_oxigeno);
 	}
 	else if (strncmp("GENERAR_COMIDA", tarea,12)==0){
@@ -166,7 +175,8 @@ void tipoTarea(char* tarea){
 //		ejecutar_tarea(tarea,'B',);
 	}
 	else if (strncmp("CONSUMIR_OXIGENO", tarea,12)==0) {
-//		ejecutar_tarea(tarea,'O');
+		log_info(logger,"consumiendo OXIGENO...");
+		ejecutar_tarea_consumir(tarea,'O',archivo_oxigeno);
 	}
 	else if ( strncmp("CONSUMIR_COMIDA", tarea,12)==0) {
 //		ejecutar_tarea(tarea,'C');

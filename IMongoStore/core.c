@@ -68,12 +68,12 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 	return 1;
 }
 
-int clean_block(char * cadena_caracteres,int indice) {
+int clean_block(int indice) {
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), "****", sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
@@ -179,8 +179,7 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 			break;
 		}
 	}
-
-
+	return 99999;
 }
 
 
@@ -243,27 +242,32 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
-	char * md5 = string_new();
+	char * md5;
 	md5 = config_get_string_value (archivo->metadata, "MD5");
+	log_debug(logger,"MD5: %s",md5);
 
-	string_length(valorAux);
 	int bytes = string_length(valorAux);
-
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
+
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
 	config_save(archivo->metadata);
 
 }
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
 	int size = config_get_int_value(archivo->metadata,"SIZE");
+
 	size-=cantidadABorrar;
+
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
 	config_save(archivo->metadata);
 }
 
 void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
+
 	char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 	int block_count = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
@@ -357,41 +361,49 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 }
 
 void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
+
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	bitarray_clean_bit(superblock.bitmap,indice);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
-	clean_block("asd,b",indice);
+
+	clean_block(indice);
 
 	actualizar_metadata_elimina_bloque(archivo,cantidadAConsumir);
 
 }
 
 void consumir_arch(_archivo * archivo,int cantidadAConsumir){
+	pthread_mutex_lock(&(archivo->mutex_file));
+
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	cantidad_bloques--;
 	char * bloque = bloques[cantidad_bloques];
 
+	int sizeUltimoBloque = size;
+	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
+
 	char * contenidoBloque = string_new();
 
 	int indice = atoi(bloque);
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
-	int longitudBloque = string_length(contenidoBloque);
+	int longitudBloque = 0 ;
 
 	while((cantidadAConsumir>0)){
 
-		if(cantidadAConsumir>longitudBloque){
+		if(cantidadAConsumir>sizeUltimoBloque){
 
-			cantidadAConsumir-=longitudBloque;
-			remover_bloque(indice,archivo,longitudBloque);
+			cantidadAConsumir-=sizeUltimoBloque;
+			remover_bloque(indice,archivo,sizeUltimoBloque);
 			contenidoBloque = string_new();
 			cantidad_bloques--;
 			bloque = bloques[cantidad_bloques];
 			indice = atoi(bloque);
 			obtener_contenido_bloque(indice,&contenidoBloque);
 			longitudBloque = string_length(contenidoBloque);
+			sizeUltimoBloque =longitudBloque;
 		}
 		else if(cantidadAConsumir==longitudBloque){
 			cantidadAConsumir-=longitudBloque;
@@ -407,6 +419,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		}
 
 	}
+	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
 
