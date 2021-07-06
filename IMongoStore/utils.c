@@ -91,7 +91,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				break;
 			}
 
-			case 8:{
+			case EJECUTAR_TAREA:{
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				uint32_t id_trip = recvDeNotificacion(socket);
@@ -113,7 +113,7 @@ void *atenderNotificacion(void * paqueteSocket){
 void ejecutar_tarea(char * tarea,char caracter_tarea,_archivo * archivo){
 	int cantidad = parsear_tarea(tarea);
 	char * cadena = string_repeat(caracter_tarea,cantidad);
-	write_archivo(cadena,archivo_oxigeno);
+	write_archivo(cadena,archivo);
 }
 
 int parsear_tarea(char* tarea,int cantidad_caracteres) {
