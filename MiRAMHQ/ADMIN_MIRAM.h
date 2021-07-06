@@ -45,14 +45,7 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t tamanio;
 }tablaSegmento_t;
-typedef struct{
-	uint32_t nFrame;
-	bool estado;
-}frame_t;
-typedef struct{
-	uint32_t nPagina;
-	uint32_t id_patota;
-}pagina_t;
+
 typedef struct {
 	uint32_t id;
 	char* tareas;
@@ -69,7 +62,6 @@ typedef struct {
 }tcb_t;
 
 t_list* listaSegmentos;
-t_list* tablaSegmentos;
 t_list* listaTablaSegmentos;
 
 pthread_mutex_t accesoMemoria;
@@ -124,4 +116,6 @@ void setPcb(pcb_t pcb);
 void setTcb (int idPedido,tcb_t tcb);
 
 char* reconocer_tareas(char* tarea,uint32_t tareaPedida);
+
+int eliminar_tripulante(uint32_t id_trip,uint32_t id_patota);
 #endif /* ADMIN_MIRAM_H_ */

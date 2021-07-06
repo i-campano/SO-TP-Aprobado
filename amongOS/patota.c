@@ -7,7 +7,7 @@
 #include "patota.h"
 
 
-
+//bool
 void crear_patota(char * comando){
 
 	t_list * list_trip_aux = list_create();
@@ -59,6 +59,11 @@ void crear_patota(char * comando){
 			&tamanioGet, tareasOk, posiciones);
 
 	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
+	/*if(recvDeNotificacion(socketServerMiRam) == PATOTA_CREADA){
+		log_error(logger,"No se pudo crear");
+		return false;
+	}
+	*/
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		sendDeNotificacion(socketServerMiRam,tripulantes_creados);
