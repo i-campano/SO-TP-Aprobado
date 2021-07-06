@@ -22,7 +22,7 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 }
 
 void iniciar_blocks(){
-	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT , (mode_t)0600);
+	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT | O_TRUNC , (mode_t)0600);
 
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
 
@@ -35,9 +35,12 @@ void iniciar_blocks(){
 int write_blocks(char * cadena_caracteres,int indice) {
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
-	bzero(&bloque, sizeof(t_bloque));
-
-	strcpy(bloque.data, cadena_caracteres);
+	bzero(&bloque ,sizeof(t_bloque));
+	int padding = sizeof(bloque.data) - strlen(cadena_caracteres);
+	char * pad = string_repeat('#',padding);
+	char * cadena  = string_duplicate(cadena_caracteres);
+	string_append(&cadena,pad);
+	strcpy(bloque.data, cadena);
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
@@ -49,11 +52,17 @@ int write_blocks(char * cadena_caracteres,int indice) {
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
-	bzero(&bloque, sizeof(t_bloque));
+	bzero(&bloque ,sizeof(t_bloque));
 
-	strcpy(bloque.data, cadena_caracteres);
+	int padding = sizeof(bloque.data) - offset-strlen(cadena_caracteres);
+	char * pad = string_repeat('#',padding);
+	char * cadena  = string_duplicate(cadena_caracteres);
+	string_append(&cadena,pad);
 
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, &(bloque.data), sizeof(t_bloque));
+	strcpy(bloque.data, cadena);
+
+
+	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, cadena, string_length(cadena));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
@@ -150,7 +159,6 @@ int calcular_bloques_libres(){
 
 
 int obtener_indice_para_guardar_en_bloque(char * valor){
-	pthread_mutex_lock(&superblock.mutex_superbloque);
 	int lugares = calcular_cantidad_bloques_requeridos(valor);
 	int cont = 0;
 	int i;
@@ -159,20 +167,20 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 	for(i=0;i<cantidadDePosiciones;i++){
 
+		pthread_mutex_lock(&superblock.mutex_superbloque);
 		if(bitarray_test_bit(superblock.bitmap,i)){
 			cont = 0;
 		} else{
 			cont++;
 		}
-
+		pthread_mutex_unlock(&superblock.mutex_superbloque);
 		if(cont >= lugares){
-			resultado= i - lugares + 1;
+			return i - lugares + 1;
 			break;
 		}
 	}
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
 
-	return resultado;
+
 }
 
 
@@ -268,6 +276,8 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 	uint32_t resultado;
 	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
 
+	log_debug(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
+
 	if(bytesArchivo%superblock.tamanio_bloque==0){
 
 
@@ -283,7 +293,7 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 			char* valorAux = string_substring(valor,inicioValor,superblock.tamanio_bloque);
 
 			int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
-
+			log_info(logger,"indice de bloque asignado a %s, :%d", archivo->clave,indice_bloque);
 			write_blocks(valorAux,indice_bloque);
 
 			actualizar_metadata(archivo,indice_bloque,valorAux);
@@ -299,7 +309,7 @@ uint32_t write_archivo(char* valor,_archivo * archivo){
 		int count_block = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 		char * last_block = blocks[count_block-1];
 		if(string_length(valor)<=superblock.tamanio_bloque-bytesArchivo){
-
+			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
 			write_blocks_with_offset(valor,atoi(last_block),bytesArchivo);
 			actualizar_metadata_sin_crear_bloque(archivo,valor);
 		}else{
