@@ -33,7 +33,6 @@ void iniciar_blocks(){
 }
 
 int write_blocks(char * cadena_caracteres,int indice) {
-	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque ,sizeof(t_bloque));
 	int padding = sizeof(bloque.data) - strlen(cadena_caracteres);
@@ -44,13 +43,11 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
 
 	return 1;
 }
 
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
-	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque ,sizeof(t_bloque));
 
@@ -64,23 +61,19 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, cadena, string_length(cadena));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
 int clean_block(int indice) {
-	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), "****", sizeof(t_bloque));
 	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
 int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
-	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -88,13 +81,11 @@ int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
 
 //	printf("%s",bloque.data);
 	string_append(bloqueReturned,(bloque.data));
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
 
 	return 1;
 }
 
 int obtener_bloque(int indice) {
-	pthread_mutex_lock(&_blocks.mutex_blocks);
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
 
@@ -102,7 +93,6 @@ int obtener_bloque(int indice) {
 
 	printf("%s",bloque.data);
 
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	return 1;
 }
 
@@ -140,7 +130,7 @@ void iniciar_super_block(){
 
 }
 
-int calcular_bloques_libres(){
+int calcular_bloques_libres_ONLY(){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	int resultado = 0;
 	int i;
@@ -156,6 +146,20 @@ int calcular_bloques_libres(){
 	return resultado;
 }
 
+int calcular_bloques_libres(){
+	int resultado = 0;
+	int i;
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+
+	for(i=0;i<cantidadDePosiciones;i++){
+
+		if(!bitarray_test_bit(superblock.bitmap,i)){
+			resultado++;
+		}
+	}
+	return resultado;
+}
+
 
 
 int obtener_indice_para_guardar_en_bloque(char * valor){
@@ -167,13 +171,11 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 	for(i=0;i<cantidadDePosiciones;i++){
 
-		pthread_mutex_lock(&superblock.mutex_superbloque);
 		if(bitarray_test_bit(superblock.bitmap,i)){
 			cont = 0;
 		} else{
 			cont++;
 		}
-		pthread_mutex_unlock(&superblock.mutex_superbloque);
 		if(cont >= lugares){
 			return i - lugares + 1;
 			break;
@@ -283,9 +285,7 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 
 void bitarray_set_bit_monitor(int indice_bloque) {
 	//TODO: set bit a funcion
-	pthread_mutex_lock(&superblock.mutex_superbloque);
 	bitarray_set_bit(superblock.bitmap, indice_bloque);
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
 }
 
 void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
@@ -315,6 +315,8 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 	log_debug(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
 
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	pthread_mutex_lock(&superblock.mutex_superbloque);
 	//Chequeo si hay lugar en el ultimo bloque
 	if(bytesArchivo%superblock.tamanio_bloque==0){
 
@@ -356,15 +358,15 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		}
 	}
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));
 	return 1;
 }
 
 void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
 
-	pthread_mutex_lock(&superblock.mutex_superbloque);
 	bitarray_clean_bit(superblock.bitmap,indice);
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
 
 	clean_block(indice);
 
@@ -387,6 +389,9 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	char * contenidoBloque = string_new();
 
 	int indice = atoi(bloque);
+
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	pthread_mutex_lock(&superblock.mutex_superbloque);
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = 0 ;
@@ -419,6 +424,8 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		}
 
 	}
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
