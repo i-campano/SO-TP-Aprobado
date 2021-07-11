@@ -102,7 +102,7 @@ int obtener_bloque(int indice) {
 
 void sincronizar_blocks(){
 	while(1){
-		sleep(10);
+		sleep(conf_TIEMPO_SINCRONIZACION);
 		log_info(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
 

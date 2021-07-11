@@ -12,6 +12,7 @@ void iniciar_configuracion(){
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
 	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
+	conf_TIEMPO_SINCRONIZACION = config_get_int_value (config, "TIEMPO_SINCRONIZACION");
 	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
 	//conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
 	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
