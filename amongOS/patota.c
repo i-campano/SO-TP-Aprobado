@@ -23,7 +23,7 @@ void crear_patota(char * comando){
     while (fgets(bufer, 1000, archivo))
     {
         // Aquí, justo ahora, tenemos ya la línea. Le vamos a remover el salto
-        strtok(bufer, "\n");
+        //strtok(bufer, "\n");
         // La imprimimos, pero realmente podríamos hacer cualquier otra cosa
 		string_append(&tareasX,bufer);
 		string_append(&tareasX,"-");
@@ -67,12 +67,14 @@ void crear_patota(char * comando){
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		sendDeNotificacion(socketServerMiRam,tripulantes_creados);
-		recvDeNotificacion(socketServerMiRam);
+
 		int * id = malloc(sizeof(int));
 		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
 		_tripulante->id = tripulantes_creados;
 		_tripulante->patota_id = patotaId;
+		_tripulante->direccionLogica = recvDeNotificacion(socketServerMiRam);
+		recvDeNotificacion(socketServerMiRam);
 		sem_init(&_tripulante->creacion,0,0);
 
 		list_add(list_trip_aux,_tripulante);

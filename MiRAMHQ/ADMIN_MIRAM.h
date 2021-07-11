@@ -32,7 +32,7 @@
 #define ERROR_CREACION_MEMORIA -2
 #define ERROR -3
 
-
+//Segmentacion
 typedef struct {
 	uint32_t inicio;
 	uint32_t tipoDato; //Que dato hay?
@@ -45,6 +45,22 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t tamanio;
 }tablaSegmento_t;
+//Paginacion
+typedef struct {
+	uint32_t numeroFrame;
+	bool estado; //true = Libre
+}frame_t;
+typedef struct {
+	uint32_t recentUsed;
+	uint32_t idPatota;
+	t_list* listaAsignados;
+	uint32_t tamanioTareas;
+	uint32_t ocupado;
+}tabla_t;
+
+typedef struct {
+	uint32_t Nframe;
+}pagina_t;
 
 typedef struct {
 	uint32_t id;
@@ -63,10 +79,12 @@ typedef struct {
 
 t_list* listaSegmentos;
 t_list* listaTablaSegmentos;
-
+t_list* tablasPatotaPaginacion;
+t_list* framesMemoria;
 pthread_mutex_t accesoMemoria;
 pthread_mutex_t accesoListaSegmentos;
 pthread_mutex_t accesoListaTablas;
+bool paginacion;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES
@@ -82,7 +100,7 @@ void* condicionSegmentoLibrePcbBF(void* segmento,void* otroSegmento);
 //Creadores de segmentos segun tipo de dato
 segmento_t* buscar_segmento(pcb_t pcb);
 segmento_t* buscar_segmentoTcb(tcb_t tcb,uint32_t patotaId);
-segmento_t* buscar_segmentoTareas(pcb_t pcb,char* tareas);
+segmento_t* buscar_segmentoTareas(pcb_t pcb,uint32_t tareas);
 t_list* buscarTablaPatota(uint32_t id);
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
 void crear_patota(uint32_t cant_trip,char* tareas);
@@ -118,4 +136,18 @@ void setTcb (int idPedido,tcb_t tcb);
 char* reconocer_tareas(char* tarea,uint32_t tareaPedida);
 
 int eliminar_tripulante(uint32_t id_trip,uint32_t id_patota);
+//PAGINACION!
+void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica);
+uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direccionLogica);
+
+uint32_t calcular_frames(uint32_t tamanioTotal);
+void mostrarFrames(void* frame);
+bool condicionFrameLibre(void* valor);
+int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota);
+int crear_memoria_(void);
+int crear_tripulante_(tcb_t tcb,uint32_t idpatota,tabla_t* tablaPatota);
+int crear_patota_(pcb_t pcb,char* tareas,uint32_t cantidad_tripulantes,tabla_t* tabla);
+uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla);
+void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica);
+tabla_t* buscarTablaId(uint32_t id);
 #endif /* ADMIN_MIRAM_H_ */

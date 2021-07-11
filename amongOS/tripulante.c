@@ -5,6 +5,8 @@ char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 //	log_debug(logger,"T%d - P%d : PIDIO TAREA", tripulante->id,tripulante->patota_id);
 	sendDeNotificacion(socketRam, PEDIR_TAREA);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->patota_id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", OPERACION);
 	char* tarea = string_new();
@@ -21,6 +23,8 @@ void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado) {
 	//0 new - 1 ready - 2 block - 3 exec - 4 fin
 	sendDeNotificacion(socketRam, ACTUALIZAR_ESTADO_MIRAM);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->patota_id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	sendDeNotificacion(socketRam,estado);
 
 	uint32_t RESPONSE_ACTUALIZACION = recvDeNotificacion(socketRam);
@@ -34,6 +38,8 @@ void actualizar_ubicacion(int socketRam, t_tripulante* tripulante) {
 
 	sendDeNotificacion(socketRam, ACTUALIZAR_UBICACION);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->patota_id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	sendDeNotificacion(socketRam,tripulante->ubi_x);
 	sendDeNotificacion(socketRam,tripulante->ubi_y);
 
@@ -106,6 +112,8 @@ void *labor_tripulante_new(void * trip){
 
 	sendDeNotificacion(socketRam,PEDIR_UBICACION);
 	sendDeNotificacion(socketRam,tripulante->id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->patota_id);
+	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
 	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
 	log_info(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);

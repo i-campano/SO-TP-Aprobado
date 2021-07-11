@@ -38,6 +38,7 @@ typedef struct {
 	uint32_t ubi_x;
 	uint32_t ubi_y;
 	int block_io_rafaga;
+	uint32_t direccionLogica;
 }t_tripulante;
 
 

@@ -1,5 +1,5 @@
 #include"utils.h"
-
+#include "ADMIN_MIRAM.h"
 #include "socket.h"
 
 void iniciarEstructurasAdministrativas(){
@@ -99,19 +99,24 @@ void *atenderNotificacion(void * paqueteSocket){
 			crear_pcb(socket);
 
 
-			list_iterate(listaSegmentos,mostrarEstadoMemoria);
 			sendDeNotificacion(socket, PATOTA_CREADA);
 			log_info(logger, "----------------FIN PATOTA CREADA----------------");
 			break;
 		}
 		case PEDIR_TAREA:{
+
 			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			tabla_t* tabla = buscarTablaId(id_patota);
 			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d",id_trip,socket);
-			tcb_t tcb = getTcb((int)(id_trip));
+			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
+			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion(tcb->prox_tarea,tabla);
 //			encontrar_trip(id_trip);
-			char * tarea = getTarea(tcb.pcb,tcb.prox_tarea);
-			tcb.prox_tarea++;
-			setTcb(tcb.id,tcb);
+			char * tarea = getInstruccion(id_patota,tamanioProximaInstruccion,tcb->prox_tarea);
+			tcb->prox_tarea += tamanioProximaInstruccion + 1; //ELIMINO \N;
+			guardarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
+			free(tcb);
 			log_info(logger,"La tarea encontrada es %s",tarea);
 //			log_info(logger,"tripulante id: %d, patota id: %d, tarea: %s indice tarea a pedir: %d",tripulante->id,tripulante->patota_id,tarea,tripulante->instrucciones_ejecutadas);
 
@@ -119,6 +124,7 @@ void *atenderNotificacion(void * paqueteSocket){
 //			tripulante->instrucciones_ejecutadas++;
 
 			enviar_tarea(socket,tarea);
+			//free(tarea);
 			//sendDeNotificacion(socket,85);
 
 
@@ -126,20 +132,31 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		}
 		case PEDIR_UBICACION:{
-			log_info(logger,"----------------1---------------------");
 			uint32_t trip_id = recvDeNotificacion(socket);
-			tcb_t tcb  = getTcb((int)trip_id);
-			log_info(logger, "trip: %d, x:%d , y:%d",trip_id,tcb.x,tcb.y);
-			sendDeNotificacion(socket, tcb.x);
-			sendDeNotificacion(socket, tcb.y);
+			uint32_t patota_id = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			//tcb_t tcb  = getTcb((int)trip_id);
+			tcb_t* tcb = getDato(patota_id,sizeof(tcb_t),direccionLogica);
+			log_info(logger, "trip: %d, x:%d , y:%d",trip_id,tcb->x,tcb->y);
+			sendDeNotificacion(socket, tcb->x);
+			sendDeNotificacion(socket, tcb->y);
 			log_info(logger, "ubicacion enviada al discordiador");
+			free(tcb);
 			break;
 
 		}
 
 		case ACTUALIZAR_ESTADO_MIRAM:{
 			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			tabla_t* tabla = buscarTablaId(id_patota);
 			uint32_t estado = recvDeNotificacion(socket);
+			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
+			char estadoV[5] = {'N','R','B','E','F'};
+			tcb->estado = estadoV[estado];
+			guardarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
+			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
 			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %d",id_trip,estado);
 			break;
@@ -148,9 +165,15 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		case ACTUALIZAR_UBICACION:{
 			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			tabla_t* tabla = buscarTablaId(id_patota);
 			uint32_t x = recvDeNotificacion(socket);
 			uint32_t y = recvDeNotificacion(socket);
-
+			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
+			tcb->x = x;
+			tcb->y = y;
+			guardarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			encontrar_trip(id_trip);
 
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
@@ -249,10 +272,12 @@ void crear_pcb(int socket) {
 	//Nuevo
 	pcb_t pcbRam;
 	pcbRam.id = patotaid;
-	log_info(logger, "agregando patota en lista_pcb");
+	log_info(logger, "agregando patota en lista_pcb %i",pcbRam.id);
 
-	crear_patota2(pcbRam,id_posiciones,tareaRam,cantidad_patota);
-	list_iterate(listaSegmentos,mostrarEstadoMemoria);
+	//crear_patota2(pcbRam,id_posiciones,tareaRam,cantidad_patota);
+
+	tabla_t* tablaPatota = malloc(sizeof(tabla_t));
+	crear_patota_(pcbRam,tareaRam,cantidad_patota,tablaPatota);
 	pthread_mutex_lock(&pthread_mutex_pcb_list);
 	list_add(lista_pcb, pcb);
 	pthread_mutex_unlock(&pthread_mutex_pcb_list);
@@ -272,7 +297,22 @@ void crear_pcb(int socket) {
 		asignar_posicion(&coordenadas,pcb->id_posicion,i);
 		char ** coordenadas_posicion_inicial = string_split(coordenadas,"|");
 
-		crear_tripulante((uint32_t)*id,patotaid,(uint32_t)atoi(coordenadas_posicion_inicial[0]),(uint32_t)atoi(coordenadas_posicion_inicial[1]),pcbRam.id);
+		tcb_t temp;
+		temp.x = (uint32_t)atoi(coordenadas_posicion_inicial[0]);
+		temp.y = (uint32_t)atoi(coordenadas_posicion_inicial[1]);
+		temp.id = *id;
+
+		//crear_tripulante((uint32_t)*id,patotaid,(uint32_t)atoi(coordenadas_posicion_inicial[0]),(uint32_t)atoi(coordenadas_posicion_inicial[1]),pcbRam.id);
+		log_debug(logger,"Por crear trip %i",temp.id);
+		crear_tripulante_(temp,patotaid,tablaPatota);
+		if(paginacion){
+			sendDeNotificacion(socket,(tablaPatota->ocupado)-sizeof(tcb_t));
+		}
+		else {
+			sendDeNotificacion(socket,(tablaPatota->ocupado)-1);
+		}
+
+		log_info(logger,"Tripulante %i creado",temp.id);
 		sendDeNotificacion(socket,77);
 
 		free(id); //malloc linea 79 dentro de este while
