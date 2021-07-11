@@ -26,7 +26,10 @@ void iniciar_blocks(){
 
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
 
-	_blocks.fs_bloques = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*sizeof(t_bloque));
+
+
+	_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 
 	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
 
@@ -42,7 +45,6 @@ int write_blocks(char * cadena_caracteres,int indice) {
 	strcpy(bloque.data, cadena);
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
-	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 
 	return 1;
 }
@@ -60,7 +62,6 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, cadena, string_length(cadena));
-	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 	return 1;
 }
 
@@ -69,10 +70,10 @@ int clean_block(int indice) {
 	bzero(&bloque, sizeof(t_bloque));
 
 	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), "****", sizeof(t_bloque));
-	msync(_blocks.fs_bloques, (indice*sizeof(t_bloque)), MS_SYNC);
 	return 1;
 }
 
+//TODO: refactor obtener ->return string
 int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
@@ -96,6 +97,30 @@ int obtener_bloque(int indice) {
 	return 1;
 }
 
+
+//--------------------------SYNC----------------------------------------
+
+void sincronizar_blocks(){
+	while(1){
+		sleep(10);
+		log_info(logger,"SINCRONIZANDO DISCO");
+		pthread_mutex_lock(&_blocks.mutex_blocks);
+
+		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*sizeof(t_bloque)));
+		msync(_blocks.original_blocks, (superblock.cantidad_bloques*sizeof(t_bloque)), MS_SYNC);
+		log_info(logger,"%s: ----------- Original blocks.ims:",_blocks.original_blocks);
+		pthread_mutex_unlock(&_blocks.mutex_blocks);
+
+	}
+}
+
+void hilo_sincronizar_blocks(){
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(&hilo , &attr1,(void*) sincronizar_blocks,NULL);
+}
 
 
 //---------------------------METADATA------------------------------------------------
@@ -358,6 +383,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		}
 	}
+	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));
@@ -424,6 +450,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		}
 
 	}
+	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));

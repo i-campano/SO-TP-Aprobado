@@ -38,6 +38,7 @@ _archivo * archivo_comida;
 typedef struct blocks{
 	FILE * file_blocks;
 	char * fs_bloques;
+	char * original_blocks;
 	pthread_mutex_t mutex_blocks;
 } blocks;
 

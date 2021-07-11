@@ -23,7 +23,11 @@ int main(void)
 
 	fs_server = iniciarServidor(5003);
 
+	hilo_sincronizar_blocks();
+
 	manejadorDeHilos();
+
+
 
 	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora
 //	manejadorDeHilos();
