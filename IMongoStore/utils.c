@@ -3,6 +3,7 @@
  */
 
 #include"utils.h"
+#include "bitacora.h"
 
 void iniciar_configuracion(){
 
@@ -103,6 +104,22 @@ void *atenderNotificacion(void * paqueteSocket){
 
 				break;
 			}
+			case LOGUEAR_BITACORA:{
+				char * tarea = recibirString(socket);
+				uint32_t id_trip = recvDeNotificacion(socket);
+				log_info(logger,"Id tripulante %d escribe en bitacora %s",id_trip,tarea);
+
+				char * nombre_archivo = string_from_format("tripulante_%d",id_trip);
+				_archivo_bitacora * archivo = iniciar_archivo_bitacora(nombre_archivo,"tarea1");
+				write_archivo_bitacora(tarea,archivo);
+
+
+				break;
+			}
+
+
+
+
 			default:
 				log_warning(logger, "La conexion recibida es erronea");
 				break;

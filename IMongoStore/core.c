@@ -105,12 +105,12 @@ void sincronizar_blocks(){
 		sleep(conf_TIEMPO_SINCRONIZACION);
 		log_info(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
-
+		log_info(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
 		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*sizeof(t_bloque)));
 		msync(_blocks.original_blocks, (superblock.cantidad_bloques*sizeof(t_bloque)), MS_SYNC);
 		log_info(logger,"%s: ----------- Original blocks.ims:",_blocks.original_blocks);
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
-
+		log_info(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
 	}
 }
 
@@ -384,8 +384,8 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 		}
 	}
 	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&(superblock.mutex_superbloque));
+	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	pthread_mutex_unlock(&(archivo->mutex_file));
 	return 1;
 }
@@ -417,7 +417,9 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	int indice = atoi(bloque);
 
 	pthread_mutex_lock(&_blocks.mutex_blocks);
+	log_info(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_lock(&superblock.mutex_superbloque);
+	log_info(logger,"CONSUMIR - MUTEX_SUPERBLOQUE - BLOCKED");
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = 0 ;
@@ -436,11 +438,11 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 			longitudBloque = string_length(contenidoBloque);
 			sizeUltimoBloque =longitudBloque;
 		}
-		else if(cantidadAConsumir==longitudBloque){
-			cantidadAConsumir-=longitudBloque;
-			remover_bloque(indice,archivo,longitudBloque);
+		else if(cantidadAConsumir==sizeUltimoBloque){
+			cantidadAConsumir-=sizeUltimoBloque;
+			remover_bloque(indice,archivo,sizeUltimoBloque);
 		}
-		else if (cantidadAConsumir<longitudBloque){
+		else if (cantidadAConsumir<sizeUltimoBloque){
 			actualizar_metadata_borrado(archivo,cantidadAConsumir);
 
 			contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
@@ -451,8 +453,9 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 	}
 	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
-	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&(superblock.mutex_superbloque));
+	pthread_mutex_unlock(&(_blocks.mutex_blocks));
+	log_info(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }

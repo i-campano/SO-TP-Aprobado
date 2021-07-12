@@ -155,6 +155,10 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
+		enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
+
+
+
 		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
@@ -310,5 +314,20 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 	sendDeNotificacion(socketMongo, (uint32_t) id);
 	free(buffer); //Malloc linea 253
 }
+
+void enviar_evento_bitacora(int socketMongo, int id, char* claveNueva) {
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socketMongo, 9, tamanio, (void*) buffer);
+	sendDeNotificacion(socketMongo, (uint32_t) id);
+	free(buffer); //Malloc linea 253
+}
+
 
 

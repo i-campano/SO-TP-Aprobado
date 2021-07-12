@@ -2,13 +2,13 @@
  */
 
 #include "IMongoStore.h"
-
+#include "bitacora.h"
 
 int main(void)
 {
 
-
 	iniciar_configuracion();
+	remove_files();
 
 
 
@@ -37,6 +37,8 @@ int main(void)
 	while(1);
 
 
+
+
 	munmap(_blocks.fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 	close(_blocks.file_blocks);
@@ -46,7 +48,16 @@ int main(void)
 }
 
 
-void prueba_func_core_ejecucion(){
+void remove_files(){
+	for(int i = 0; i<100; i++){
+		char *resto_path = string_from_format("bitacora/tripulante_%d%s",i,".ims");
+		   if (remove(resto_path) == 0)
+		      log_info(logger,"Deleted successfully %d",i);
+	}
+	log_info(logger,"Finished deleted files");
+}
+
+void prueba_func_core_ejecucion2(){
 	int libres = calcular_bloques_libres();
 	log_info(logger,"libres = %d",libres);
 
@@ -60,6 +71,24 @@ void prueba_func_core_ejecucion(){
 	log_info(logger,"libres = %d",libres);
 }
 
+
+void prueba_func_core_ejecucion(){
+	int libres = calcular_bloques_libres();
+	log_info(logger,"libres = %d",libres);
+
+	_archivo_bitacora * archivo = iniciar_archivo_bitacora("tripulante1","tarea1");
+
+	_archivo_bitacora * archivo2 = iniciar_archivo_bitacora("tripulante2","tarea1");
+
+	write_archivo_bitacora("hola",archivo);
+
+	write_archivo_bitacora("hola3",archivo2);
+
+
+
+	libres = calcular_bloques_libres();
+	log_info(logger,"libres = %d",libres);
+}
 
 
 
