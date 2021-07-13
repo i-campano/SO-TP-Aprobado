@@ -66,7 +66,7 @@ void escuchoSabotaje() {
 		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
 
 		log_info(logger,"%s",posicion);
-		sendDeNotificacion(socketServerIMongoStore,888);
+		sendDeNotificacion(socketServerIMongoStore,FSCK);
 	}
 
 }

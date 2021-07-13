@@ -23,6 +23,8 @@
 #include "socket.h"
 #include<time.h>
 #include "estructurasFileSystem.h"
+#include "bitacora.h"
+#include "sabotaje.h"
 
 int fs_server;
 

@@ -9,6 +9,7 @@
 
 
 void informarSabotaje(int signal);
+void _informar_sabotaje_a_discordiador();
 void manejadorDeHilos();
 void prueba_func_core_ejecucion();
 

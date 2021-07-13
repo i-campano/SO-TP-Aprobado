@@ -4,12 +4,14 @@
 #include "IMongoStore.h"
 #include "bitacora.h"
 #include "utils.h"
+#include "sabotaje.h"
 
 int main(void)
 {
 
 
 	signal(SIGUSR1,informarSabotaje);
+	signal(SIGSEGV,adulterar_bitmap);
 	iniciar_configuracion();
 	remove_files();
 
@@ -26,7 +28,7 @@ int main(void)
 
 	fs_server = iniciarServidor(5003);
 
-//	hilo_sincronizar_blocks();
+	hilo_sincronizar_blocks();
 
 	manejadorDeHilos();
 
@@ -51,26 +53,29 @@ int main(void)
 }
 
 void informarSabotaje(int signal){
-
-//	char * posicion = string_new();
-//	string_append(&posicion,conf_POSICIONES_SABOTAJE[sabotajes_realizados]);
-//	log_info(logger, "Informando sabotaje al discordiador");
-//	log_info(logger, "%s",posicion);
-//	int largoClave = string_length(posicion);
-//	int tamanio = 0;
-//	//En el buffer mando clave y luego valor
-//	void* buffer = malloc(string_length(posicion) + sizeof(uint32_t));
-//	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
-//	tamanio += sizeof(uint32_t);
-//	memcpy(buffer + tamanio, posicion, string_length(posicion));
-//	tamanio += largoClave;
-//	sendRemasterizado(socketDiscordiador, 179, tamanio, (void*) buffer);
-////	sendRemasterizado(socketDiscordiador,159,4,(void*)posicion);
-//	free(posicion);
-//	sabotajes_realizados++;
-
+//	_informar_sabotaje_a_discordiador();
 	fsck();
 }
+
+void _informar_sabotaje_a_discordiador(){
+		char * posicion = string_new();
+		string_append(&posicion,conf_POSICIONES_SABOTAJE[sabotajes_realizados]);
+		log_info(logger, "Informando sabotaje al discordiador");
+		log_info(logger, "%s",posicion);
+		int largoClave = string_length(posicion);
+		int tamanio = 0;
+		//En el buffer mando clave y luego valor
+		void* buffer = malloc(string_length(posicion) + sizeof(uint32_t));
+		memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+		tamanio += sizeof(uint32_t);
+		memcpy(buffer + tamanio, posicion, string_length(posicion));
+		tamanio += largoClave;
+		sendRemasterizado(socketDiscordiador, 179, tamanio, (void*) buffer);
+		free(posicion);
+		sabotajes_realizados++;
+}
+
+
 
 
 

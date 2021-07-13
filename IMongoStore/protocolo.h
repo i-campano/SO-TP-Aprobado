@@ -16,7 +16,8 @@
 #define LOGUEAR_BITACORA 9
 
 
-
+//------------------------SABOTAJE---------------------------
+#define FSCK 100
 
 
 // CODIGO DE TAREAS
