@@ -244,6 +244,8 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	config_set_value((*archivo)->metadata,"BLOCKS","[]");
 	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
 
+	config_save((*archivo)->metadata);
+
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
 
 

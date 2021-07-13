@@ -26,7 +26,7 @@ int main(void)
 
 	fs_server = iniciarServidor(5003);
 
-	hilo_sincronizar_blocks();
+//	hilo_sincronizar_blocks();
 
 	manejadorDeHilos();
 
