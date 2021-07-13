@@ -12,7 +12,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	_archivo_bitacora *archivo = (_archivo_bitacora*)malloc(sizeof(_archivo_bitacora));
 
 	archivo->clave = string_new();
-	string_append(&(archivo->clave),key_file);
+	string_append(&(archivo->clave),tripulante);
 
 	char *resto_path = string_from_format("bitacora/%s%s", tripulante,".ims");
 
@@ -25,6 +25,10 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 		FILE * metadata = fopen(resto_path,"a+");
 		close(metadata);
 		archivo->metadata = config_create(resto_path);
+
+		pthread_mutex_lock(&mutex_archivos_bitacora);
+		list_add(archivos_bitacora,archivo);
+		pthread_mutex_unlock(&mutex_archivos_bitacora);
 	}
 
 	FILE * metadata = fopen(resto_path,"a+");
@@ -44,7 +48,10 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
 
 
+
+
 	pthread_mutex_init(&((archivo)->mutex_file), NULL);
+
 
 	return archivo;
 

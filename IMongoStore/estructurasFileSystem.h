@@ -29,10 +29,21 @@ typedef struct _archivo{
 	pthread_mutex_t mutex_file;
 } _archivo;
 
+typedef struct _archivo_bitacora{
+	char* clave;
+	t_list * blocks;
+	FILE * file;
+	t_config * metadata;
+	pthread_mutex_t mutex_file;
+} _archivo_bitacora;
+
 _archivo * archivo_oxigeno;
 
 _archivo * archivo_comida;
 _archivo * archivo_basura;
+
+pthread_mutex_t mutex_archivos_bitacora;
+t_list * archivos_bitacora;
 
 
 typedef struct blocks{

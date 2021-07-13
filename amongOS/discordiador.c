@@ -24,8 +24,6 @@ int main(void) {
 
 	iniciarHiloQueEscuchaSabotajes();
 
-//	atenderIMongoStore();
-
 	planificar();
 
 	sem_wait(&terminarPrograma);

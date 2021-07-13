@@ -10,13 +10,7 @@
 
 #include "core.h"
 
-typedef struct _archivo_bitacora{
-	char* clave;
-	t_list * blocks;
-	FILE * file;
-	t_config * metadata;
-	pthread_mutex_t mutex_file;
-} _archivo_bitacora;
+
 
 
 uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo);

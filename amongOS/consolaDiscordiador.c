@@ -56,17 +56,18 @@ void leer_consola() {
 
 
 void escuchoSabotaje() {
-
-
-	log_info(logger,"Atendedor de sabotajes OK");
+	log_info(logger,"Atendedor de sabotajes: Escuchando OK");
 	while(1) {
 		uint32_t nroNotificacion = recvDeNotificacion(socketServerIMongoStore);
-
-		char * posicion = recibirString(socketServerIMongoStore);
 		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
+		if(nroNotificacion==INFORMAR_SABOTAJE){
 
-		log_info(logger,"%s",posicion);
-		sendDeNotificacion(socketServerIMongoStore,FSCK);
+			char * posicion = recibirString(socketServerIMongoStore);
+
+			sendDeNotificacion(socketServerIMongoStore,FSCK);
+
+			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
+		}
 	}
 
 }

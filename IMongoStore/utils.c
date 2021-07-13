@@ -27,6 +27,8 @@ void iniciar_configuracion(){
 
 	sabotajes_realizados = 0;
 
+	archivos_bitacora = list_create();
+	pthread_mutex_init(&mutex_archivos_bitacora,NULL);
 }
 
 t_config* leer_config() {

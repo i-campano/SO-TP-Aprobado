@@ -53,7 +53,8 @@ int main(void)
 }
 
 void informarSabotaje(int signal){
-//	_informar_sabotaje_a_discordiador();
+	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
+	//	_informar_sabotaje_a_discordiador();
 	fsck();
 }
 
@@ -70,13 +71,10 @@ void _informar_sabotaje_a_discordiador(){
 		tamanio += sizeof(uint32_t);
 		memcpy(buffer + tamanio, posicion, string_length(posicion));
 		tamanio += largoClave;
-		sendRemasterizado(socketDiscordiador, 179, tamanio, (void*) buffer);
+		sendRemasterizado(socketDiscordiador, INFORMAR_SABOTAJE, tamanio, (void*) buffer);
 		free(posicion);
 		sabotajes_realizados++;
 }
-
-
-
 
 
 void remove_files(){
