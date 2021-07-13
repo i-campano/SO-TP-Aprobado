@@ -310,6 +310,21 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
+void iniciarHiloQueEscuchaSabotajes(){
+	pthread_attr_t attr2;
+	pthread_attr_init(&attr2);
+	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , &attr2,(void*) escuchoSabotaje,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloConsola;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
 void crearHiloTripulante(t_tripulante * tripulante){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);

@@ -3,10 +3,13 @@
 
 #include "IMongoStore.h"
 #include "bitacora.h"
+#include "utils.h"
 
 int main(void)
 {
 
+
+	signal(SIGUSR1,informarSabotaje);
 	iniciar_configuracion();
 	remove_files();
 
@@ -18,7 +21,7 @@ int main(void)
 
 	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno","O");
 	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida","C");
-//	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,archivo_basura,"basura","B");
+	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,&archivo_basura,"basura","B");
 //	prueba_func_core_ejecucion();
 
 	fs_server = iniciarServidor(5003);
@@ -46,6 +49,29 @@ int main(void)
 	log_info(logger,"TERMINO TODO OK");
 	return EXIT_SUCCESS;
 }
+
+void informarSabotaje(int signal){
+
+//	char * posicion = string_new();
+//	string_append(&posicion,conf_POSICIONES_SABOTAJE[sabotajes_realizados]);
+//	log_info(logger, "Informando sabotaje al discordiador");
+//	log_info(logger, "%s",posicion);
+//	int largoClave = string_length(posicion);
+//	int tamanio = 0;
+//	//En el buffer mando clave y luego valor
+//	void* buffer = malloc(string_length(posicion) + sizeof(uint32_t));
+//	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+//	tamanio += sizeof(uint32_t);
+//	memcpy(buffer + tamanio, posicion, string_length(posicion));
+//	tamanio += largoClave;
+//	sendRemasterizado(socketDiscordiador, 179, tamanio, (void*) buffer);
+////	sendRemasterizado(socketDiscordiador,159,4,(void*)posicion);
+//	free(posicion);
+//	sabotajes_realizados++;
+
+	fsck();
+}
+
 
 
 void remove_files(){

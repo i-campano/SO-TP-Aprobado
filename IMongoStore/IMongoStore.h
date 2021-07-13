@@ -7,6 +7,8 @@
 #include "core.h"
 
 
+
+void informarSabotaje(int signal);
 void manejadorDeHilos();
 void prueba_func_core_ejecucion();
 

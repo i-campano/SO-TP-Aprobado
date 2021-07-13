@@ -21,9 +21,20 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 	return bitarray;
 }
 
-void iniciar_blocks(){
-	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT | O_TRUNC , (mode_t)0600);
 
+void exit_failure() {
+	perror("Error: ");
+	exit(EXIT_FAILURE);
+}
+void iniciar_blocks(){
+
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT | O_TRUNC, mode);
+
+	if (_blocks.file_blocks == (-1)) {
+		perror("open");
+		exit_failure();
+	}
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
 
 	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*sizeof(t_bloque));

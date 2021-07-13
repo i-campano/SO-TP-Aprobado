@@ -29,11 +29,12 @@ void mostrar_lista_tripulantes_bloq();
 void mostrar_lista_tripulantes_exec();
 
 void listar_tripulantes();
-
+void escuchoSabotaje();
 
 
 //-------------------------------
 // Creacion de HILOS
+void iniciarHiloQueEscuchaSabotajes();
 void iniciarHiloConsola();
 void planificar();
 void atenderLaRam();

@@ -54,6 +54,23 @@ void leer_consola() {
 	free(leido);
 }
 
+
+void escuchoSabotaje() {
+
+
+	log_info(logger,"Atendedor de sabotajes OK");
+	while(1) {
+		uint32_t nroNotificacion = recvDeNotificacion(socketServerIMongoStore);
+
+		char * posicion = recibirString(socketServerIMongoStore);
+		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
+
+		log_info(logger,"%s",posicion);
+		sendDeNotificacion(socketServerIMongoStore,888);
+	}
+
+}
+
 void hilo_mostrar_tripulantes(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);

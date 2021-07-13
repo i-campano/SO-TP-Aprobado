@@ -9,13 +9,13 @@ void iniciar_configuracion(){
 
 	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
 
-	t_config* config = leer_config();
+	config = leer_config();
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
 	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
 	conf_TIEMPO_SINCRONIZACION = config_get_int_value (config, "TIEMPO_SINCRONIZACION");
 	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
-	//conf_POSICIONES_SABOTAJE = config_get_string_value(config, "POSICIONES_SABOTAJE");
+	conf_POSICIONES_SABOTAJE = config_get_array_value(config, "POSICIONES_SABOTAJE");
 	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
 	//conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
 	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
@@ -24,6 +24,8 @@ void iniciar_configuracion(){
 	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
 	conf_BYTES_BLOQUE = config_get_string_value (config, "BYTES_BLOQUE");
 	conf_CANTIDAD_BLOQUES = config_get_string_value (config, "CANTIDAD_BLOQUES");
+
+	sabotajes_realizados = 0;
 
 }
 
@@ -85,6 +87,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				log_info(logger,"Se ha conectado el DISCORDIADOR");
 				sendDeNotificacion(socket, IMONGOSTORE);
+				socketDiscordiador = socket;
 				//while(1){
 					//sleep(10);
 					//log_info(logger,"ENVIANDO TAREAS");
@@ -114,6 +117,11 @@ void *atenderNotificacion(void * paqueteSocket){
 				write_archivo_bitacora(tarea,archivo);
 
 
+				break;
+			}
+			case 888:{
+				log_info(logger,"EJECUTO FSCK");
+				fsck();
 				break;
 			}
 
@@ -159,13 +167,41 @@ int parsear_tarea(char* tarea,int cantidad_caracteres) {
 
 
 
+void mostrar_patota(void* bloque){
+	log_info(logger,"%d",*((int*)bloque));
+}
+
+void sabotaje_bitmap_superbloque(){
+	t_list * lista_bloques = list_create();
+//	bloques_ocupados_file(archivo_basura);
+	log_info(logger,"FSCK!!!!");
+	bloques_ocupados_file(archivo_oxigeno,lista_bloques);
+//	bloques_ocupados_file(archivo_comida);
+
+	list_iterate(lista_bloques, (void*) mostrar_patota);
+	log_info(logger,"FSCKfin!!!!");
+}
+
+void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
+	pthread_mutex_lock(&(archivo->mutex_file));
+//	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
+	int numeroloco = config_get_int_value(archivo->metadata,"NUMEROLOCO");
+	log_info(logger,"%d",numeroloco);
+	char * cadena = string_new();
+//	cadena = array_to_string(bloques_ocupados);
+	log_info(logger,"%s",cadena);
+//	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+//		list_add(lista_bloques,atoi(bloques_ocupados[i]));
+//	}
+	pthread_mutex_unlock(&(archivo->mutex_file));
+
+}
 
 
 
-
-
-
-
+void fsck(){
+	sabotaje_bitmap_superbloque();
+}
 
 
 

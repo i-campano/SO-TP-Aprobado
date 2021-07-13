@@ -26,13 +26,13 @@
 
 int fs_server;
 
-
+int socketDiscordiador;
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
 char* conf_PUNTO_MONTAJE;
 uint32_t conf_PUERTO_IMONGO;
 uint32_t conf_TIEMPO_SICRONIZACION;
-char* conf_POSICIONES_SABOTAJE;
+char** conf_POSICIONES_SABOTAJE;
 uint32_t conf_PUERTO_DISCORDIADOR;
 char* conf_IP_DISCORDIADOR;
 char* conf_ARCHIVO_OXIGENO_NOMBRE;
@@ -45,6 +45,9 @@ int conf_TIEMPO_SINCRONIZACION;
 
 t_log* logger;
 
+t_config* config;
+
+int sabotajes_realizados;
 
 
 //-------------------------------------------------

@@ -19,6 +19,8 @@
 #include "protocolo.h"
 
 
+
+
 char* IP_MONGO;
 char* IP_MIRAM;
 int PUERTO_MONGO;

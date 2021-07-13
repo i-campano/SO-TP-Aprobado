@@ -32,7 +32,7 @@ typedef struct _archivo{
 _archivo * archivo_oxigeno;
 
 _archivo * archivo_comida;
-//_archivo archivo_basura;
+_archivo * archivo_basura;
 
 
 typedef struct blocks{
