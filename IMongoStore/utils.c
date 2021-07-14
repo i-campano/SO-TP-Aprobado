@@ -7,9 +7,11 @@
 
 void iniciar_configuracion(){
 
-	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_TRACE);
-
 	config = leer_config();
+	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");
+	t_log_level log_level = log_level_from_string(conf_LOG_LEVEL);
+	logger = log_create("IMongoStore.log", "IMongoStore", 1,log_level);
+
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
 	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
@@ -77,7 +79,7 @@ void *atenderNotificacion(void * paqueteSocket){
 
 	while(1){
 
-		log_info(logger,"espero mas notificaciones....");
+		log_trace(logger,"espero mas notificaciones....");
 		uint32_t nroNotificacion = recvDeNotificacion(socket);
 
 		switch(nroNotificacion){
@@ -102,7 +104,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				uint32_t id_trip = recvDeNotificacion(socket);
-				log_info(logger,"Id tripulante %d quiere hacer la tarea: %s",id_trip,tarea);
+				log_debug(logger,"Id tripulante %d ejecuta la tarea: %s",id_trip,tarea);
 				tipoTarea(tarea);
 				sendDeNotificacion(socket,198);
 
@@ -112,7 +114,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			case LOGUEAR_BITACORA:{
 				char * tarea = recibirString(socket);
 				uint32_t id_trip = recvDeNotificacion(socket);
-				log_info(logger,"Id tripulante %d escribe en bitacora %s",id_trip,tarea);
+				log_trace(logger,"Id tripulante %d escribe en bitacora %s",id_trip,tarea);
 
 				char * nombre_archivo = string_from_format("tripulante_%d",id_trip);
 				_archivo_bitacora * archivo = iniciar_archivo_bitacora(nombre_archivo,"tarea1");
@@ -173,31 +175,31 @@ int parsear_tarea(char* tarea,int cantidad_caracteres) {
 void tipoTarea(char* tarea){
 
 	if (strncmp("GENERAR_OXIGENO", tarea,12)==0){
-		log_info(logger,"generando OXIGENO...");
+		log_debug(logger,"generando OXIGENO...");
 		ejecutar_tarea(tarea,'O',archivo_oxigeno);
 	}
 	else if (strncmp("GENERAR_COMIDA", tarea,12)==0){
-		log_info(logger,"GENERANDO COMIDA...");
+		log_debug(logger,"GENERANDO COMIDA...");
 		ejecutar_tarea(tarea,'C',archivo_comida);
 	}
 	else if ( strncmp("GENERAR_BASURA", tarea,12)==0) {
-		log_info(logger,"GENERANDO BASURA...");
+		log_debug(logger,"GENERANDO BASURA...");
 		ejecutar_tarea(tarea,'B',archivo_basura);
 	}
 	else if (strncmp("CONSUMIR_OXIGENO", tarea,12)==0) {
-		log_info(logger,"consumiendo OXIGENO...");
+		log_debug(logger,"consumiendo OXIGENO...");
 		ejecutar_tarea_consumir(tarea,'O',archivo_oxigeno);
 	}
 	else if ( strncmp("CONSUMIR_COMIDA", tarea,12)==0) {
-		log_info(logger,"consumiendo COMIDA...");
+		log_debug(logger,"consumiendo COMIDA...");
 		ejecutar_tarea_consumir(tarea,'C',archivo_comida);
 	}
 	else if (strncmp("DESCARTAR_BASURA", tarea,12)==0){
-		log_info(logger,"consumiendo BASURA...");
+		log_debug(logger,"consumiendo BASURA...");
 		ejecutar_tarea_consumir(tarea,'B',archivo_basura);
 	}
 	else {
-			printf("Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
+		log_debug(logger,"Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
 		}
 
 }

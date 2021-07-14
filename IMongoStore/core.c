@@ -114,14 +114,14 @@ int obtener_bloque(int indice) {
 void sincronizar_blocks(){
 	while(1){
 		sleep(conf_TIEMPO_SINCRONIZACION);
-		log_info(logger,"SINCRONIZANDO DISCO");
+		log_trace(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
-		log_info(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
+		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
 		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*sizeof(t_bloque)));
 		msync(_blocks.original_blocks, (superblock.cantidad_bloques*sizeof(t_bloque)), MS_SYNC);
-		log_info(logger,"%s: ----------- Original blocks.ims:",_blocks.original_blocks);
+		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
-		log_info(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
+		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
 	}
 }
 
@@ -337,7 +337,7 @@ void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
 		char* valorAux = string_substring(cadenaAGuardar,
 				offsetBytesAlmacenados, superblock.tamanio_bloque);
 		int indice_bloque = obtener_indice_para_guardar_en_bloque(valorAux);
-		log_info(logger, "indice de bloque asignado a %s, :%d", archivo->clave,
+		log_trace(logger, "llenar_nuevo_bloque(): File_Recurso: %s -> bloque asignado: %d", archivo->clave,
 				indice_bloque);
 		write_blocks(valorAux, indice_bloque);
 		actualizar_metadata(archivo, indice_bloque, valorAux);
@@ -352,7 +352,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 	uint32_t resultado;
 	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
 
-	log_debug(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
+	log_trace(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
 
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	pthread_mutex_lock(&superblock.mutex_superbloque);
@@ -376,7 +376,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
 
-			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
+			log_trace(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
 
 			write_blocks_with_offset(cadenaAGuardar,atoi(last_block),bytesArchivo);
 
@@ -397,7 +397,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		}
 	}
-	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
+	log_trace(logger,"write_archivo()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	pthread_mutex_unlock(&(archivo->mutex_file));
@@ -431,9 +431,9 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	int indice = atoi(bloque);
 
 	pthread_mutex_lock(&_blocks.mutex_blocks);
-	log_info(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
+	log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_lock(&superblock.mutex_superbloque);
-	log_info(logger,"CONSUMIR - MUTEX_SUPERBLOQUE - BLOCKED");
+	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
 	obtener_contenido_bloque(indice,&contenidoBloque);
 
 	int longitudBloque = 0 ;
@@ -466,10 +466,10 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		}
 
 	}
-	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
+	log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
-	log_info(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
+	log_trace(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }

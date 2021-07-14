@@ -17,11 +17,11 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	char *resto_path = string_from_format("bitacora/%s%s", tripulante,".ims");
 
 	if( access( resto_path, F_OK ) == 0 ) {
-		log_info(logger,"YA EXISTE ARCHIVO BITACORA para: %s", tripulante);
+		log_debug(logger,"YA EXISTE ARCHIVO BITACORA para: %s", tripulante);
 		//Si tengo acceso al archivo, creo el config
 		archivo->metadata = config_create(resto_path);
 	} else {
-		log_info(logger,"CREO NUEVO ARCHIVO BITACORA para: %s", tripulante);
+		log_debug(logger,"CREO NUEVO ARCHIVO BITACORA para: %s", tripulante);
 		FILE * metadata = fopen(resto_path,"a+");
 		close(metadata);
 		archivo->metadata = config_create(resto_path);
@@ -36,7 +36,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	int c = fgetc(metadata);
 	if (c == EOF) {
 
-		log_info(logger,"ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
+		log_debug(logger,"ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
 		config_set_value(archivo->metadata,"SIZE","0");
 		config_set_value(archivo->metadata,"BLOCKS","[]");
 		config_save_in_file(archivo->metadata,resto_path);
@@ -65,7 +65,7 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 	uint32_t resultado;
 	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
 
-	log_debug(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
+	log_trace(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
 
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	pthread_mutex_lock(&superblock.mutex_superbloque);
@@ -109,7 +109,7 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 
 		}
 	}
-	log_info(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
+	log_trace(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));
@@ -171,7 +171,7 @@ void llenar_nuevo_bloque_bitacora(char* cadenaAGuardar, _archivo_bitacora* archi
 		char* valorAux = string_substring(cadenaAGuardar,
 				offsetBytesAlmacenados, superblock.tamanio_bloque);
 		int indice_bloque = obtener_indice_para_guardar_en_bloque_bitacora(valorAux);
-		log_info(logger, "indice de bloque asignado a %s, :%d", archivo->clave,
+		log_trace(logger, "llenar_nuevo_bloque_bitacora(): Bitacora: %s -> bloque asignado: %d", archivo->clave,
 				indice_bloque);
 		write_blocks(valorAux, indice_bloque);
 		actualizar_metadata_bitacora(archivo, indice_bloque, valorAux);

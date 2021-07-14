@@ -44,6 +44,7 @@ char* conf_PATH_BITACORA;
 char* conf_BYTES_BLOQUE;
 char* conf_CANTIDAD_BLOQUES;
 int conf_TIEMPO_SINCRONIZACION;
+char* conf_LOG_LEVEL;
 
 t_log* logger;
 

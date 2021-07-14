@@ -66,7 +66,7 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 		char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
 		char * cadena = string_new();
 		cadena = array_to_string(bloques_ocupados);
-		log_info(logger,"%s",cadena);
+		log_trace(logger,"Bitacora: %s Bloques: %s",archivo->clave,cadena);
 		for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
 			int * valor = malloc(sizeof(int));
 			*valor =atoi(bloques_ocupados[i]);
