@@ -17,7 +17,7 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados);
 
 void sabotaje_bitmap_superbloque();
 
-
+void obtener_todos_los_bloques_desde_metedata(t_list* lista_bloques);
 
 void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques);
 

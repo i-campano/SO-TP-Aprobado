@@ -7,7 +7,7 @@
 
 void iniciar_configuracion(){
 
-	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_DEBUG);
+	logger = log_create("IMongoStore.log", "IMongoStore", 1, LOG_LEVEL_TRACE);
 
 	config = leer_config();
 

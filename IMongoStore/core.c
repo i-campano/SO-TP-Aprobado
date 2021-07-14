@@ -193,6 +193,7 @@ int calcular_bloques_libres(){
 			resultado++;
 		}
 	}
+	log_trace(logger,"calcular_bloques_libres: %d",resultado);
 	return resultado;
 }
 
