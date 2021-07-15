@@ -61,6 +61,7 @@ typedef struct  {
 	t_bitarray	* bitmap;
 	char * bitmapstr;
 	pthread_mutex_t mutex_superbloque;
+	FILE * file_superblock;
 } str_superblock;
 
 str_superblock superblock;

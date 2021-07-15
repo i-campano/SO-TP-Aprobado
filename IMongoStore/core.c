@@ -122,6 +122,18 @@ void sincronizar_blocks(){
 		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
+
+		log_info(logger,"SINCRO  bitmap - BLOCKED");
+
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+
+
+		memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), &(superblock.bitmap), sizeof(superblock.bitmap));
+		msync(superblock.bitmapstr, sizeof(superblock.bitmapstr), MS_SYNC);
+
+		pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+		log_info(logger,"SINCRO  bitmap - unBLOCKED");
 	}
 }
 
@@ -150,6 +162,7 @@ int calcular_cantidad_bloques_requeridos(char* cadenaAGuardar){
 //--------------------------SUPER BLOQUE--------------------------------------------
 void iniciar_super_block(){
 	//cargar desde config la struct de super_bloque
+	log_info(logger,"iniciar_super_blocks(): Iniciando superblock");
 	log_info(logger,"Inicio superbloque: %s", conf_BYTES_BLOQUE);
 	log_info(logger,"Tamanio de Bloque: %s", conf_BYTES_BLOQUE);
 	log_info(logger,"Cantidad de Bloques: %s", conf_CANTIDAD_BLOQUES);
@@ -158,9 +171,31 @@ void iniciar_super_block(){
 
 	superblock.cantidad_bloques = atoi(conf_CANTIDAD_BLOQUES);
 
-	superblock.bitmapstr = malloc(superblock.cantidad_bloques);
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+
+	superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT | O_TRUNC, mode);
+
+
+	ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
+
 
 	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
+
+	for(int i = 0; i<superblock.cantidad_bloques; i++){
+		bitarray_clean_bit(superblock.bitmap,i);
+	}
+
+	superblock.bitmapstr = mmap ( NULL, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8), PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
+
+	memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
+	memcpy(superblock.bitmapstr+sizeof(uint32_t), &(superblock.tamanio_bloque), sizeof(uint32_t));
+
+
+	memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),(superblock.cantidad_bloques/8) );
+
+	msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8), MS_SYNC);
+
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
 

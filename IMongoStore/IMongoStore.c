@@ -10,8 +10,8 @@ int main(void)
 {
 
 
-	signal(SIGUSR1,informarSabotaje);
-	signal(SIGSEGV,adulterar_bitmap);
+//	signal(SIGUSR1,informarSabotaje);
+//	signal(SIGSEGV,adulterar_bitmap);
 	iniciar_configuracion();
 	remove_files();
 
@@ -30,6 +30,10 @@ int main(void)
 
 	hilo_sincronizar_blocks();
 
+
+//
+	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)superblock.bitmapstr);
+	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)(superblock.bitmapstr+sizeof(uint32_t)));
 	manejadorDeHilos();
 
 

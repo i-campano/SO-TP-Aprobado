@@ -89,6 +89,11 @@ void obtener_todos_los_bloques_desde_metedata(t_list* lista_bloques) {
 	pthread_mutex_unlock(&mutex_archivos_bitacora);
 }
 
+void sabotaje_cantidad_bloques_superbloque(){
+
+}
+
+
 void sabotaje_bitmap_superbloque(){
 	t_list * lista_bloques = list_create();
 
@@ -138,6 +143,16 @@ void fsck(){
 
 
 void adulterar_bitmap(int signal){
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+
+	for(int i = 0; i<superblock.cantidad_bloques; i++){
+		bitarray_clean_bit(superblock.bitmap,i);
+	}
+
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+}
+
+void adulterar_bitmap2(int signal){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	bitarray_clean_bit(superblock.bitmap,13);
 
