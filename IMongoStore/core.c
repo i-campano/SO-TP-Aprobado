@@ -185,7 +185,7 @@ void iniciar_super_block(){
 		bitarray_clean_bit(superblock.bitmap,i);
 	}
 
-	superblock.bitmapstr = mmap ( NULL, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8), PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+	superblock.bitmapstr = mmap ( NULL, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
 
 	memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
@@ -193,8 +193,7 @@ void iniciar_super_block(){
 
 
 	memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),(superblock.cantidad_bloques/8) );
-
-	msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8), MS_SYNC);
+	msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, MS_SYNC);
 
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
