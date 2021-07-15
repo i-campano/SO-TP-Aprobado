@@ -35,7 +35,7 @@ void iniciar_blocks(){
 		perror("open");
 		exit_failure();
 	}
-	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*sizeof(t_bloque));
+	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*sizeof(t_bloque));
 
