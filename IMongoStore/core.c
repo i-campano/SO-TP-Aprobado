@@ -173,27 +173,43 @@ void iniciar_super_block(){
 
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-	superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT | O_TRUNC, mode);
 
+	if( access( "superblock.ims", F_OK ) == 0 ) {
+		log_debug(logger,"iniciar_super_blocks(): Iniciando con superblock existente");
+		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
+	}else{
+		log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
+		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
+		ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
+	}
 
-	ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
 
 
 	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
-
-	for(int i = 0; i<superblock.cantidad_bloques; i++){
-		bitarray_clean_bit(superblock.bitmap,i);
-	}
-
 	superblock.bitmapstr = mmap ( NULL, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
-
-	memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
-	memcpy(superblock.bitmapstr+sizeof(uint32_t), &(superblock.tamanio_bloque), sizeof(uint32_t));
+	uint32_t cantidad_bloques_fs = *(uint32_t*)(superblock.bitmapstr);
 
 
-	memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),(superblock.cantidad_bloques/8) );
-	msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, MS_SYNC);
+	//TODO : Buscar otra validacion para confirmar que existe un fs.
+	if(cantidad_bloques_fs!=superblock.cantidad_bloques){
+		ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
+		log_debug(logger,"Creando metadata de FS...");
+
+		for(int i = 0; i<superblock.cantidad_bloques; i++){
+			bitarray_clean_bit(superblock.bitmap,i);
+		}
+		memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
+		memcpy(superblock.bitmapstr+sizeof(uint32_t), &(superblock.tamanio_bloque), sizeof(uint32_t));
+
+
+		memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),(superblock.cantidad_bloques/8) );
+		msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, MS_SYNC);
+
+		log_debug(logger,"Metadata creada...");
+	}else{
+		log_debug(logger,"Usando FS existente...");
+	}
 
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
