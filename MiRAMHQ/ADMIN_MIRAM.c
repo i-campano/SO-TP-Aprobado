@@ -32,9 +32,33 @@ int admin_memoria(void)
 	//free(mem_ppal);
 	return 0;
 }
-
-
-
+//Crear Memoria
+int crear_memoria_(void){
+	tablasPatotaPaginacion = list_create();
+	if(paginacion){
+	mem_ppal = malloc(tamanioMemoria);
+	framesMemoria = list_create();
+	uint32_t cantidadMarcos = tamanioMemoria/tamanioPagina;
+	uint32_t i = 0;
+	while(i < cantidadMarcos) {
+		frame_t* frame = malloc(sizeof(frame_t));
+		frame->estado = true;
+		frame->numeroFrame = i;
+		list_add(framesMemoria,frame);
+		i++;
+	}
+	return 0;
+	}
+	else {
+		mem_ppal = malloc(tamanioMemoria);
+		//MEM SETT!!
+		memset(mem_ppal,0,tamanioMemoria);
+		listaSegmentos = list_create(); //Creo la lista de segmentos
+		printf("Cree la memoria e inicialize la lista de segmentos \n");
+		crear_segmento(0,tamanioMemoria); //DESCOMENTAR ESTO
+		return 0;
+	}
+}
 //Criterios para listas de segmentos
 
 bool condicionSegmentoLibrePcb(void* segmento) {
@@ -98,7 +122,10 @@ bool ordenar_segun_inicio(void* primero,void* segundo){
 	segmento_t* otroSegmento = (segmento_t*)segundo;
 	return unSegmento->inicio < otroSegmento->inicio;
 }
-
+bool condicionFrameLibre(void* valor){
+	frame_t* frame = (frame_t*) valor;
+	return frame->estado;
+}
 //Devuelve segmento segun CONFIGURACION FF BF
 segmento_t* segmentoPcb_segun(bool algoritmoBusqueda) {
 	segmento_t* segmentoMemoria;
@@ -240,56 +267,16 @@ segmento_t* buscar_segmentoTareas(pcb_t pcb,uint32_t tamanioTareas) {
 		crear_segmento(segmentoMemoria->fin,fin_viejo);
 		return segmentoMemoria;
 }
-t_list* buscarTablaPatota(uint32_t id){
-	bool condicionTablaId(void* tablaSegmentos) {
-				t_list* tabla = (t_list*)tablaSegmentos;
-				segmento_t* sg_pcb;
-				sg_pcb = list_get(tabla,0);
-				return sg_pcb->id == id;
-			}
-	return list_find(listaTablaSegmentos,condicionTablaId);
+tabla_t* buscarTablaId(uint32_t id){
+	bool tablaPatotaPaginacion(void* tabla) {
+		tabla_t* tablaPatota = (tabla_t*)tabla;
+		log_debug(logger,"Tabla encontrada %i",tablaPatota->idPatota);
+		return tablaPatota->idPatota == id;
+	}
+	return list_find(tablasPatotaPaginacion,tablaPatotaPaginacion);
 }
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
 
-//PRIMERA APROXIMACION A CREAR PATOTA POSTA
-/*int crear_patota2(pcb_t pcb,char* posiciones,char* tareas,uint32_t cantidad_trip) {
-	segmento_t* segmentoAsignado;
-	segmento_t* segmentoAsignadoTareas;
-	uint32_t offset;
-	pthread_mutex_lock(&accesoListaSegmentos);
-	uint32_t espacioLibreMemoria = memoria_libre();
-	uint32_t tamanioNecesario = sizeof(tcb_t)*cantidad_trip + sizeof(pcb_t) + strlen(tareas)*sizeof(char);
-	pthread_mutex_unlock(&accesoListaSegmentos);
-	if(espacioLibreMemoria < tamanioNecesario) {
-		log_info(logger,"No hay espacio para crear la patota. Disponible: %i Necesario: %i",espacioLibreMemoria,tamanioNecesario);
-		return ERROR_MEMORIA_LLENA;
-	}
-	pthread_mutex_lock(&accesoListaSegmentos);
-	segmentoAsignado = buscar_segmento(pcb);
-	if(segmentoAsignado == NULL){
-		log_info(logger,"Ha ocurrido un error durante la creacion del pcb");
-		return ERROR;
-	}
-	segmentoAsignadoTareas = buscar_segmentoTareas(pcb,tareas);
-	if(segmentoAsignado == NULL){
-		log_info(logger,"Ha ocurrido un error durante la creacion de las tareas");
-		return ERROR;
-	}
-	pthread_mutex_unlock(&accesoListaSegmentos);
-	pthread_mutex_lock(&accesoMemoria);
-	offset = segmentoAsignado->inicio;
-	memcpy(mem_ppal+offset,&pcb,sizeof(pcb_t));
-	offset = segmentoAsignadoTareas->inicio;
-	memcpy(mem_ppal+offset,tareas,strlen(tareas)*sizeof(char)+1);
-	pthread_mutex_unlock(&accesoMemoria);
-	t_list* tablaSegmentos = list_create();
-	pthread_mutex_lock(&accesoListaTablas);
-	list_add(tablaSegmentos,segmentoAsignado);
-	list_add(tablaSegmentos,segmentoAsignadoTareas);
-	list_add(listaTablaSegmentos,tablaSegmentos);
-	pthread_mutex_unlock(&accesoListaTablas);
-	return PATOTA_CREADA;
-}*/
 int crear_patota_(pcb_t pcb,char* tareas,uint32_t cantidad_tripulantes,tabla_t* tabla) {
 	uint32_t tamanioTotal = sizeof(pcb_t) + sizeof(tcb_t)*cantidad_tripulantes + string_length(tareas);
 	uint32_t framesNecesarios = calcular_frames(tamanioTotal);
@@ -355,36 +342,8 @@ int crear_tripulante_(tcb_t tcb,uint32_t idpatota,tabla_t* tablaPatota){
 
 	return TRIPULANTE_CREADO;
 }
-//No es necesario verificar porque si no había espacio disponible nunca la llama!!
-int crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,uint32_t idpatota){
-	segmento_t* segmentoTcb;
-	t_list* tablaSegmentos;
-	tcb_t tcb;
-	uint32_t offset;
-	tcb.id = idTrip;
-	tcb.x = x;
-	tcb.y = y;
-	tcb.pcb = idpatota;
-	tcb.prox_tarea = 0;
-	pthread_mutex_lock(&accesoListaSegmentos);
-	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
-	pthread_mutex_unlock(&accesoListaSegmentos);
-	if(segmentoTcb == NULL){
-		log_info(logger,"Ha ocurrido un error durante la creacion del tripulante");
-		return ERROR;
-	}
-	offset = segmentoTcb->inicio;
-	pthread_mutex_lock(&accesoMemoria);
-	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
-	pthread_mutex_unlock(&accesoMemoria);
-	pthread_mutex_lock(&accesoListaTablas);
-	tablaSegmentos = buscarTablaPatota(id_patota);
-	list_add(tablaSegmentos,segmentoTcb);
-	pthread_mutex_unlock(&accesoListaTablas);
-	return TRIPULANTE_CREADO;
-}
 
-//FIN DE FUNCIONES PARA APROXIMAR
+//SEGMENTACION
 int unificar_sg_libres(void) {
 	segmento_t* anterior = NULL;
 	segmento_t* actual = NULL;
@@ -414,64 +373,6 @@ void liberar_segmento(segmento_t* sg){
 	sg->id = 0;
 
 }
-t_list* buscarTablaPatotaTrip(uint32_t id_trip) {
-	bool buscarTabla(void* tabla){
-		t_list* tablaPatota = (t_list*)tabla;
-		uint32_t tamanio = list_size(tablaPatota);
-		uint32_t i = 2;
-		if(tamanio >= 2){
-			return false;
-		}
-		while (tamanio > i){
-			segmento_t* sg = list_get(tablaPatota,i);
-			tcb_t temp;
-			memcpy(&temp,mem_ppal+sg->inicio,sizeof(tcb_t));
-			if (temp.id == id_trip){
-				return true;
-			}
-			i++;
-		}
-		return false;
-	}
-	return list_find(listaTablaSegmentos,buscarTabla);
-}
-
-int eliminar_tripulante(uint32_t id_trip,uint32_t id_patota){
-	pthread_mutex_lock(&accesoMemoria);
-	pthread_mutex_lock(&accesoListaSegmentos);
-	bool buscarsgTcb(void* seg) {
-		segmento_t* sg = (segmento_t*)seg;
-		if(sg->tipoDato != DATO_TCB){
-			return false;
-		}
-		tcb_t temp;
-		memcpy(&temp,mem_ppal+sg->inicio,sizeof(tcb_t));
-		return temp.id == id_trip;
-	}
-	segmento_t* sg = list_find(listaSegmentos,buscarsgTcb);
-	t_list* tablaPatota = buscarTablaPatota(id_patota);
-	list_remove_by_condition(tablaPatota,buscarsgTcb);
-	if(list_size(tablaPatota) <= 2) {
-		eliminar_patota(id_patota);
-	}
-	liberar_segmento(sg);
-	unificar_sg_libres();
-	//t_list* tablaPatota = buscarTablaPatota(id_trip);
-	pthread_mutex_unlock(&accesoMemoria);
-	pthread_mutex_unlock(&accesoListaSegmentos);
-	return 0;
-}
-int eliminar_patota(int id){
-	bool listaId(void* seg){
-		segmento_t* sg = (segmento_t*)seg;
-		return sg->id == id;
-	}
-	t_list* lista = list_filter(listaSegmentos,listaId);
-	liberar_segmento(list_get(lista,0));
-	liberar_segmento(list_get(lista,1));
-	return 0;
-}
-//FUNCION SIN MUTEX USARLOS ANTES DE LLAMARLA
 void crear_segmento(uint32_t inicio,uint32_t fin){
 	segmento_t* sg = malloc(sizeof(segmento_t));
 	sg->inicio = inicio;
@@ -480,73 +381,6 @@ void crear_segmento(uint32_t inicio,uint32_t fin){
 	sg->tipoDato = VACIO;
 	list_add_sorted(listaSegmentos,sg,ordenar_segun_inicio);
 }
-//FUNCIONES PARA IMPRIMIR LISTAS ITERANDO
-
-//Funciones para mostrar por consola (Modificar a loggers!) Mutex Seteados
-
-void mostrarMemoriaCompleta(void* segmento) {
-	pthread_mutex_lock(&accesoListaSegmentos);
-	pthread_mutex_lock(&accesoMemoria);
-	segmento_t* sg = (segmento_t*)segmento;
-	short int tipo = sg->tipoDato;
-	switch (tipo) {
-		case DATO_PCB: {
-			pcb_t pcb;
-			memcpy(&pcb,mem_ppal+sg->inicio,sizeof(pcb_t));
-			log_info(logger,"Pcb-> %i",pcb.id);
-			break;
-		}
-		case DATO_TCB: {
-			tcb_t tcb;
-			memcpy(&tcb,mem_ppal+sg->inicio,sizeof(tcb_t));
-			log_info(logger,"Tcb-> %i X-> %i Y-> %i",tcb.id,tcb.x,tcb.y);
-
-			break;
-		}
-		case DATO_TAREAS: {
-			uint32_t tamanio = sg->fin - sg->inicio;
-			char* str = malloc(tamanio*sizeof(char));
-			memcpy(str,mem_ppal+sg->inicio,tamanio*sizeof(char));
-			log_info(logger,"Tarea -> %s",str);
-			free(str);
-			break;
-		}
-		case VACIO: {
-			log_info(logger,"Segmento Libre");
-			break;
-		}
-	}
-	pthread_mutex_unlock(&accesoListaSegmentos);
-	pthread_mutex_unlock(&accesoMemoria);
-}
-void mostrarEstadoMemoria(void* segmento) {
-	pthread_mutex_lock(&accesoListaSegmentos);
-	segmento_t* sg = (segmento_t*)segmento;
-	short int tipo = sg->tipoDato;
-	uint32_t tamanio = sg->fin - sg->inicio;
-	switch (tipo) {
-		case DATO_PCB: {
-			log_info(logger,"Pcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
-			break;
-		}
-		case DATO_TCB: {
-			log_info(logger,"Tcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
-			break;
-		}
-		case DATO_TAREAS: {
-			log_info(logger,"Tareas-Proceso: %i \t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
-			break;
-		}
-		case VACIO: {
-			log_info(logger,"Proceso: Libre \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->inicio,sg->fin,tamanio);
-			break;
-		}
-	}
-	pthread_mutex_unlock(&accesoListaSegmentos);
-}
-
-//Funciones de compactacion Las 3 funciones tienen Mutex
-//OJO CON DESPLAZARSEGMENTO NO TIENE MUTEX ADENTRO USAR AFUERA!
 int desplazar_segmento(segmento_t* sg,uint32_t offset) {
 	if (offset == 0){
 		return 0;
@@ -647,19 +481,125 @@ int compactar_memoria(void) {
 		crear_segmento(tamanio-offset,tamanio);
 		return 0;
 }
-//Get
 
-
-//PAGINACION!!
-tabla_t* buscarTablaId(uint32_t id){
-	bool tablaPatotaPaginacion(void* tabla) {
-		tabla_t* tablaPatota = (tabla_t*)tabla;
-		log_debug(logger,"Tabla encontrada %i",tablaPatota->idPatota);
-		return tablaPatota->idPatota == id;
+int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
+	uint32_t direccionFisica;
+	if(paginacion){
+		uint32_t pagina = direccionLogica/tamanioPagina;
+		uint32_t offset = 0;
+		if (direccionLogica > tamanioPagina) {
+			offset += direccionLogica - pagina*tamanioPagina;
+		}
+		if (direccionLogica < tamanioPagina) {
+			offset += direccionLogica;
+		}
+		direccionFisica = pagina*tamanioPagina + offset;
+		return 0;
 	}
-	return list_find(tablasPatotaPaginacion,tablaPatotaPaginacion);
+	else {
+		liberar_segmento(list_remove(tabla->listaAsignados,direccionLogica));
+		return 0;
+	}
 }
+
+//Funciones para mostrar por consola (Modificar a loggers!) Mutex Seteados
+
+void mostrarMemoriaCompleta(void* segmento) {
+	pthread_mutex_lock(&accesoListaSegmentos);
+	pthread_mutex_lock(&accesoMemoria);
+	segmento_t* sg = (segmento_t*)segmento;
+	short int tipo = sg->tipoDato;
+	switch (tipo) {
+		case DATO_PCB: {
+			pcb_t pcb;
+			memcpy(&pcb,mem_ppal+sg->inicio,sizeof(pcb_t));
+			log_info(logger,"Pcb-> %i",pcb.id);
+			break;
+		}
+		case DATO_TCB: {
+			tcb_t tcb;
+			memcpy(&tcb,mem_ppal+sg->inicio,sizeof(tcb_t));
+			log_info(logger,"Tcb-> %i X-> %i Y-> %i",tcb.id,tcb.x,tcb.y);
+
+			break;
+		}
+		case DATO_TAREAS: {
+			uint32_t tamanio = sg->fin - sg->inicio;
+			char* str = malloc(tamanio*sizeof(char));
+			memcpy(str,mem_ppal+sg->inicio,tamanio*sizeof(char));
+			log_info(logger,"Tarea -> %s",str);
+			free(str);
+			break;
+		}
+		case VACIO: {
+			log_info(logger,"Segmento Libre");
+			break;
+		}
+	}
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	pthread_mutex_unlock(&accesoMemoria);
+}
+void mostrarEstadoMemoria(void* segmento) {
+	pthread_mutex_lock(&accesoListaSegmentos);
+	segmento_t* sg = (segmento_t*)segmento;
+	short int tipo = sg->tipoDato;
+	uint32_t tamanio = sg->fin - sg->inicio;
+	switch (tipo) {
+		case DATO_PCB: {
+			log_info(logger,"Pcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
+			break;
+		}
+		case DATO_TCB: {
+			log_info(logger,"Tcb-Proceso: %i \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
+			break;
+		}
+		case DATO_TAREAS: {
+			log_info(logger,"Tareas-Proceso: %i \t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->id,sg->inicio,sg->fin,tamanio);
+			break;
+		}
+		case VACIO: {
+			log_info(logger,"Proceso: Libre \t\t Inicio: %i \t Fin:%i \t Tamanio:%i \t",sg->inicio,sg->fin,tamanio);
+			break;
+		}
+	}
+	pthread_mutex_unlock(&accesoListaSegmentos);
+}
+//Mostrar Frames
+void mostrarFrames(void* frame){
+	frame_t* fr = (frame_t*)frame;
+	if(fr->estado){
+		printf("Frame: %i Estado: Libre \n",fr->numeroFrame);
+	}
+	else printf("Frame: %i Estado: Ocupado \n",fr->numeroFrame);
+}
+
 // CON DIRECCION LOGICA >
+
+uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
+	uint32_t tamanio = 0;
+	uint32_t direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
+	if(paginacion) {
+		uint32_t pagina = direccionLogica/tamanioPagina;
+		uint32_t offset = 0;
+		if (direccionLogica > tamanioPagina) {
+			offset += direccionLogica - pagina*tamanioPagina;
+		}
+		if (direccionLogica < tamanioPagina) {
+			offset += direccionLogica;
+		}
+		direccionFisica = pagina*tamanioPagina + offset;
+	}
+	char aux;
+	while (tamanio < 100){
+		memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
+		if(aux == '\0' || aux == '\n'){
+			log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
+			return tamanio;
+		}
+		tamanio++;
+	}
+	return tamanio;
+}
 void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 	log_debug(logger,"Buscando tabla %i",id_patota);
 	tabla_t* tabla = buscarTablaId(id_patota);
@@ -712,31 +652,6 @@ void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 		return aux;
 	}
 }
-uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
-	uint32_t tamanio = 0;
-	uint32_t direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
-	if(paginacion) {
-		uint32_t pagina = direccionLogica/tamanioPagina;
-		uint32_t offset = 0;
-		if (direccionLogica > tamanioPagina) {
-			offset += direccionLogica - pagina*tamanioPagina;
-		}
-		if (direccionLogica < tamanioPagina) {
-			offset += direccionLogica;
-		}
-		direccionFisica = pagina*tamanioPagina + offset;
-	}
-	char aux;
-	while (tamanio < 100){
-		memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
-		if(aux == '\0' || aux == '\n'){
-			log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
-			return tamanio;
-		}
-		tamanio++;
-	}
-	return tamanio;
-}
 void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 	log_debug(logger,"Buscando tabla %i",id_patota);
 	tabla_t* tabla = buscarTablaId(id_patota);
@@ -764,7 +679,7 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 		offset += pagina->Nframe*tamanioPagina;
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
 		leido += tamanio-leido;
-		*(char*)(aux+tamanio-1) = '\0';
+		*(char*)(aux+tamanio) = '\0';
 		return aux;
 	}
 	while(leido < tamanio && librePag < (tamanio - leido)){
@@ -782,7 +697,7 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
 		leido += tamanio-leido;
 	}
-	*(char*)(aux+tamanio-1) = '\0';
+	*(char*)(aux+tamanio) = '\0';
 	return aux;
 	}
 	else {
@@ -794,7 +709,7 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 		}
 		log_debug(logger,"Segmento encontrado %i, Inicio-> %i",1,segmento->inicio + offsetSegmento);
 		memcpy(aux,mem_ppal+segmento->inicio+offsetSegmento,tamanio);
-		*(char*)(aux+tamanio-1) = '\0';
+		*(char*)(aux+tamanio) = '\0';
 		return aux;
 	}
 }
@@ -819,6 +734,7 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
 			guardado += tamanio-guardado;
+			pagina->bytesOcupado += guardado;
 			return guardado;
 		}
 		while(guardado < tamanio && librePag < (tamanio - guardado)){
@@ -827,6 +743,7 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,librePag);
 			guardado += librePag;
+			pagina->bytesOcupado += guardado;
 			nPagina++;
 			offset = 0;
 			librePag = tamanioPagina;
@@ -836,6 +753,7 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 		if (guardado < tamanio){
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
 			guardado += tamanio-guardado;
+			pagina->bytesOcupado += guardado;
 		}
 		return guardado;
 	}
@@ -848,14 +766,7 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 	return 0;
 }
 
-//Mostrar Frames
-void mostrarFrames(void* frame){
-	frame_t* fr = (frame_t*)frame;
-	if(fr->estado){
-		printf("Frame: %i Estado: Libre \n",fr->numeroFrame);
-	}
-	else printf("Frame: %i Estado: Ocupado \n",fr->numeroFrame);
-}
+
 uint32_t calcular_frames(uint32_t tamanioTotal) {
 	uint32_t i = 1;
 	while (tamanioTotal >= tamanioPagina) {
@@ -864,10 +775,7 @@ uint32_t calcular_frames(uint32_t tamanioTotal) {
 	}
 	return i;
 }
-bool condicionFrameLibre(void* valor){
-	frame_t* frame = (frame_t*) valor;
-	return frame->estado;
-}
+
 int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 
 	if(paginacion){//PAginacion
@@ -878,6 +786,7 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		frame->estado = false;
 		pagina_t* pagina = malloc(sizeof(pagina_t));
 		pagina->Nframe = frame->numeroFrame;
+		pagina->bytesOcupado = 0;
 		list_add(tablaPatota->listaAsignados,pagina);
 		framesAsignados++;
 	}
@@ -900,46 +809,10 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		return 0;
 	}
 }
-int crear_memoria_(void){
-	tablasPatotaPaginacion = list_create();
-	if(paginacion){
-	mem_ppal = malloc(tamanioMemoria);
-	framesMemoria = list_create();
-	uint32_t cantidadMarcos = tamanioMemoria/tamanioPagina;
-	uint32_t i = 0;
-	while(i < cantidadMarcos) {
-		frame_t* frame = malloc(sizeof(frame_t));
-		frame->estado = true;
-		frame->numeroFrame = i;
-		list_add(framesMemoria,frame);
-		i++;
-	}
-	return 0;
-	}
-	else {
-		mem_ppal = malloc(tamanioMemoria);
-		//MEM SETT!!
-		memset(mem_ppal,0,tamanioMemoria);
-		listaSegmentos = list_create(); //Creo la lista de segmentos
-		printf("Cree la memoria e inicialize la lista de segmentos \n");
-		crear_segmento(0,tamanioMemoria); //DESCOMENTAR ESTO
-		return 0;
-	}
-}
-
-
-
-
-
-
-
-
-
-
-
 
 
 /// YA NO SIRVE
+/*
 pcb_t getPcb (int idPedido){
 	bool getPcbId(void* segmento) {
 		segmento_t* segmento_tmp = (segmento_t*)segmento;
@@ -1072,3 +945,57 @@ int crear_memoria_ppal(uint32_t size) {
 	crear_segmento(0,tamanio);
 	return OK;
 }
+//No es necesario verificar porque si no había espacio disponible nunca la llama!!
+int crear_tripulante(uint32_t idTrip,uint32_t id_patota,uint32_t x,uint32_t y,uint32_t idpatota){
+	segmento_t* segmentoTcb;
+	t_list* tablaSegmentos;
+	tcb_t tcb;
+	uint32_t offset;
+	tcb.id = idTrip;
+	tcb.x = x;
+	tcb.y = y;
+	tcb.pcb = idpatota;
+	tcb.prox_tarea = 0;
+	pthread_mutex_lock(&accesoListaSegmentos);
+	segmentoTcb = buscar_segmentoTcb(tcb,id_patota);
+	pthread_mutex_unlock(&accesoListaSegmentos);
+	if(segmentoTcb == NULL){
+		log_info(logger,"Ha ocurrido un error durante la creacion del tripulante");
+		return ERROR;
+	}
+	offset = segmentoTcb->inicio;
+	pthread_mutex_lock(&accesoMemoria);
+	memcpy(mem_ppal+offset,&tcb,sizeof(tcb_t));
+	pthread_mutex_unlock(&accesoMemoria);
+	pthread_mutex_lock(&accesoListaTablas);
+	tablaSegmentos = buscarTablaPatota(id_patota);
+	list_add(tablaSegmentos,segmentoTcb);
+	pthread_mutex_unlock(&accesoListaTablas);
+	return TRIPULANTE_CREADO;
+}
+t_list* buscarTablaPatotaTrip(uint32_t id_trip) {
+	bool buscarTabla(void* tabla){
+		t_list* tablaPatota = (t_list*)tabla;
+		uint32_t tamanio = list_size(tablaPatota);
+		uint32_t i = 2;
+		if(tamanio >= 2){
+			return false;
+		}
+		while (tamanio > i){
+			segmento_t* sg = list_get(tablaPatota,i);
+			tcb_t temp;
+			memcpy(&temp,mem_ppal+sg->inicio,sizeof(tcb_t));
+			if (temp.id == id_trip){
+				return true;
+			}
+			i++;
+		}
+		return false;
+	}
+	return list_find(listaTablaSegmentos,buscarTabla);
+}
+
+
+
+
+*/

@@ -298,6 +298,7 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam,FIN_TAREAS);
 	sendDeNotificacion(socketRam,tripulante->id);
 	sendDeNotificacion(socketRam,tripulante->patota_id);
+	sendDeNotificacion(socketRam,tripulante->direccionLogica);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
 	free(claveNueva);

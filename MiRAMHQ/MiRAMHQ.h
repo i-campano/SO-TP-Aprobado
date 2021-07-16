@@ -13,4 +13,5 @@
 #include "utils.h"
 #include "socket.h"
 #include "ADMIN_MIRAM.h"
+#include "mapa.h"
 #endif /* MiRAMHQ_H_ */

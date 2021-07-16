@@ -51,7 +51,7 @@ typedef struct {
 	bool estado; //true = Libre
 }frame_t;
 typedef struct {
-	uint32_t recentUsed;
+
 	uint32_t idPatota;
 	t_list* listaAsignados;
 	uint32_t tamanioTareas;
@@ -60,6 +60,8 @@ typedef struct {
 
 typedef struct {
 	uint32_t Nframe;
+	uint32_t bytesOcupado;
+	uint32_t recentUsed;
 }pagina_t;
 
 typedef struct {

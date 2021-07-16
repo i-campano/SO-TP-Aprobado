@@ -1,6 +1,7 @@
 #include"utils.h"
 #include "ADMIN_MIRAM.h"
 #include "socket.h"
+#include "mapa.h"
 
 void iniciarEstructurasAdministrativas(){
 	lista_pcb = list_create();
@@ -10,7 +11,6 @@ void iniciarEstructurasAdministrativas(){
 
 	pthread_mutex_init(&pthread_mutex_pcb_list,NULL);
 }
-
 
 void manejadorDeHilos(){
 	int socketCliente;
@@ -174,8 +174,14 @@ void *atenderNotificacion(void * paqueteSocket){
 			tcb->x = x;
 			tcb->y = y;
 			guardarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
-			encontrar_trip(id_trip);
-
+			//encontrar_trip(id_trip);
+			pthread_mutex_lock(&accesoCreados);
+			trip_t* trip = buscar_tripulanteIdMap(tcb->id);
+			trip->modificado = true;
+			trip->dx = tcb->x - trip->x;
+			trip->dy = tcb->y - trip->y;
+			pthread_mutex_unlock(&accesoCreados);
+			sem_post(&actualizar_pos);
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
 
 
@@ -186,20 +192,15 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 		case GET_PCB:{
 			uint32_t id_trip = recvDeNotificacion(socket);
-			log_info(logger,"%s",getPcb(id_trip).tareas);
-			tcb_t temp = getTcb(id_trip);
-			log_info(logger,"Id-> %i,x-> %i , y-> %i \n",temp.id,temp.x,temp.y);
-			tcb_t temp2 = getTcb(id_trip+1);
-			log_info(logger,"Id-> %i,x-> %i , y-> %i \n",temp2.id,temp2.x,temp2.y);
-			printf("%i \n",memoria_libre());
+
 			break;
 		}
 		case FIN_TAREAS: {
 			uint32_t id_trip = recvDeNotificacion(socket);
 			uint32_t id_patota = recvDeNotificacion(socket);
-			log_info(logger,"Fin de tripulante %i",id_trip);
-			eliminar_tripulante(id_trip,id_patota);
-			list_iterate(listaSegmentos,mostrarEstadoMemoria);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
+
 			break;
 		}
 		default:
@@ -301,7 +302,15 @@ void crear_pcb(int socket) {
 		temp.x = (uint32_t)atoi(coordenadas_posicion_inicial[0]);
 		temp.y = (uint32_t)atoi(coordenadas_posicion_inicial[1]);
 		temp.id = *id;
-
+		trip_t* mapaTrip = malloc(sizeof(trip_t));
+		mapaTrip->id = trip->id;
+		mapaTrip->x = temp.x;
+		mapaTrip->y = temp.y;
+		mapaTrip->modificado = false;
+		pthread_mutex_lock(&accesoNuevos);
+		list_add(nuevos,mapaTrip);
+		pthread_mutex_unlock(&accesoNuevos);
+		sem_post(&nuevo);
 		//crear_tripulante((uint32_t)*id,patotaid,(uint32_t)atoi(coordenadas_posicion_inicial[0]),(uint32_t)atoi(coordenadas_posicion_inicial[1]),pcbRam.id);
 		log_debug(logger,"Por crear trip %i",temp.id);
 		crear_tripulante_(temp,patotaid,tablaPatota);
