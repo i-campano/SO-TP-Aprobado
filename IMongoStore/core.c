@@ -51,7 +51,7 @@ void iniciar_blocks(){
 
 int write_blocks(char * cadena_caracteres,int indice) {
 
-	int padding = sizeof(bloque.data) - strlen(cadena_caracteres);
+	int padding = superblock.tamanio_bloque - strlen(cadena_caracteres);
 	char * pad = string_repeat('#',padding);
 	char * cadena  = string_duplicate(cadena_caracteres);
 	string_append(&cadena,pad);
@@ -70,7 +70,6 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 	char * cadena  = string_duplicate(cadena_caracteres);
 	string_append(&cadena,pad);
 
-	strcpy(bloque.data, cadena);
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cadena, string_length(cadena));
@@ -108,23 +107,23 @@ void sincronizar_blocks(){
 		sleep(conf_TIEMPO_SINCRONIZACION);
 		log_trace(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
+		pthread_mutex_lock(&superblock.mutex_superbloque);
 		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
 		log_debug(logger,"SYNC: COPIA blocks.ims: %s",_blocks.fs_bloques);
 		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*superblock.tamanio_bloque));
 		msync(_blocks.original_blocks, (superblock.cantidad_bloques*superblock.tamanio_bloque), MS_SYNC);
 		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
-		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
 
 		log_info(logger,"SINCRO  bitmap - BLOCKED");
 
-		pthread_mutex_lock(&superblock.mutex_superbloque);
 
 
 		memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
 		msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
 
 		pthread_mutex_unlock(&superblock.mutex_superbloque);
+		pthread_mutex_unlock(&_blocks.mutex_blocks);
 
 		log_info(logger,"SINCRO  bitmap - unBLOCKED");
 	}
@@ -176,9 +175,9 @@ void iniciar_super_block(){
 //		log_debug(logger,"iniciar_super_blocks(): Iniciando con superblock existente");
 //		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
 //	}else{
-		log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
-		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
-		ftruncate(superblock.file_superblock,tamanioFs);
+	log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
+	superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
+	ftruncate(superblock.file_superblock,tamanioFs);
 //	}
 
 
