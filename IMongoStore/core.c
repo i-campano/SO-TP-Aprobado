@@ -38,7 +38,10 @@ void iniciar_blocks(){
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
+	_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 
+	bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
+	bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
 
 	_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 
@@ -47,24 +50,22 @@ void iniciar_blocks(){
 }
 
 int write_blocks(char * cadena_caracteres,int indice) {
-	t_bloque bloque;
-	bzero(&bloque ,sizeof(t_bloque));
+
 	int padding = sizeof(bloque.data) - strlen(cadena_caracteres);
 	char * pad = string_repeat('#',padding);
 	char * cadena  = string_duplicate(cadena_caracteres);
 	string_append(&cadena,pad);
-	strcpy(bloque.data, cadena);
+	
 
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), &(bloque.data), sizeof(t_bloque));
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cadena, superblock.tamanio_bloque);
 
 	return 1;
 }
 
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
-	t_bloque bloque;
-	bzero(&bloque ,sizeof(t_bloque));
 
-	int padding = sizeof(bloque.data) - offset-strlen(cadena_caracteres);
+
+	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
 	char * pad = string_repeat('#',padding);
 	char * cadena  = string_duplicate(cadena_caracteres);
 	string_append(&cadena,pad);
@@ -77,8 +78,7 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 }
 
 int clean_block(int indice) {
-	t_bloque bloque;
-	bzero(&bloque, sizeof(t_bloque));
+
 	char * clean = string_repeat('*',superblock.tamanio_bloque);
 
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean, superblock.tamanio_bloque);
@@ -172,19 +172,22 @@ void iniciar_super_block(){
 	}
 	int tamanioFs = tamanioBitarray+(sizeof(uint32_t))*2;
 
-	if( access( "superblock.ims", F_OK ) == 0 ) {
-		log_debug(logger,"iniciar_super_blocks(): Iniciando con superblock existente");
-		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
-	}else{
+//	if( access( "superblock.ims", F_OK ) == 0 ) {
+//		log_debug(logger,"iniciar_super_blocks(): Iniciando con superblock existente");
+//		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
+//	}else{
 		log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
 		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
 		ftruncate(superblock.file_superblock,tamanioFs);
-	}
+//	}
 
 
 
 	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
 
+
+	superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+	bzero(superblock.bitmapstr,tamanioFs);
 
 	superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
