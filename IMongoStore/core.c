@@ -37,7 +37,7 @@ void iniciar_blocks(){
 	}
 	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
-	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*sizeof(t_bloque));
+	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 
 	_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
@@ -72,41 +72,33 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 	strcpy(bloque.data, cadena);
 
 //	TODO : meter la validacion de bitarray aca  ¿
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque))+offset, cadena, string_length(cadena));
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cadena, string_length(cadena));
 	return 1;
 }
 
 int clean_block(int indice) {
 	t_bloque bloque;
 	bzero(&bloque, sizeof(t_bloque));
+	char * clean = string_repeat('*',superblock.tamanio_bloque);
 
-	memcpy(_blocks.fs_bloques + (indice*sizeof(t_bloque)), "****", sizeof(t_bloque));
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean, superblock.tamanio_bloque);
+	log_info(logger,"clean_block(): Blocks: %s",_blocks.fs_bloques);
 	return 1;
 }
 
 //TODO: refactor obtener ->return string
 int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
-	t_bloque bloque;
-	bzero(&bloque, sizeof(t_bloque));
+	char * bloque = string_new();
 
-	memcpy(&bloque,_blocks.fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
+	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), superblock.tamanio_bloque);
 
 //	printf("%s",bloque.data);
-	string_append(bloqueReturned,(bloque.data));
+	string_append(bloqueReturned,(bloque));
 
 	return 1;
 }
 
-int obtener_bloque(int indice) {
-	t_bloque bloque;
-	bzero(&bloque, sizeof(t_bloque));
 
-	memcpy(&bloque,_blocks.fs_bloques + (indice*sizeof(t_bloque)), sizeof(t_bloque));
-
-	printf("%s",bloque.data);
-
-	return 1;
-}
 
 
 //--------------------------SYNC----------------------------------------
@@ -117,8 +109,9 @@ void sincronizar_blocks(){
 		log_trace(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
-		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*sizeof(t_bloque)));
-		msync(_blocks.original_blocks, (superblock.cantidad_bloques*sizeof(t_bloque)), MS_SYNC);
+		log_debug(logger,"SYNC: COPIA blocks.ims: %s",_blocks.fs_bloques);
+		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*superblock.tamanio_bloque));
+		msync(_blocks.original_blocks, (superblock.cantidad_bloques*superblock.tamanio_bloque), MS_SYNC);
 		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
@@ -128,8 +121,8 @@ void sincronizar_blocks(){
 		pthread_mutex_lock(&superblock.mutex_superbloque);
 
 
-		memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), &(superblock.bitmap), sizeof(superblock.bitmap));
-		msync(superblock.bitmapstr, sizeof(superblock.bitmapstr), MS_SYNC);
+		memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
+		msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
 
 		pthread_mutex_unlock(&superblock.mutex_superbloque);
 
@@ -173,6 +166,11 @@ void iniciar_super_block(){
 
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
+	int tamanioBitarray=superblock.cantidad_bloques/8;
+	if(superblock.cantidad_bloques % 8 != 0){
+	  tamanioBitarray++;
+	}
+	int tamanioFs = tamanioBitarray+(sizeof(uint32_t))*2;
 
 	if( access( "superblock.ims", F_OK ) == 0 ) {
 		log_debug(logger,"iniciar_super_blocks(): Iniciando con superblock existente");
@@ -180,31 +178,31 @@ void iniciar_super_block(){
 	}else{
 		log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
 		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
-		ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
+		ftruncate(superblock.file_superblock,tamanioFs);
 	}
 
 
 
 	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
-	superblock.bitmapstr = mmap ( NULL, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
+
+	superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
 	uint32_t cantidad_bloques_fs = *(uint32_t*)(superblock.bitmapstr);
 
 
 	//TODO : Buscar otra validacion para confirmar que existe un fs.
-	if(cantidad_bloques_fs!=superblock.cantidad_bloques){
-		ftruncate(superblock.file_superblock,(sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1);
+	if(cantidad_bloques_fs!=superblock.cantidad_bloques || 1){
+		ftruncate(superblock.file_superblock,tamanioFs);
 		log_debug(logger,"Creando metadata de FS...");
 
-		for(int i = 0; i<superblock.cantidad_bloques; i++){
-			bitarray_clean_bit(superblock.bitmap,i);
-		}
+
 		memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
 		memcpy(superblock.bitmapstr+sizeof(uint32_t), &(superblock.tamanio_bloque), sizeof(uint32_t));
 
 
-		memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),(superblock.cantidad_bloques/8) );
-		msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, (sizeof(uint32_t))*2+(superblock.cantidad_bloques/8)+1, MS_SYNC);
+		memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),tamanioBitarray);
+		msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, tamanioFs, MS_SYNC);
 
 		log_debug(logger,"Metadata creada...");
 	}else{

@@ -67,7 +67,7 @@ typedef struct  {
 str_superblock superblock;
 
 typedef struct {
-	char data[4];
+	char data[8];
 } __attribute__((packed)) t_bloque;
 
 typedef struct {

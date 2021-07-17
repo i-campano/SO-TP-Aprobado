@@ -155,7 +155,11 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
-		enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
+		char * event = string_new();
+		string_append(&event,"tarea");
+		enviar_evento_bitacora(socketMongo,tripulante->id,event);
+
+		free(event);
 
 
 
