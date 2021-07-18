@@ -38,7 +38,12 @@ void leer_consola() {
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
 		}else if(strncmp(leido, "INICIAR_PATOTA", 14) == 0){
-			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 11 1|2 3|5
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 12 1|2
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 1 1 6|2
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 13 6|2 3|5
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 14 1|2 4|5
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 15 5|2 3|6
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 16 1|2 |5
 			crear_patota(leido);
 		}
 		else if(strncmp(leido, "GET_DATOS", 3) == 0){

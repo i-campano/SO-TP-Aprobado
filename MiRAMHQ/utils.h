@@ -31,13 +31,10 @@ typedef enum
 
 t_list * lista_tcb;
 
-t_list * lista_pcb;
-
 t_list * lista_tripulantes;
 
 pthread_mutex_t pthread_mutex_tcb_list;
 
-pthread_mutex_t pthread_mutex_pcb_list;
 
 typedef struct {
 	int id;
@@ -56,10 +53,8 @@ typedef struct {
 
 
 t_log* logger;
-char * obtener_tarea(t_tripulante * tripulante);
-void mostrar_patota(pcb* pcb);
-void mostrar_lista_patota();
-void crear_pcb();
+
+int crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);
 void iniciarEstructurasAdministrativas();
 void manejadorDeHilos();

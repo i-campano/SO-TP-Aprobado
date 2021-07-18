@@ -13,8 +13,6 @@ void crear_patota(char * comando){
 	t_list * list_trip_aux = list_create();
 
 	char ** parametros = string_n_split(comando,5," ");
-	char * path = string_new();
-
 
 	char * tareasX = string_new();
     FILE *archivo = fopen(parametros[1], "r"); // Modo lectura
@@ -22,14 +20,10 @@ void crear_patota(char * comando){
     int cantidad_tareas = 0;
     while (fgets(bufer, 1000, archivo))
     {
-        // Aquí, justo ahora, tenemos ya la línea. Le vamos a remover el salto
-        //strtok(bufer, "\n");
-        // La imprimimos, pero realmente podríamos hacer cualquier otra cosa
 		string_append(&tareasX,bufer);
-		string_append(&tareasX,"-");
 		cantidad_tareas++;
     }
-    char * tareasOk = string_substring_until(tareasX,string_length(tareasX)-1);
+    char * tareasOk = string_substring_until(tareasX,string_length(tareasX));
 
 
 
@@ -64,6 +58,8 @@ void crear_patota(char * comando){
 		return false;
 	}
 	*/
+	int state = recvDeNotificacion(socketServerMiRam);
+	if (state == PATOTA_CREADA) {
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
 		sendDeNotificacion(socketServerMiRam,tripulantes_creados);
@@ -83,20 +79,19 @@ void crear_patota(char * comando){
 		crearHiloTripulante(_tripulante);
 		free(id); //malloc linea 79 dentro de este while
 	}
-
-
-
-	recvDeNotificacion(socketServerMiRam);
+	}
+	if(recvDeNotificacion(socketServerMiRam) == PATOTA_CREADA){
 	while(list_size(list_trip_aux)!=0){
 		t_tripulante * trip = list_remove(list_trip_aux,0);
 		sem_post(&trip->creacion);
 	}
 	list_destroy(list_trip_aux);
-
+	}
+	else {
+		log_error(logger,"No se pudo crear la patota");
+	}
 	//crear lista de ids y enviar
 	//cuando el tripulante se conecte a miram, atenderlo, buscar su tcb y agregarlo a la lista de sockets conocidos
-
-
 	free(buffer_patota); //Se hace el malloc dentro de crear_buffer_patota
 	free(claveGet); //malloc linea 60
 	free(posiciones); //stringNew linea 52

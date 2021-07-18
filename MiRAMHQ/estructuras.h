@@ -7,7 +7,14 @@
 
 #ifndef ESTRUCTURAS_H_
 #define ESTRUCTURAS_H_
-
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<stdint.h>
+#include<commons/log.h>
+#include<commons/string.h>
+#include<commons/config.h>
+#include "ADMIN_MIRAM.h"
 
 typedef struct {
 	char * nombre_tarea;
@@ -50,8 +57,18 @@ typedef struct _infoHilos{
 	pthread_t hiloAtendedor;
 } infoHilos;
 
+typedef struct {
+	uint32_t tamanio;
+	char* esquema;
+	uint32_t tamanioPagina;
+	uint32_t tamanioSwap;
+	char* pathSwap;
+	char* algoritmo;
+	char* criterio;
+	uint32_t puerto;
+}conf_t;
 
-
-
-
+conf_t confDatos;
+t_config* configuracion;
+int crear_configuracion(void);
 #endif /* ESTRUCTURAS_H_ */

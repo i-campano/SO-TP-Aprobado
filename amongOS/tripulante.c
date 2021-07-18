@@ -166,7 +166,6 @@ void *labor_tripulante_new(void * trip){
 		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 		
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
-		log_info(logger,"Valor de moveBound 2linea --->%i",moveBound);
 		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
 
 			sem_wait(&detenerReaunudarEjecucion);
@@ -229,7 +228,7 @@ void *labor_tripulante_new(void * trip){
 
 
 
-			if(!esIo && tripulante->instrucciones_ejecutadas<=moveBound){
+			if(/*!esIo &&*/ tripulante->instrucciones_ejecutadas<=moveBound){
 				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND [MOVE]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 
 				if( firstMove == 0){
@@ -277,7 +276,7 @@ void *labor_tripulante_new(void * trip){
 		//Fin tarea
 			tarea = pedir_tarea(socketRam, tripulante);
 			log_info(logger,"Tarea Recibida %s",tarea);
-			if(strcmp(tarea,"FIN")!=0){
+			if(strcmp(tarea,"FIN\0")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 				tripulante->instrucciones_ejecutadas = 0;
 				tripulante->cantidad_tareas--;
@@ -299,6 +298,7 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam,tripulante->id);
 	sendDeNotificacion(socketRam,tripulante->patota_id);
 	sendDeNotificacion(socketRam,tripulante->direccionLogica);
+	recvDeNotificacion(socketRam);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
 	free(claveNueva);
