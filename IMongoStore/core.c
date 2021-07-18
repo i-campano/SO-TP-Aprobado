@@ -87,8 +87,8 @@ int clean_block(int indice) {
 
 //TODO: refactor obtener ->return string
 char * obtener_contenido_bloque(int indice) {
-	char * bloque = (char*)malloc(superblock.tamanio_bloque);
-	bzero(bloque,superblock.tamanio_bloque);
+	void * bloque = malloc(superblock.tamanio_bloque);
+
 //	TODO: PORQUE TAMANIO -1 ¿¿
 	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), 8);
 
