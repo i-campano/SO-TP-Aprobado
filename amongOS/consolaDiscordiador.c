@@ -59,6 +59,24 @@ void leer_consola() {
 	free(leido);
 }
 
+
+void escuchoSabotaje() {
+	log_info(logger,"Atendedor de sabotajes: Escuchando OK");
+	while(1) {
+		uint32_t nroNotificacion = recvDeNotificacion(socketServerIMongoStore);
+		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
+		if(nroNotificacion==INFORMAR_SABOTAJE){
+
+			char * posicion = recibirString(socketServerIMongoStore);
+
+			sendDeNotificacion(socketServerIMongoStore,FSCK);
+
+			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
+		}
+	}
+
+}
+
 void hilo_mostrar_tripulantes(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);

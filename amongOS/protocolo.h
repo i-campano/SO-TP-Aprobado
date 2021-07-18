@@ -18,7 +18,10 @@
 #define LISTA_ID_TRIPULANTES 17
 #define FIN_TAREAS 18
 #define GET_PCB 19
-//--------------------------------------------------------------------
+//-----------------------------SABOTAJE---------------------------------------
+
+#define FSCK 100
+#define INFORMAR_SABOTAJE 101
 
 
 //------------------------------CONSTANTES------

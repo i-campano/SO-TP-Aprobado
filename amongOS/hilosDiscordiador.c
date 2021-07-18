@@ -245,26 +245,6 @@ void hilo_cola_bloq(){
 }
 
 
-
-
-
-
-void atender_imongo_store(){
-	uint32_t notificacion;
-	while(1){
-		sem_wait(&activar_actualizaciones_mongo);
-		sem_post(&activar_actualizaciones_mongo);
-		notificacion = recibirUint(socketServerIMongoStore);
-
-		switch(notificacion){
-			case ACTUALIZACION_IMONGOSTORE:{
-				log_info(logger,"CONEXION VIVA IMONGO CON DISCORDIADOR (SLEEP 10 SEGS)");
-			}
-		}
-	}
-}
-
-
 void atender_ram(){
 	uint32_t notificacion;
 	while(1){
@@ -300,6 +280,21 @@ void iniciarHiloConsola(){
 	pthread_attr_init(&attr2);
 	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
 	pthread_create(&hiloConsola , &attr2,(void*) leer_consola,NULL);
+
+	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+	datosHilo->socket = 0;
+	datosHilo->hiloAtendedor = hiloConsola;
+
+	pthread_mutex_lock(&mutexHilos);
+	list_add(hilosParaConexiones, datosHilo);
+	pthread_mutex_unlock(&mutexHilos);
+}
+
+void iniciarHiloQueEscuchaSabotajes(){
+	pthread_attr_t attr2;
+	pthread_attr_init(&attr2);
+	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , &attr2,(void*) escuchoSabotaje,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -357,17 +352,4 @@ void atenderLaRam(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-void atenderIMongoStore(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr1,(void*) atender_imongo_store,NULL);
 
-	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
-	datosHilo->socket = 0;
-	datosHilo->hiloAtendedor = hiloConsola;
-
-	pthread_mutex_lock(&mutexHilos);
-	list_add(hilosParaConexiones, datosHilo);
-	pthread_mutex_unlock(&mutexHilos);
-}
