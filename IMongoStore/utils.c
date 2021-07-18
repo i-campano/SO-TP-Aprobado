@@ -10,7 +10,7 @@ void iniciar_configuracion(){
 	config = leer_config();
 	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");
 	t_log_level log_level = log_level_from_string(conf_LOG_LEVEL);
-	logger = log_create("IMongoStore.log", "IMongoStore", 0,log_level);
+	logger = log_create("IMongoStore.log", "IMongoStore", 1,log_level);
 
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
