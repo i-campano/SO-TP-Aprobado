@@ -86,15 +86,13 @@ int clean_block(int indice) {
 }
 
 //TODO: refactor obtener ->return string
-int obtener_contenido_bloque(int indice,char ** bloqueReturned) {
-	char * bloque = string_new();
+char * obtener_contenido_bloque(int indice) {
+	char * bloque = (char*)malloc(superblock.tamanio_bloque);
+	bzero(bloque,superblock.tamanio_bloque);
+//	TODO: PORQUE TAMANIO -1 ¿¿
+	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), 8);
 
-	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), superblock.tamanio_bloque);
-
-//	printf("%s",bloque.data);
-	string_append(bloqueReturned,(bloque));
-
-	return 1;
+	return bloque;
 }
 
 
@@ -484,7 +482,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
-	obtener_contenido_bloque(indice,&contenidoBloque);
+	contenidoBloque = obtener_contenido_bloque(indice);
 
 	int longitudBloque = 0 ;
 
@@ -498,7 +496,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 			cantidad_bloques--;
 			bloque = bloques[cantidad_bloques];
 			indice = atoi(bloque);
-			obtener_contenido_bloque(indice,&contenidoBloque);
+			contenidoBloque = obtener_contenido_bloque(indice);
 			longitudBloque = string_length(contenidoBloque);
 			sizeUltimoBloque =longitudBloque;
 		}
@@ -509,7 +507,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		else if (cantidadAConsumir<sizeUltimoBloque){
 			actualizar_metadata_borrado(archivo,cantidadAConsumir);
 
-			contenidoBloque = string_substring_until(contenidoBloque,string_length(contenidoBloque)-cantidadAConsumir);
+			contenidoBloque = string_substring_until(contenidoBloque,sizeUltimoBloque-cantidadAConsumir);
 
 			write_blocks(contenidoBloque,indice);
 			cantidadAConsumir=0;
