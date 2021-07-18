@@ -51,13 +51,17 @@ void iniciar_blocks(){
 
 int write_blocks(char * cadena_caracteres,int indice) {
 
-	int padding = superblock.tamanio_bloque - strlen(cadena_caracteres);
-	char * pad = string_repeat('#',padding);
+
+	void * cad = malloc(superblock.tamanio_bloque);
+	bzero(cad,superblock.tamanio_bloque);
 	char * cadena  = string_duplicate(cadena_caracteres);
-	string_append(&cadena,pad);
+	memcpy(cad,(void*)cadena,string_length(cadena));
+//	int padding = superblock.tamanio_bloque - strlen(cadena_caracteres);
+//	char * pad = string_repeat('#',padding);
+//	string_append(&cadena,pad);
 	
 
-	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cadena, superblock.tamanio_bloque);
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cad, superblock.tamanio_bloque);
 
 	return 1;
 }
@@ -65,22 +69,22 @@ int write_blocks(char * cadena_caracteres,int indice) {
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 
-	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
-	char * pad = string_repeat('#',padding);
+//	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
+//	char * pad = string_repeat('#',padding);
 	char * cadena  = string_duplicate(cadena_caracteres);
-	string_append(&cadena,pad);
+//	string_append(&cadena,pad);
 
 
 //	TODO : meter la validacion de bitarray aca  ¿
-	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cadena, string_length(cadena));
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, (void*)cadena, string_length(cadena));
 	return 1;
 }
 
 int clean_block(int indice) {
 
-	char * clean = string_repeat('*',superblock.tamanio_bloque);
-
-	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean, superblock.tamanio_bloque);
+	void * clean2 = malloc(superblock.tamanio_bloque);
+	bzero(clean2,superblock.tamanio_bloque);
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean2, superblock.tamanio_bloque);
 	log_info(logger,"clean_block(): Blocks: %s",_blocks.fs_bloques);
 	return 1;
 }

@@ -214,13 +214,17 @@ int calcular_cantidad_bloques_requeridos_bitacora(char* cadenaAGuardar){
 
 
 int write_blocks_with_offset_bitacora(char * cadena_caracteres,int indice,int offset) {
-	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
-	char * pad = string_repeat('#',padding);
+//	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
+//	char * pad = string_repeat('#',padding);
+	void * cad = malloc(superblock.tamanio_bloque);
+	bzero(cad,superblock.tamanio_bloque);
 	char * cadena  = string_duplicate(cadena_caracteres);
-	string_append(&cadena,pad);
+	memcpy(cad,(void*)cadena,string_length(cadena));
+
+//	string_append(&cadena,pad);
 
 //	TODO : meter la validacion de bitarray aca  ¿
-	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cadena, string_length(cadena));
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cad, string_length(cad));
 	return 1;
 }
 
