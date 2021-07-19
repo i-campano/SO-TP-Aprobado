@@ -37,6 +37,6 @@ int obtener_bloque(int indice);
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar);
 
 void iniciar_super_block();
-
+void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source);
 
 #endif /* CORE_H_ */

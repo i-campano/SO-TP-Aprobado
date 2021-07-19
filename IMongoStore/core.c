@@ -85,7 +85,7 @@ int clean_block(int indice) {
 	void * clean2 = malloc(superblock.tamanio_bloque);
 	bzero(clean2,superblock.tamanio_bloque);
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean2, superblock.tamanio_bloque);
-	log_info(logger,"clean_block(): Blocks: %s",_blocks.fs_bloques);
+
 	return 1;
 }
 
@@ -103,41 +103,65 @@ void * obtener_contenido_bloque(int indice) {
 
 
 //--------------------------SYNC----------------------------------------
+bool menorAMayor(int* primero, int* segundo){
+	return *primero < *segundo;
+}
+
+void ordenar(t_list * bloques){
+	bool ordenar_blocks(int* primero,int* segundo){
+		if(*primero == *segundo){
+			return *primero < *segundo;
+		}else{
+			menorAMayor(primero,segundo);
+		}
+	}
+	list_sort(bloques, (void*) ordenar_blocks);
+}
+
+
+
+void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source){
+
+	void imprimir_bloque(int *item) {
+		char * bloque = string_new();
+		bloque = string_substring(blocks, ((*item)*superblock.tamanio_bloque), superblock.tamanio_bloque);
+		log_debug(logger,"SYNC: %s: NUMERO BLOQUE : %d -> %s ",source,*item,bloque);
+		free(bloque);
+	}
+
+	list_iterate(bloques,(void*) imprimir_bloque);
+
+}
+
 
 void sincronizar_blocks(){
 	while(1){
-		sleep(conf_TIEMPO_SINCRONIZACION);
-//		int bloques_ocupados = superblock.cantidad_bloques - calcular_bloques_libres();
-//		t_list * lista_bloques = list_create();
 
-		log_info(logger,"FSCK: Chequeando BITMAP -> INICIO");
-
-//		obtener_todos_los_bloques_desde_metedata(lista_bloques);
-		log_trace(logger,"SINCRONIZANDO DISCO");
+		log_debug(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
-		pthread_mutex_lock(&superblock.mutex_superbloque);
 		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+		log_trace(logger,"SINCRO  bitmap - BLOCKED");
 
-//		for(int i = 0 ; i< bloques_ocupados ; i++){
-//			int * bloque = (int*)list_get(lista_bloques,i);
-//			log_debug(logger,"SYNC: COPIA blocks.ims: %s",_blocks.fs_bloques+((*bloque)*superblock.tamanio_bloque));
-//		}
 		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*superblock.tamanio_bloque));
 		msync(_blocks.original_blocks, (superblock.cantidad_bloques*superblock.tamanio_bloque), MS_SYNC);
-		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
-		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
-
-		log_info(logger,"SINCRO  bitmap - BLOCKED");
-
-
 
 		memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
 		msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
 
 		pthread_mutex_unlock(&superblock.mutex_superbloque);
+		log_trace(logger,"SINCRO  bitmap - unBLOCKED");
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
+		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
 
-		log_info(logger,"SINCRO  bitmap - unBLOCKED");
+		sleep(conf_TIEMPO_SINCRONIZACION);
+
+		t_list * lista_bloques = list_create();
+		obtener_todos_los_bloques_desde_metedata(lista_bloques);
+		ordenar(lista_bloques);
+
+		mostrar_blocks_ims(lista_bloques,_blocks.fs_bloques,"   COPIA");
+		mostrar_blocks_ims(lista_bloques,_blocks.original_blocks,"ORIGINAL");
 	}
 }
 
