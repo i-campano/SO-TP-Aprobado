@@ -90,7 +90,7 @@ int clean_block(int indice) {
 }
 
 //TODO: refactor obtener ->return string
-char * obtener_contenido_bloque(int indice) {
+void * obtener_contenido_bloque(int indice) {
 	void * bloque = malloc(superblock.tamanio_bloque);
 
 //	TODO: PORQUE TAMANIO -1 ¿¿
@@ -107,21 +107,21 @@ char * obtener_contenido_bloque(int indice) {
 void sincronizar_blocks(){
 	while(1){
 		sleep(conf_TIEMPO_SINCRONIZACION);
-		int bloques_ocupados = superblock.cantidad_bloques - calcular_bloques_libres();
-		t_list * lista_bloques = list_create();
+//		int bloques_ocupados = superblock.cantidad_bloques - calcular_bloques_libres();
+//		t_list * lista_bloques = list_create();
 
 		log_info(logger,"FSCK: Chequeando BITMAP -> INICIO");
 
-		obtener_todos_los_bloques_desde_metedata(lista_bloques);
+//		obtener_todos_los_bloques_desde_metedata(lista_bloques);
 		log_trace(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
 		pthread_mutex_lock(&superblock.mutex_superbloque);
 		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
 
-		for(int i = 0 ; i< bloques_ocupados ; i++){
-			int * bloque = (int*)list_get(lista_bloques,i);
-			log_debug(logger,"SYNC: COPIA blocks.ims: %s",_blocks.fs_bloques+((*bloque)*superblock.tamanio_bloque));
-		}
+//		for(int i = 0 ; i< bloques_ocupados ; i++){
+//			int * bloque = (int*)list_get(lista_bloques,i);
+//			log_debug(logger,"SYNC: COPIA blocks.ims: %s",_blocks.fs_bloques+((*bloque)*superblock.tamanio_bloque));
+//		}
 		memcpy(_blocks.original_blocks, (_blocks.fs_bloques), (superblock.cantidad_bloques*superblock.tamanio_bloque));
 		msync(_blocks.original_blocks, (superblock.cantidad_bloques*superblock.tamanio_bloque), MS_SYNC);
 		log_debug(logger,"SYNC: blocks.ims: %s",_blocks.original_blocks);
@@ -488,7 +488,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	int sizeUltimoBloque = size;
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
 
-	char * contenidoBloque = string_new();
+	void * contenidoBloque = NULL;
 
 	int indice = atoi(bloque);
 
@@ -506,13 +506,12 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 			cantidadAConsumir-=sizeUltimoBloque;
 			remover_bloque(indice,archivo,sizeUltimoBloque);
-			contenidoBloque = string_new();
 			cantidad_bloques--;
 			bloque = bloques[cantidad_bloques];
 			indice = atoi(bloque);
 			contenidoBloque = obtener_contenido_bloque(indice);
-			longitudBloque = string_length(contenidoBloque);
-			sizeUltimoBloque =longitudBloque;
+
+			sizeUltimoBloque = superblock.tamanio_bloque;
 		}
 		else if(cantidadAConsumir==sizeUltimoBloque){
 			cantidadAConsumir-=sizeUltimoBloque;

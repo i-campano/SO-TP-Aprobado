@@ -32,7 +32,7 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 void iniciar_blocks();
 void consumir_arch(_archivo * archivo,int cantidadAConsumir);
 void remover_bloque(int indice,_archivo * archivo,int cantidadAConsumir);
-char * obtener_contenido_bloque(int indice);
+void * obtener_contenido_bloque(int indice);
 int obtener_bloque(int indice);
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar);
 
