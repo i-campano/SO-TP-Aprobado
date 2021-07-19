@@ -142,7 +142,7 @@ void replanificar(){
 
 
 
-		log_debug(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
+		log_trace(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
 		switch(tripulante->estado) {
 			case 'F':{
 				//MUTEX COLA FIN LOCK
@@ -190,7 +190,7 @@ void sacar_de_exec(int id_tripulante){
 	}
 	pthread_mutex_lock(&planificacion_mutex_exec);
 	t_tripulante * data = (t_tripulante*) list_remove_by_condition(lista_exec,(void*) encontrarTripulante);
-	log_info(logger,"T%d - P%d : DISPATCHER", data->id,data->patota_id);
+	log_trace(logger,"T%d - P%d : DISPATCHER", data->id,data->patota_id);
 	pthread_mutex_unlock(&planificacion_mutex_exec);
 
 //	if(data == NULL){

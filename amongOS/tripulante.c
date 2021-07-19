@@ -13,7 +13,7 @@ char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	if (OPERACION == ENVIAR_TAREA) {
 		tarea = recibirString(socketRam);
 		if (tarea != NULL) {
-			log_debug(logger,"T%d - P%d : RECIBIO TAREA", tripulante->id,tripulante->patota_id);
+			log_trace(logger,"T%d - P%d : RECIBIO TAREA", tripulante->id,tripulante->patota_id);
 		}
 	}
 	return tarea;
@@ -30,7 +30,7 @@ void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado) {
 	uint32_t RESPONSE_ACTUALIZACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", RESPONSE_ACTUALIZACION);
 	if (RESPONSE_ACTUALIZACION == ESTADO_ACTUALIZADO_MIRAM) {
-		log_debug(logger,"T%d - P%d : ACTUALIZO ESTADO OK", tripulante->id,tripulante->patota_id);
+		log_trace(logger,"T%d - P%d : ACTUALIZO ESTADO OK", tripulante->id,tripulante->patota_id);
 	}
 }
 
@@ -66,7 +66,7 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea)
 		*esIo = 0;
 	}
 
-	log_info(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
+	log_trace(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
 	free(tarea_parametro);//stringsplit
 	return tarea_separada[0];
 }
@@ -163,11 +163,8 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
-		char * event = string_new();
-		string_append(&event,"tarea");
-		enviar_evento_bitacora(socketMongo,tripulante->id,event);
+		enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
 
-		free(event);
 
 
 
@@ -276,14 +273,14 @@ void *labor_tripulante_new(void * trip){
 
 
 
-			log_info(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
+			log_trace(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
 
 			rafaga++;
 
 		}
 		//Fin tarea
 			tarea = pedir_tarea(socketRam, tripulante);
-			log_info(logger,"Tarea Recibida %s",tarea);
+			log_trace(logger,"Tarea Recibida %s",tarea);
 			if(strcmp(tarea,"FIN\0")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 				tripulante->instrucciones_ejecutadas = 0;
@@ -294,7 +291,7 @@ void *labor_tripulante_new(void * trip){
 			}
 	
 	}
-	log_info(logger,"T%d - P%d : FIN TAREAS", tripulante->id,tripulante->patota_id);
+	log_trace(logger,"T%d - P%d : FIN TAREAS", tripulante->id,tripulante->patota_id);
 	tripulante->estado = 'F';
 	pthread_mutex_lock(&mutex_cola_ejecutados);
 	queue_push(cola_ejecutados,tripulante);
