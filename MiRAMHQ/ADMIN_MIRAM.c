@@ -23,12 +23,13 @@ uint32_t tamanio;
 
 int admin_memoria(void)
 {
+	swap_fd = -1;
 	paginacion = true;
 	pthread_mutex_init(&accesoMemoria,NULL);
 	pthread_mutex_init(&accesoListaSegmentos,NULL);
 	pthread_mutex_init(&accesoListaTablas,NULL);
 	crear_memoria_();
-
+	swapFile = NULL;
 	//free(mem_ppal);
 	return 0;
 }
@@ -37,9 +38,21 @@ int crear_memoria_(void){
 	tablasPatotaPaginacion = list_create();
 	if(!strcmp(confDatos.esquema,"PAGINACION")){
 	mem_ppal = malloc(tamanioMemoria);
+	memset(mem_ppal,0,tamanioMemoria);
 	framesMemoria = list_create();
 	uint32_t cantidadMarcos = tamanioMemoria/tamanioPagina;
 	uint32_t i = 0;
+	if(!strcmp(confDatos.algoritmo,"LRU")){
+		uint32_t tamanioSwap = confDatos.tamanioSwap;
+		uint32_t paginasSwap = tamanioSwap/tamanioPagina;
+		swapFrames = bitarray_create_with_mode(malloc(paginasSwap/8),paginasSwap/8,LSB_FIRST);
+		while(paginasSwap > i){
+			bitarray_clean_bit(swapFrames,i);//1 = LIBRE
+			i++;
+		}
+		paginasUsadas = list_create();
+	}
+	i = 0;
 		while(i < cantidadMarcos) {
 			frame_t* frame = malloc(sizeof(frame_t));
 			frame->estado = true;
@@ -47,6 +60,7 @@ int crear_memoria_(void){
 			list_add(framesMemoria,frame);
 			i++;
 		}
+		log_info(logger,"Cree la memoria con sus %i frames",cantidadMarcos);
 	}
 	if(!strcmp(confDatos.esquema,"SEGMENTACION")) {
 		mem_ppal = malloc(tamanioMemoria);
@@ -317,6 +331,7 @@ int crear_tripulante_(tcb_t tcb,uint32_t idpatota,tabla_t* tablaPatota){
 	if(!strcmp(confDatos.esquema,"PAGINACION")) {
 		tcb.prox_tarea = 8;
 		direccionLogica = tablaPatota->ocupado;
+		log_debug(logger,"Dir Log: %i Trip: %i",direccionLogica,tcb.id);
 	}
 	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
 		tcb.prox_tarea = 1;
@@ -534,17 +549,34 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 		}
 		if(tamanio < tamanioPagina - offset){
 			pagina_t* pag = list_get(tabla->listaAsignados,nPagina);
+			if(!pag->valida){
+				tabla->ocupado -= tamanio;
+				pag->bytesOcupado -= tamanio;
+				if(pag->bytesOcupado == 0){
+					bitarray_set_bit(swapFrames,pag->NframeVirtual);
+				}
+			}
+			else{
 			pag->bytesOcupado -= tamanio;
 			if(pag->bytesOcupado == 0){
 				frame_t* fr = list_get(framesMemoria,pag->Nframe);
 				fr->estado = true;
 			}
 			tabla->ocupado -= tamanio;
+			}
 			return tamanio;
 		}
 		pagina_t* pagina;
 		while(tamanio > liberado && (tamanioPagina-offset) <= (tamanio-liberado)){
 			pagina = list_get(tabla->listaAsignados,nPagina);
+			if(!pagina->valida){
+				pagina->bytesOcupado -= tamanioPagina-offset;
+				liberado += tamanioPagina-offset;
+				if(pagina->bytesOcupado == 0){
+					bitarray_set_bit(swapFrames,pagina->NframeVirtual);
+				}
+			}
+			else{
 			pagina->bytesOcupado -= tamanioPagina-offset;
 			liberado += tamanioPagina-offset;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanioPagina-offset,pagina->bytesOcupado);
@@ -552,11 +584,21 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 				frame_t* fr = list_get(framesMemoria,pagina->Nframe);
 				fr->estado = true;
 			}
+			}
 			nPagina++;
 			pagina = list_get(tabla->listaAsignados,nPagina);
 			offset = 0;
 		}
 		if(tamanio > liberado){
+			if(!pagina->valida){
+				pagina->bytesOcupado -= tamanio-liberado;
+				if(pagina->bytesOcupado == 0){
+					bitarray_set_bit(swapFrames,pagina->NframeVirtual);
+				}
+				log_debug(logger,"Liberando %i bytes, paginaVIRTUAL Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
+				liberado += tamanio - liberado;
+			}
+			else{
 			pagina->bytesOcupado -= tamanio-liberado;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
 			if(pagina->bytesOcupado == 0){
@@ -564,6 +606,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 				fr->estado = true;
 			}
 			liberado += tamanio - liberado;
+			}
 		}
 		tabla->ocupado -= liberado;
 		return liberado;
@@ -644,7 +687,7 @@ void mostrarFrames(void* frame){
 }
 
 // CON DIRECCION LOGICA >
-
+/*
 uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
 	uint32_t tamanio = 0;
 	uint32_t direccionFisica;
@@ -662,6 +705,190 @@ uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
 		}
 		direccionFisica = ((pagina_t*)list_get(tabla->listaAsignados,pagina))->Nframe*tamanioPagina + offset;
 		log_debug(logger,"Buscando instruccion desde %i logica",direccionFisica);
+	}
+	char aux;
+	log_debug(logger,"Buscando instruccion desde %i logica",direccionLogica);
+	while (tamanio < 100){
+		memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
+		if(aux == '\0' || aux == '\n'){
+			log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
+			if(aux == '\0'){
+				return tamanio-1;
+			}
+			return tamanio;
+		}
+		tamanio++;
+	}
+	return tamanio;
+}*/
+uint32_t paginaTareas(int tamanioTarea){
+	uint32_t paginas = 0;
+	if(sizeof(pcb_t) % tamanioPagina){
+		tamanioTarea += sizeof(pcb_t) % tamanioPagina;
+	}
+	while(tamanioTarea > 0){
+		tamanioTarea -= tamanioPagina;
+		paginas++;
+	}
+	return paginas;
+}
+uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
+	uint32_t tamanio = 0;
+	uint32_t direccionFisica;
+	uint32_t i = 0;
+	uint32_t paginasOcupadasTareas = paginaTareas(tabla->tamanioTareas);
+	while(i < paginasOcupadasTareas){
+		pagina_t* pagina = list_get(tabla->listaAsignados,i);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		i++;
+	}
+	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+		direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
+	}
+	if(!strcmp(confDatos.esquema,"PAGINACION")) {
+		uint32_t pagina = direccionLogica/tamanioPagina;
+		uint32_t offset = 0;
+		if (direccionLogica > tamanioPagina) {
+			offset += direccionLogica - pagina*tamanioPagina;
+		}
+		if (direccionLogica < tamanioPagina) {
+			offset += direccionLogica;
+		}
+		direccionFisica = ((pagina_t*)list_get(tabla->listaAsignados,pagina))->Nframe*tamanioPagina + offset;
+		log_debug(logger,"Buscando instruccion desde %i logica",direccionFisica);
+	}
+	char aux;
+	log_debug(logger,"Buscando instruccion desde %i logica",direccionLogica);
+	while (tamanio < 100){
+		memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
+		if(aux == '\0' || aux == '\n'){
+			log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
+			if(aux == '\0'){
+				return tamanio-1;
+			}
+			return tamanio;
+		}
+		tamanio++;
+	}
+	return tamanio;
+}
+uint32_t reconocerTamanioInstruccion3(uint32_t direccionLogica,tabla_t* tabla) {
+	uint32_t tamanio = 0;
+	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+		uint32_t direccionFisica;
+		direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
+		char aux;
+			log_debug(logger,"Buscando instruccion desde %i fisica",direccionLogica);
+			while (tamanio < 100){
+				memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
+				if(aux == '\0' || aux == '\n'){
+					log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
+					if(aux == '\0'){
+						return tamanio-1;
+					}
+					return tamanio;
+				}
+				tamanio++;
+			}
+			return tamanio;
+	}
+	if(!strcmp(confDatos.esquema,"PAGINACION")) {
+		uint32_t nPagina = direccionLogica/tamanioPagina;
+		uint32_t offset = 0;
+		pagina_t* pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
+		if (direccionLogica > tamanioPagina) {
+				offset += direccionLogica % tamanioPagina;
+		}
+		if (direccionLogica < tamanioPagina) {
+				offset += direccionLogica;
+		}
+
+		uint32_t offsetMem =pagina->Nframe*tamanioPagina;
+		char aux;
+		uint32_t maxPag = list_size(tabla->listaAsignados);
+		while(nPagina < maxPag){
+			memcpy(&aux,mem_ppal+offset+offsetMem,sizeof(char));
+			log_debug(logger,"%c",aux);
+				if(aux == '\0' || aux == '\n'){
+					log_debug(logger,"EL tamanio de la tarea es %i",tamanio);
+					if(aux == '\0'){
+						return tamanio-1;
+					}
+					return tamanio;
+				}
+			if(offset == tamanioPagina-1) {
+				nPagina++;
+				pagina = list_get(tabla->listaAsignados,nPagina);
+				if(!pagina->valida){
+							realizarSwap(pagina);
+				}
+				else{
+					actualizarPagina(pagina);
+				}
+				offsetMem = pagina->Nframe*tamanioPagina;
+				offset = 0;
+			}
+			else{
+				offset++;
+			}
+			tamanio++;
+		}
+
+	}
+	return 0;
+}
+uint32_t reconocerTamanioInstruccion2(uint32_t direccionLogica,tabla_t* tabla) {
+	uint32_t tamanio = 0;
+	uint32_t direccionFisica;
+
+	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+		direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
+	}
+	if(!strcmp(confDatos.esquema,"PAGINACION")) {
+		uint32_t pagina = direccionLogica/tamanioPagina;
+		uint32_t offset = 0;
+		if (direccionLogica > tamanioPagina) {
+			offset += direccionLogica - pagina*tamanioPagina;
+		}
+		if (direccionLogica < tamanioPagina) {
+			offset += direccionLogica;
+		}
+		pagina_t* paginaP = list_get(tabla->listaAsignados,pagina);
+		if(!paginaP->valida){
+			realizarSwap(paginaP);
+		}
+		offset += paginaP->Nframe*tamanioPagina;
+		log_debug(logger,"Buscando instruccion desde %i logica Offset: %i",direccionLogica,offset);
+		char aux = 'c';
+		while (tamanio < 100){
+			memcpy(&aux,mem_ppal+offset+tamanio,sizeof(char));
+			log_debug(logger,"Encontre -> %c",aux);
+			if(aux == '\0' || aux == '\n'){
+				log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionLogica,tamanio);
+				if(aux == '\0'){
+					return tamanio-1;
+				}
+				return tamanio;
+			}
+			offset++;
+			if(offset % tamanioPagina){
+				pagina++;
+				paginaP = list_get(tabla->listaAsignados,pagina);
+				if(!paginaP->valida){
+					realizarSwap(paginaP);
+				}
+				offset = paginaP->Nframe*tamanioPagina;
+			}
+			tamanio++;
+		}
 	}
 	char aux;
 	log_debug(logger,"Buscando instruccion desde %i logica",direccionLogica);
@@ -698,6 +925,12 @@ void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 	}
 	if (librePag >= tamanio){
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
 		offset += pagina->Nframe*tamanioPagina;
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
 		leido += tamanio-leido;
@@ -705,6 +938,12 @@ void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 	}
 	while(leido < tamanio && librePag < (tamanio - leido)){
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
 		offset += pagina->Nframe*tamanioPagina;
 		memcpy(aux+leido,mem_ppal+offset,librePag);
 		leido += librePag;
@@ -713,6 +952,12 @@ void* getDato(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica){
 		librePag = tamanioPagina;
 	}
 	pagina = list_get(tabla->listaAsignados,nPagina);
+	if(!pagina->valida){
+		realizarSwap(pagina);
+	}
+	else{
+		actualizarPagina(pagina);
+	}
 	offset = pagina->Nframe * tamanioPagina;
 	if (leido < tamanio){
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
@@ -753,6 +998,12 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 	}
 	if (librePag >= tamanio){
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
 		offset += pagina->Nframe*tamanioPagina;
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
 		leido += tamanio-leido;
@@ -761,6 +1012,12 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 	}
 	while(leido < tamanio && librePag < (tamanio - leido)){
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
 		offset += pagina->Nframe*tamanioPagina;
 		memcpy(aux+leido,mem_ppal+offset,librePag);
 		leido += librePag;
@@ -769,6 +1026,12 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 		librePag = tamanioPagina;
 	}
 	pagina = list_get(tabla->listaAsignados,nPagina);
+	if(!pagina->valida){
+		realizarSwap(pagina);
+	}
+	else{
+		actualizarPagina(pagina);
+	}
 	offset = pagina->Nframe * tamanioPagina;
 	if (leido < tamanio){
 		memcpy(aux+leido,mem_ppal+offset,tamanio-leido);
@@ -793,6 +1056,8 @@ void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogic
 	}
 	return NULL;
 }
+//Estoy seguro que siempre que se llama esta funcion las paginas son validas pero por seguridad
+//Agregue logica
 uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direccionLogica) {
 	if(!strcmp(confDatos.esquema,"PAGINACION")){ //paginacion
 	uint32_t nPagina = direccionLogica / tamanioPagina; //Calculo cuantas paginas debo desplazarme
@@ -811,6 +1076,9 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 		}
 		if (librePag >= tamanio){
 			pagina = list_get(tabla->listaAsignados,nPagina);
+			if(!pagina->valida){
+				realizarSwap(pagina);
+			}
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
 			pagina->bytesOcupado += tamanio;
@@ -821,6 +1089,9 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 		while(guardado < tamanio && librePag < (tamanio - guardado)){
 
 			pagina = list_get(tabla->listaAsignados,nPagina);
+			if(!pagina->valida){
+				realizarSwap(pagina);
+			}
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,librePag);
 			guardado += librePag;
@@ -831,6 +1102,9 @@ uint32_t guardarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t direcci
 			librePag = tamanioPagina;
 		}
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
 		offset = pagina->Nframe * tamanioPagina;
 		if (guardado < tamanio){
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
@@ -865,6 +1139,12 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 		}
 		if (librePag >= tamanio){
 			pagina = list_get(tabla->listaAsignados,nPagina);
+			if(!pagina->valida){
+				realizarSwap(pagina);
+			}
+			else{
+				actualizarPagina(pagina);
+			}
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
 			guardado += tamanio-guardado;
@@ -873,6 +1153,12 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 		while(guardado < tamanio && librePag < (tamanio - guardado)){
 
 			pagina = list_get(tabla->listaAsignados,nPagina);
+			if(!pagina->valida){
+				realizarSwap(pagina);
+			}
+			else{
+				actualizarPagina(pagina);
+			}
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,librePag);
 			guardado += librePag;
@@ -881,6 +1167,12 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 			librePag = tamanioPagina;
 		}
 		pagina = list_get(tabla->listaAsignados,nPagina);
+		if(!pagina->valida){
+			realizarSwap(pagina);
+		}
+		else{
+			actualizarPagina(pagina);
+		}
 		offset = pagina->Nframe * tamanioPagina;
 		if (guardado < tamanio){
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
@@ -904,19 +1196,43 @@ uint32_t calcular_frames(uint32_t tamanioTotal) {
 	}
 	return i;
 }
-
+int llevarNframesSwap(uint32_t n){
+	while(n > 0){
+		uint32_t frameLibre;
+		pagina_t* pagina = paginaSegun(confDatos.algoritmo);
+		llevarPaginaASwap(pagina,&frameLibre);
+		log_debug(logger,"Frame Liberado -> %i",frameLibre);
+		n--;
+	}
+	if(n != 0){
+		log_error(logger,"Hubo un error al liberar los frames necesarios");
+		return ERROR;
+	}
+	return OK;
+}
 int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 
 	if(!strcmp(confDatos.esquema,"PAGINACION")){//PAginacion
 	uint32_t framesAsignados = 0;
-	//BUSCAR CUANTOS FRAMES LIBRES HAY SI NO TENGO NECESARIOS INFORMAR
+	uint32_t framesLibresMemoria = calcularFramesLibres();
+	if(framesLibresMemoria < framesNecesarios){
+		if(!swapFile){
+			inicializarAreaSwap();
+		}
+		llevarNframesSwap(framesNecesarios - framesLibresMemoria);
+	}
 	while(framesAsignados < framesNecesarios) {
 		frame_t* frame = list_find(framesMemoria,condicionFrameLibre);
+		uint32_t frameSwap = frameLibreSwap();
 		frame->estado = false;
 		pagina_t* pagina = malloc(sizeof(pagina_t));
 		pagina->Nframe = frame->numeroFrame;
 		pagina->bytesOcupado = 0;
+		pagina->NframeVirtual = frameSwap;
+		pagina->valida = true;
+		log_debug(logger,"Pagina Creada Frame: %i FrameVirtual: %i",pagina->Nframe,pagina->NframeVirtual);
 		list_add(tablaPatota->listaAsignados,pagina);
+		list_add(paginasUsadas,pagina);
 		framesAsignados++;
 	}
 	return 0;
@@ -938,22 +1254,19 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 	}
 	return 0;
 }
-/*
+
+
 int inicializarAreaSwap(void){
-	uint32_t tamanioSwap = confDatos.tamanioSwap;
-	uint32_t paginasSwap = tamanioSwap/tamanioPagina;
-	uint32_t i = 0;
-	swapFrames = bitarray_create_with_mode(malloc(paginasSwap/8),paginasSwap/8,LSB_FIRST);
-	swapFile = fopen(confDatos.pathSwap,"wb");
+	swapFile = fopen(confDatos.pathSwap,"w");
 	fclose(swapFile);
 	swapFile = fopen(confDatos.pathSwap,"rb+");
-	void* aux = malloc(tamanioPagina);
-	memset(aux,0,tamanioPagina);
-	while(paginasSwap > i){
-		fwrite(aux,1,tamanioPagina,swapFile);
-		bitarray_set_bit(swapFrames,i);//1 = LIBRE
-		i++;
+	char* aux = malloc(confDatos.tamanioSwap);
+	memset(aux,0,confDatos.tamanioSwap);
+	if(!swapFile){
+		log_error(logger,"No se pudo abrir el archivo Swap");
+		return ERROR;
 	}
+	fwrite(aux,1,confDatos.tamanioSwap,swapFile);
 	free(aux);
 	return 0;
 }
@@ -961,7 +1274,8 @@ int frameLibreSwap(void){
 	uint32_t i = 0;
 	uint32_t tamanioSwap = confDatos.tamanioSwap;
 	while (i < tamanioSwap/tamanioPagina){
-		if(bitarray_test_bit(swapFrames,i)){
+		if(!bitarray_test_bit(swapFrames,i)){
+			bitarray_set_bit(swapFrames,i);
 			return i;
 		}
 		i++;
@@ -969,29 +1283,34 @@ int frameLibreSwap(void){
 	return tamanioSwap/tamanioPagina + 1;
 }
 int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado){
-	uint32_t tamanioSwap = confDatos.tamanioSwap;
-	uint32_t frameSwap = frameLibreSwap();
-	if(frameSwap == (tamanioSwap/tamanioPagina + 1)){
-		return SWAP_LLENO;
-	}
-	uint32_t offset = frameSwap*tamanioPagina;
+	uint32_t offset = paginaASwap->NframeVirtual*tamanioPagina;
 	uint32_t offsetMem = paginaASwap->Nframe * tamanioPagina;
 	frame_t* frame = list_get(framesMemoria,paginaASwap->Nframe);
+	char* aux = malloc(tamanioPagina);
+	memcpy(aux,mem_ppal+offsetMem,tamanioPagina);
 	fseek(swapFile,offset,SEEK_SET);
-	fwrite(mem_ppal+offsetMem,1,tamanioPagina,swapFile);
+	fwrite(aux,tamanioPagina,sizeof(char),swapFile);
 	frame->estado = true;
-	frameLiberado = paginaASwap->Nframe;
-	paginaASwap->Nframe = frameSwap + tamanioMemoria/tamanioPagina;
+	*frameLiberado = paginaASwap->Nframe;
+	log_debug(logger,"Frame liberado: %i",*frameLiberado);
+	paginaASwap->valida = false;
+	free(aux);
 	return SWAP_OK;
 }
 int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria) {
 
-	uint32_t offsetSwap = pagina->Nframe*tamanioPagina;
+	uint32_t offsetSwap = pagina->NframeVirtual*tamanioPagina;
+	void* aux = malloc(tamanioPagina);
 	fseek(swapFile,offsetSwap,SEEK_SET);
-	fread(mem_ppal+offsetMemoria,1,tamanioPagina,swapFile);
-	bitarray_set_bit(swapFrames,pagina->Nframe);
+	fread(aux,1,tamanioPagina,swapFile);
+	log_debug(logger,"Copiando en offset %i",offsetMemoria);
+	memcpy(mem_ppal+offsetMemoria,aux,tamanioPagina);
 	pagina->Nframe = offsetMemoria/tamanioPagina;
-
+	pagina->valida = true;
+	frame_t* frame = list_get(framesMemoria,pagina->Nframe);
+	log_debug(logger,"Frame utilizado para swapear: %i",offsetMemoria/tamanioPagina);
+	frame->estado = false;
+	list_add(paginasUsadas,pagina);
 	return SWAP_OK;
 }
 int calcularFramesLibres(void) {
@@ -1007,21 +1326,37 @@ int calcularFramesLibres(void) {
 	}
 	return framesLibres;
 }
+//SIRVE PARA TRAER PAGINA A MEMORIA SI EXISTE
 int realizarSwap(pagina_t* paginaSwap){
 	if(!calcularFramesLibres()){
-		pagina_t* paginaEncontrada; //= buscarPagina(algoritmo);
+		log_debug(logger,"No existen frames libres en memoria, procediendo a intercambiar 2 paginas");
+		pagina_t* paginaEncontrada = paginaSegun(confDatos.algoritmo);
 		uint32_t frameLiberado;
 		llevarPaginaASwap(paginaEncontrada,&frameLiberado);
+
 		traerPaginaMemoria(paginaSwap,frameLiberado*tamanioPagina);
 	}
 	else{
 		frame_t* frame = list_find(framesMemoria,condicionFrameLibre);
+		log_debug(logger,"Se encontro un frame Libre en memoria, procediendo a traer la pagina pedida");
 		traerPaginaMemoria(paginaSwap,frame->numeroFrame * tamanioPagina);
-		//ASIGNAR VARIABLE DE ALGORITMOS!!!!
 	}
 	return 0;
 }
-pagina_t* paginaSegun(bool algoritmo){
-	uint32_t i = 0;
+//PARA LRU
 
-}*/
+int actualizarPagina(pagina_t* paginaBuscada){
+	bool quitarPagina(void* dato){
+		pagina_t* pagina = (pagina_t*)dato;
+		return pagina->Nframe == paginaBuscada->Nframe;
+	}
+	log_debug(logger,"Actualizando pagina LRU");
+	list_add(paginasUsadas,list_remove_by_condition(paginasUsadas,quitarPagina));
+	return 0;
+}
+pagina_t* paginaSegun(char* algoritmoRemplazo){
+	if(!strcmp(algoritmoRemplazo,"LRU")){
+	return (pagina_t*)list_remove(paginasUsadas,0);
+	}
+	return NULL;
+}

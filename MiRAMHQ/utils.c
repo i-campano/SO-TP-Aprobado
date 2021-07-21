@@ -88,12 +88,11 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_patota = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
 			pthread_mutex_lock(&accesoMemoria);
-
+			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d,DirLog: %i, Tarea: %i",id_trip,socket,direccionLogica,tcb->prox_tarea);
-			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion(tcb->prox_tarea,tabla);
+			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %i,DirLog: %i, Tarea: %i",tcb->id,socket,direccionLogica,tcb->prox_tarea);
+			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion3(tcb->prox_tarea,tabla);
 			char * tarea = getInstruccion(id_patota,tamanioProximaInstruccion,tcb->prox_tarea);
 			tcb->prox_tarea += tamanioProximaInstruccion + 1; //ELIMINO \N;
 			log_info(logger,"La tarea encontrada es %s",tarea);
@@ -134,18 +133,16 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_patota = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
-
-			uint32_t estado = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
+			uint32_t estado = recvDeNotificacion(socket);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			pthread_mutex_unlock(&accesoMemoria);
-			pthread_mutex_unlock(&accesoListaTablas);
 			char estadoV[5] = {'N','R','B','E','F'};
 			tcb->estado = estadoV[estado];
-			pthread_mutex_lock(&accesoMemoria);
+
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
+			pthread_mutex_unlock(&accesoListaTablas);
 			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
 			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %c",id_trip,estadoV[estado]);
@@ -160,18 +157,18 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t x = recvDeNotificacion(socket);
 			uint32_t y = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
 			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			pthread_mutex_unlock(&accesoListaTablas);
-			pthread_mutex_unlock(&accesoMemoria);
+
 			//int dx = x - tcb->x;
 			//int dy = y - tcb->y;
 			tcb->x = x;
 			tcb->y = y;
-			pthread_mutex_lock(&accesoMemoria);
+
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
+			pthread_mutex_unlock(&accesoListaTablas);
 			//item_desplazar(nivel,tcb->id, dx,dy);
 
 
@@ -253,6 +250,7 @@ int crear_pcb(int socket) {
 		log_debug(logger,"Por crear trip %i",temp.id);
 		crear_tripulante_(temp,patotaid,tablaPatota);
 		if(!strcmp(confDatos.esquema,"PAGINACION")){
+			log_debug(logger,"Dir log: %i",(tablaPatota->ocupado));
 			sendDeNotificacion(socket,(tablaPatota->ocupado)-sizeof(tcb_t));
 		}
 		if(!strcmp(confDatos.esquema,"SEGMENTACION")) {
