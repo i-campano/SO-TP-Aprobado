@@ -71,7 +71,12 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 			int * valor = malloc(sizeof(int));
 			*valor =atoi(bloques_ocupados[i]);
 			list_add(lista_bloques,valor);
+			free(bloques_ocupados[i]);
 		}
+		free(cadena);
+		free(resto_path);
+		config_destroy(config);
+
 		pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
@@ -120,7 +125,10 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 		int * valor = malloc(sizeof(int));
 		*valor =atoi(bloques_ocupados[i]);
 		list_add(lista_bloques,valor);
+		free(bloques_ocupados[i]);
 	}
+	free(cadena);
+
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
@@ -141,6 +149,13 @@ void fsck(){
 
 
 
+void terminar_imongo(int signal){
+	log_error(logger, "MURIENDO CON ELEGANCIA...");
+//	liberarStorage();
+
+	exit(-1);
+
+}
 
 void adulterar_bitmap(int signal){
 	pthread_mutex_lock(&superblock.mutex_superbloque);

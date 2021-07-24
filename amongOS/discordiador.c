@@ -1,6 +1,8 @@
 #include "discordiador.h"
 
 int main(void) {
+	signal(SIGSEGV,terminar_discordiador);
+
 	iniciar_logger();
 	//Inicia las colas de planificacion
 
@@ -8,13 +10,16 @@ int main(void) {
 
 	iniciarEstructurasAdministrativasPlanificador();
 
-	socketServerMiRam = conectarAServer("127.0.0.1", 5002);
+
 
 //	realizarHandshake(socketServerMiRam, DISCORDIADOR, MIRAM);
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
 	socketServerIMongoStore = conectarAServer("127.0.0.1", 5003);
+
+	list_add(conexiones,(void*)socketServerIMongoStore);
+	list_add(conexiones,(void*)socketServerMiRam);
 
 	realizarHandshake(socketServerIMongoStore, DISCORDIADOR, IMONGOSTORE);
 

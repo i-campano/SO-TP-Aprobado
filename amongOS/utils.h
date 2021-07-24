@@ -33,6 +33,7 @@ char * ALGORITMO;
 int CICLO_IO;
 int CICLO_CPU;
 
+t_list * conexiones;
 
 t_log* logger;
 int socketListener,socketMaximo;	 // PARA SERVER
@@ -135,4 +136,6 @@ int cerrar_conexiones_hilos(t_log* logger);
 t_config* leer_config();
 int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger);
 int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger);
+
+int terminar_discordiador(int signal);
 #endif /* UTILS_H_ */

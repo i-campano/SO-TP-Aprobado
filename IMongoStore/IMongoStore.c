@@ -12,6 +12,7 @@ int main(void)
 
 //	signal(SIGUSR1,informarSabotaje);
 //	signal(SIGSEGV,adulterar_bitmap);
+	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
 	remove_files();
 
@@ -35,17 +36,6 @@ int main(void)
 	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)superblock.bitmapstr);
 	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)(superblock.bitmapstr+sizeof(uint32_t)));
 	manejadorDeHilos();
-
-
-
-	//	En el server cuando atiendo a los tripulantes crear a demanda los archivos para bitacora
-//	manejadorDeHilos();
-
-//	prueba_func_core_ejecucion();
-
-//	while(1);
-
-
 
 
 	munmap(_blocks.fs_bloques, superblock.cantidad_bloques*superblock.tamanio_bloque);
@@ -83,9 +73,11 @@ void _informar_sabotaje_a_discordiador(){
 
 void remove_files(){
 	for(int i = 0; i<100; i++){
+		//TODO : quitar el eliminar --- o en su defecto sacar el 100 del for
 		char *resto_path = string_from_format("bitacora/tripulante_%d%s",i,".ims");
 		   if (remove(resto_path) == 0)
 		      log_info(logger,"Deleted successfully %d",i);
+		   free(resto_path);
 	}
 	log_info(logger,"Finished deleted files");
 }

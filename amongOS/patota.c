@@ -9,6 +9,11 @@
 
 //bool
 void crear_patota(char * comando){
+	socketServerMiRam = reConectarAServer("127.0.0.1", 5002);
+	if(socketServerMiRam<0){
+		log_info(logger,"no me pude conectar con mi ram");
+		return ;
+	}else{
 
 	t_list * list_trip_aux = list_create();
 
@@ -97,6 +102,7 @@ void crear_patota(char * comando){
 	free(posiciones); //stringNew linea 52
 	free(tareasX);//stringNew linea 18
 	free(tareasOk); // linea 31
+	}
 }
 //Mallocs Revisados
 void asignar_posicion(char** destino,char* posiciones,uint32_t creados) {

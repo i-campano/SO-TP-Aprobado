@@ -202,7 +202,8 @@ void *atenderNotificacion(void * paqueteSocket){
 		}
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
-			break;
+			close(socket);
+			return 0;
 
 	}
 	}

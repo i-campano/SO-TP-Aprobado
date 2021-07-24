@@ -30,5 +30,7 @@ void fsck();
 
 void adulterar_bitmap(int signal);
 
+void terminar_imongo(int signal);
+
 
 #endif /* SABOTAJE_H_ */

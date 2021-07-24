@@ -119,7 +119,6 @@ void *atenderNotificacion(void * paqueteSocket){
 				_archivo_bitacora * archivo = iniciar_archivo_bitacora(nombre_archivo,"tarea1");
 				write_archivo_bitacora(tarea,archivo);
 
-
 				break;
 			}
 			case FSCK:{
@@ -128,11 +127,10 @@ void *atenderNotificacion(void * paqueteSocket){
 				break;
 			}
 
-
-
-
 			default:
 				log_warning(logger, "La conexion recibida es erronea");
+				close(socket);
+				return 0;
 				break;
 		}
 	}

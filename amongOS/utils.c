@@ -31,6 +31,8 @@ void iniciar_configuracion(){
 	CICLO_CPU = config_get_int_value(config,"CICLO_CPU");
 
 	CICLO_IO = config_get_int_value(config,"CICLO_IO");
+
+	conexiones = list_create();
 }
 
 void iniciarEstructurasAdministrativasPlanificador(){
@@ -75,13 +77,24 @@ void iniciarEstructurasAdministrativasPlanificador(){
 }
 
 
+int terminar_discordiador(int signal) {
+	cerrar_conexiones_hilos(logger);
+	log_destroy(logger);
+	return 0;
+}
+
 int terminar_programa(t_log* logger,t_config* config) {
 	cerrar_conexiones_hilos(logger);
 	log_destroy(logger);
 	config_destroy(config);
 	return 0;
 }
+
+void liberar_conexion_e(int* conexion){
+	close(*conexion);
+}
 int cerrar_conexiones_hilos(t_log* logger){
+	list_destroy_and_destroy_elements(conexiones,liberar_conexion_e);
 	log_info(logger,"Deteniendo planificacion para terminar, por favor espere");
 	sem_wait(&detenerReaunudarEjecucion);
 	sleep(2);

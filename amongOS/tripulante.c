@@ -106,6 +106,9 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
+	list_add(conexiones,socketMongo);
+	list_add(conexiones,socketRam);
+
 	log_info(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	//obtener data tripulante - desde tcb

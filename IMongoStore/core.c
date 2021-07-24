@@ -177,6 +177,7 @@ void hilo_sincronizar_blocks(){
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
 	pthread_create(&hilo , &attr1,(void*) sincronizar_blocks,NULL);
+
 }
 
 
@@ -258,6 +259,25 @@ void iniciar_super_block(){
 
 }
 
+//void liberarStorage(){
+//
+//	for(i=0;i<cantidadDePosiciones;i++){
+//
+//		if(bitarray_test_bit(bitArrayStorage,i)){
+//
+//			void * datos = (infoPosicion*) (superblock.bitmapstrl + i * superblock.tamanio_bloque);
+//			free(datos->porcionDeValor);
+//			//free(datos);
+//
+//			bitarray_clean_bit(bitArrayStorage, i);
+//		}
+//	}
+//
+//	free(superblock.bitmapstr);
+//
+//}
+
+
 int calcular_bloques_libres_ONLY(){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	int resultado = 0;
@@ -330,6 +350,7 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 
 	(*archivo)->metadata = config_create(name_file);
 
+
 	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
 
 	config_set_value((*archivo)->metadata,"MD5","XXXX");
@@ -338,6 +359,7 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
 
 	config_save((*archivo)->metadata);
+	config_destroy(config);
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
 

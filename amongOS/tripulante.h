@@ -10,6 +10,7 @@
 #include<readline/readline.h>
 #include "utils.h"
 #include "socket.h"
+
 int tripulantes_creados;
 
 #define NEW 0

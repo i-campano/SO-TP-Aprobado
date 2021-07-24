@@ -175,7 +175,35 @@ int conectarAServer(char *ip, int puerto) { //Recibe ip y puerto, devuelve socke
 	return socket_server;
 
 }
+int reConectarAServer(char *ip, int puerto) { //Recibe ip y puerto, devuelve socket que se conecto
 
+	int socket_server = socket(AF_INET, SOCK_STREAM, 0);
+	struct hostent *infoDelServer;
+	struct sockaddr_in direccion_server; // información del server
+
+	//Obtengo info del server
+	if ((infoDelServer = gethostbyname(ip)) == NULL) {
+		perror("Error al obtener datos del server.");
+		close(socket_server);
+		exit(-1);
+	}
+
+	//Guardo datos del server
+	direccion_server.sin_family = AF_INET;
+	direccion_server.sin_port = htons(puerto);
+	direccion_server.sin_addr = *(struct in_addr *) infoDelServer->h_addr; //h_addr apunta al primer elemento h_addr_lista
+	memset(&(direccion_server.sin_zero), 0, 8);
+
+	//Conecto con servidor, si hay error finalizo
+	if (connect(socket_server, (struct sockaddr *) &direccion_server,sizeof(struct sockaddr)) == -1) {
+		perror("Error al conectar con el servidor.");
+		close(socket_server);
+		return -1;
+	}
+
+	return socket_server;
+
+}
 
 void realizarHandshake(int socket, uint32_t ES_SENDER,uint32_t ES_RECV){	// le paso un socket, quien le manda y quien recibe
 	sendDeNotificacion(socket, ES_SENDER);	// le aviso quien soy

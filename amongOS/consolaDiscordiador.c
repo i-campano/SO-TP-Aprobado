@@ -63,6 +63,7 @@ void leer_consola() {
 void escuchoSabotaje() {
 	log_info(logger,"Atendedor de sabotajes: Escuchando OK");
 	while(1) {
+		log_info(logger,"Atendedor de sabotajes: Escuchando OK");
 		uint32_t nroNotificacion = recvDeNotificacion(socketServerIMongoStore);
 		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
 		if(nroNotificacion==INFORMAR_SABOTAJE){
@@ -72,6 +73,22 @@ void escuchoSabotaje() {
 			sendDeNotificacion(socketServerIMongoStore,FSCK);
 
 			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
+		}else{
+			log_info(logger,"escuchoSabotaje(): llego un mensaje desconocido, quizas se cayo iMongo");
+			close(socketServerIMongoStore);
+
+			while(1){
+				sleep(5);
+				log_info(logger,"intentando reconectar");
+				socketServerIMongoStore = reConectarAServer("127.0.0.1", 5003);
+				if(socketServerIMongoStore>0){
+					log_info(logger,"se pudo reconectar");
+					break;
+				}else
+				{
+					log_info(logger,"no se pudo reconectar");
+				}
+			}
 		}
 	}
 
