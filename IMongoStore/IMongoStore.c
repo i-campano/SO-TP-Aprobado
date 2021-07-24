@@ -15,11 +15,11 @@ int main(void)
 	iniciar_configuracion();
 	remove_files();
 
-
-
 	iniciar_super_block();
 
 	iniciar_blocks();
+
+	crear_bitacora();
 
 	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno","O");
 	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida","C");
@@ -43,7 +43,7 @@ int main(void)
 
 //	prueba_func_core_ejecucion();
 
-	while(1);
+//	while(1);
 
 
 

@@ -49,6 +49,12 @@ void iniciar_blocks(){
 
 }
 
+void crear_bitacora(){
+	if (access("bitacora", R_OK | W_OK) != 0) {
+		mkdir("bitacora", 0755);
+	}
+}
+
 int write_blocks(char * cadena_caracteres,int indice) {
 
 

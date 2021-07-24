@@ -39,4 +39,6 @@ void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar);
 void iniciar_super_block();
 void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source);
 
+void crear_bitacora();
+
 #endif /* CORE_H_ */
