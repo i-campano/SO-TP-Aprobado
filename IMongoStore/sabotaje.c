@@ -133,10 +133,54 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 
 }
 
+void corregir_block_count_file(_archivo * archivo,char * name_file){
+	pthread_mutex_lock(&(archivo->mutex_file));
+	archivo->metadata = config_create(name_file);
+	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
+	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+	if(cantidad_bloques!=longitud_array(bloques_ocupados)){
+		log_info(logger,"Estaba saboteado el BLOCK_COUNT de %s",archivo->clave);
+		config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(longitud_array(bloques_ocupados)));
+		config_save(archivo->metadata);
+	}
+	pthread_mutex_unlock(&(archivo->mutex_file));
+
+}
+
+void contrastar_cantidad_bloques(){
+	struct stat info;
+	bzero(&info, sizeof(struct stat));
+	FILE *fptr;
+	if (stat("block.ims", &info) != 0) {
+		log_error(logger, "No se puede hacer stat en el bitmap file");
+		exit_failure();
+	}
+	if (info.st_size > 0) {
+		uint32_t cantidad_bloques_blocks = info.st_size / superblock.tamanio_bloque;
+		if(cantidad_bloques_blocks!=superblock.cantidad_bloques){
+			log_info(logger,"La cantidad de bloques fue saboteada, pero ya fue reparada");
+			superblock.cantidad_bloques = cantidad_bloques_blocks;
+			memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
+
+			msync(superblock.bitmapstr, (sizeof(uint32_t)), MS_SYNC);
+		}
+		else{
+			log_info(logger,"La cantidad de bloques no fue saboteada");
+		}
+	}
+}
+
+void contrastar_size_vs_bloques_files(){
+	corregir_block_count_file(archivo_comida,conf_ARCHIVO_COMIDA_NOMBRE);
+	corregir_block_count_file(archivo_basura,conf_ARCHIVO_BASURA_NOMBRE);
+	corregir_block_count_file(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+}
 
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");
-	sabotaje_bitmap_superbloque();
+//	sabotaje_bitmap_superbloque();
+//	contrastar_cantidad_bloques();
+	contrastar_size_vs_bloques_files();
 	log_info(logger,"Ejecutando FSCK -> FIN");
 }
 
