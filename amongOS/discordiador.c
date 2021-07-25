@@ -27,7 +27,7 @@ int main(void) {
 
 	iniciarHiloConsola();
 
-	iniciarHiloQueEscuchaSabotajes();
+	iniciarHiloQueManejadorNotifiacionesIMongo();
 
 	planificar();
 

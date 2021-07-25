@@ -71,6 +71,18 @@ void manejadorDeHilos(){
 	//Chequeo que no falle el accept
 }
 
+void enviar_bitacora(int socket, char * tarea) {
+	char* claveNueva = tarea;
+	int largoClave = string_length(claveNueva);
+	int tamanio = 0;
+	//En el buffer mando clave y luego valor
+	void* buffer = malloc(string_length(claveNueva) + sizeof(uint32_t));
+	memcpy(buffer + tamanio, &largoClave, sizeof(uint32_t));
+	tamanio += sizeof(uint32_t);
+	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
+	tamanio += largoClave;
+	sendRemasterizado(socket, ENVIAR_BITACORA, tamanio, (void*) buffer);
+}
 
 void *atenderNotificacion(void * paqueteSocket){
 
@@ -103,9 +115,9 @@ void *atenderNotificacion(void * paqueteSocket){
 				char * tarea = recibirString(socket);
 				//Case para hacer HANDSHAKE = Chequear la conexion
 				uint32_t id_trip = recvDeNotificacion(socket);
-				log_debug(logger,"Id tripulante %d ejecuta la tarea: %s",id_trip,tarea);
+				log_debug(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				tipoTarea(tarea);
-				sendDeNotificacion(socket,198);
+				sendDeNotificacion(socket,TAREA_EJECUTADA);
 
 
 				break;
@@ -113,7 +125,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			case LOGUEAR_BITACORA:{
 				char * tarea = recibirString(socket);
 				uint32_t id_trip = recvDeNotificacion(socket);
-				log_trace(logger,"Id tripulante %d escribe en bitacora %s",id_trip,tarea);
+				log_debug(logger,"atenderNotificacion(): Id tripulante %d escribe en bitacora %s",id_trip,tarea);
 
 				char * nombre_archivo = string_from_format("tripulante_%d",id_trip);
 				_archivo_bitacora * archivo = iniciar_archivo_bitacora(nombre_archivo,"tarea1");
@@ -122,13 +134,20 @@ void *atenderNotificacion(void * paqueteSocket){
 				break;
 			}
 			case FSCK:{
-				log_info(logger,"EJECUTO FSCK");
+				log_info(logger,"atenderNotificacion(): EJECUTO FSCK");
 				fsck();
+				break;
+			}
+			case PEDIR_BITACORA:{
+				int num_trip = (int)recibirUint(socket);
+				log_info(logger,"atenderNotificacion(): Pedido bitacora tripulante %d", num_trip);
+				char * bitacora = obtener_bitacora(num_trip);
+				enviar_bitacora(socket,bitacora);
 				break;
 			}
 
 			default:
-				log_warning(logger, "La conexion recibida es erronea");
+				log_warning(logger, "atenderNotificacion(): La conexion recibida es erronea");
 				close(socket);
 				return 0;
 				break;

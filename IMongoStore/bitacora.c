@@ -60,6 +60,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
 
 uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo){
+	string_append(&cadenaAGuardar,"\n");
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	uint32_t resultado;
@@ -228,5 +229,46 @@ int write_blocks_with_offset_bitacora(char * cadena_caracteres,int indice,int of
 	return 1;
 }
 
+_archivo_bitacora* find_bitacora(t_list * bitacoras, char * clave){
+	bool encontrar_bitacora(void * archivo){
+		_archivo_bitacora* archivo_bit = (_archivo_bitacora*) archivo;
+		return (strcmp(archivo_bit->clave, clave)==0);
+	}
+	_archivo_bitacora* retorno =  (_archivo_bitacora*)list_find(bitacoras,(void*)encontrar_bitacora);
 
+	return retorno;
+}
+
+
+char * obtener_bitacora(int n_tripulante){
+
+	char * n_trip =string_itoa(n_tripulante);
+	char *clave = string_from_format("tripulante_%s", n_trip);
+
+	pthread_mutex_lock(&mutex_archivos_bitacora);
+	_archivo_bitacora * archivo_bit = find_bitacora(archivos_bitacora,clave);
+	pthread_mutex_unlock(&mutex_archivos_bitacora);
+
+	pthread_mutex_lock(&(archivo_bit->mutex_file));
+	char *resto_path = string_from_format("bitacora/tripulante_%s%s", n_trip,".ims");
+	t_config * config = config_create(resto_path);
+	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
+	char * cadena = string_new();
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+		int * valor = malloc(sizeof(int));
+		*valor =atoi(bloques_ocupados[i]);
+
+		string_append(&cadena,string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(*valor),superblock.tamanio_bloque));
+		free(bloques_ocupados[i]);
+	}
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+//	free(cadena);
+	free(resto_path);
+	config_destroy(config);
+
+	pthread_mutex_unlock(&(archivo_bit->mutex_file));
+	log_info(logger,"BITACORA: %s",cadena);
+	return cadena;
+}
 

@@ -290,11 +290,11 @@ void iniciarHiloConsola(){
 	pthread_mutex_unlock(&mutexHilos);
 }
 
-void iniciarHiloQueEscuchaSabotajes(){
+void iniciarHiloQueManejadorNotifiacionesIMongo(){
 	pthread_attr_t attr2;
 	pthread_attr_init(&attr2);
 	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr2,(void*) escuchoSabotaje,NULL);
+	pthread_create(&hiloConsola , &attr2,(void*) escuchoIMongo,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;

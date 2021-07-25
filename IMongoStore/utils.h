@@ -79,5 +79,7 @@ char* generarIdArchivo(uint32_t idTripulante);
 char* generarPath(char* archivoTripulante);
 /* Bitacora */
 
+void enviar_bitacora(int socket,char * bitacora);
+
 
 #endif /* CONEXIONES_H_ */

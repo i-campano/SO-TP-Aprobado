@@ -59,4 +59,5 @@ void *atenderNotificacion(void * paqueteSocket);
 void iniciarEstructurasAdministrativas();
 void manejadorDeHilos();
 void asignar_posicion(char** destino,char* posiciones,uint32_t creados);
+void enviar_tarea(int socket,char * tarea);
 #endif /* CONEXIONES_H_ */

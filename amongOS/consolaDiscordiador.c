@@ -37,6 +37,13 @@ void leer_consola() {
 		else if(strncmp(leido, "PLANIFICACION", 5) == 0){
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
+
+		}else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
+				log_info(logger,"PEDIR_BITACORA !!!: ");
+				char ** parametros = string_n_split(leido,2," ");
+				sendDeNotificacion(socketServerIMongoStore,PEDIR_BITACORA);
+				sendDeNotificacion(socketServerIMongoStore,atoi(parametros[1]));
+
 		}else if(strncmp(leido, "INICIAR_PATOTA", 14) == 0){
 			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 12 1|2
 			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 1 1 6|2
@@ -60,33 +67,39 @@ void leer_consola() {
 }
 
 
-void escuchoSabotaje() {
-	log_info(logger,"Atendedor de sabotajes: Escuchando OK");
+void escuchoIMongo() {
+	log_info(logger,"escuchoIMongo(): Escuchando OK");
 	while(1) {
-		log_info(logger,"Atendedor de sabotajes: Escuchando OK");
 		uint32_t nroNotificacion = recvDeNotificacion(socketServerIMongoStore);
-		log_info(logger,"LLEGO UN MENSAJE DEL IMONGO");
+		log_debug(logger,"escuchoIMongo(): Llego una notificacion de iMongo");
 		if(nroNotificacion==INFORMAR_SABOTAJE){
-
+			//Recibe notificacion de sabojate
 			char * posicion = recibirString(socketServerIMongoStore);
 
 			sendDeNotificacion(socketServerIMongoStore,FSCK);
 
 			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
-		}else{
-			log_info(logger,"escuchoSabotaje(): llego un mensaje desconocido, quizas se cayo iMongo");
+		}
+		else if(nroNotificacion==ENVIAR_BITACORA){
+			//Recibe informacion de bitacora
+			char * bitacora = recibirString(socketServerIMongoStore);
+			printf("Bitacora:\n%s",bitacora);
+		}
+		else{
+			//Notificacion desconocida -> IMongo caido
+			log_debug(logger,"escuchoIMongo(): mensaje desconocido");
 			close(socketServerIMongoStore);
 
 			while(1){
 				sleep(5);
-				log_info(logger,"intentando reconectar");
+				log_info(logger,"escuchoIMongo(): Intentando reestablecer la comunicacion con iMongo");
 				socketServerIMongoStore = reConectarAServer("127.0.0.1", 5003);
 				if(socketServerIMongoStore>0){
-					log_info(logger,"se pudo reconectar");
+					log_info(logger,"escuchoIMongo(): se pudo reconectar");
 					break;
 				}else
 				{
-					log_info(logger,"no se pudo reconectar");
+					log_info(logger,"escuchoIMongo(): no se pudo reconectar");
 				}
 			}
 		}

@@ -202,7 +202,6 @@ void *labor_tripulante_new(void * trip){
 				sem_wait(&tripulante->bloq);
 
 				enviar_tarea_a_ejecutar(socketMongo, tripulante->id, tarea);
-				recvDeNotificacion(socketMongo);
 
 				tripulante->instrucciones_ejecutadas+=tiempo_tarea;
 
@@ -267,8 +266,11 @@ void *labor_tripulante_new(void * trip){
 
 				}
 				actualizar_ubicacion(socketRam,tripulante);
-				log_info(logger,"T%d - P%d: Actualizo Ubicacion x: %d, y: %d", tripulante->id,tripulante->patota_id, tripulante->ubi_x,tripulante->ubi_y);
-
+				char * evento_ubicacion = string_new();
+				string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
+				log_info(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
+				enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
+				free(evento_ubicacion);
 			}else if(!esIo && tripulante->instrucciones_ejecutadas>moveBound){
 				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND  [TASK]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			}
@@ -326,6 +328,14 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva) {
 	sendRemasterizado(socketMongo, EJECUTAR_TAREA, tamanio, (void*) buffer);
 	sendDeNotificacion(socketMongo, (uint32_t) id);
 	free(buffer); //Malloc linea 253
+
+	uint32_t tarea_ejecutada = recvDeNotificacion(socketMongo);
+
+	if(tarea_ejecutada==TAREA_EJECUTADA){
+		log_debug(logger,"laborTripulante(): Tarea ejecutada correctamente");
+	}else{
+		log_trace(logger,"laborTripulante(): Ocurrio algun problema al ejecutar la tarea");
+	}
 }
 
 void enviar_evento_bitacora(int socketMongo, int id, char* claveNueva) {
