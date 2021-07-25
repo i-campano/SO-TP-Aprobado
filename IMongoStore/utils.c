@@ -210,9 +210,13 @@ void tipoTarea(char* tarea){
 		log_debug(logger,"consumiendo COMIDA...");
 		ejecutar_tarea_consumir(tarea,'C',archivo_comida);
 	}
-	else if (strncmp("DESCARTAR_BASURA", tarea,12)==0){
-		log_debug(logger,"consumiendo BASURA...");
+	else if ( strncmp("CONSUMIR_BASURA", tarea,12)==0) {
+		log_debug(logger,"consumiendo COMIDA...");
 		ejecutar_tarea_consumir(tarea,'B',archivo_basura);
+	}
+	else if (strncmp("DESCARTAR_BASURA", tarea,12)==0){
+		log_debug(logger,"descartando BASURA...");
+		descartar_basura(archivo_basura);
 	}
 	else {
 		log_debug(logger,"Tarea desconocida"); //TODO manejar que hacemos en caso de que la tarea no exista
