@@ -38,9 +38,9 @@ int crear_configuracion(void){
 	}
 	if(!strcmp(confDatos.algoritmo,"LRU")){
 		algoritmoReemplazo = true;
-		log_debug(logger,"Algoritmo LRU");
+		log_debug(logger,"Algoritmo -> LRU");
 	}
-	else {
+	if(!strcmp(confDatos.algoritmo,"CLOCK")){
 		algoritmoReemplazo = false;
 		log_debug(logger,"Algoritmo CLOCK");
 	}

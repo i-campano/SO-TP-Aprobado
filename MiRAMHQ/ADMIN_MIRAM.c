@@ -37,12 +37,11 @@ int admin_memoria(void)
 int crear_memoria_(void){
 	tablasPatotaPaginacion = list_create();
 	if(!strcmp(confDatos.esquema,"PAGINACION")){
-	mem_ppal = malloc(tamanioMemoria);
-	memset(mem_ppal,0,tamanioMemoria);
-	framesMemoria = list_create();
-	uint32_t cantidadMarcos = tamanioMemoria/tamanioPagina;
-	uint32_t i = 0;
-	if(!strcmp(confDatos.algoritmo,"LRU")){
+		mem_ppal = malloc(tamanioMemoria);
+		memset(mem_ppal,0,tamanioMemoria);
+		framesMemoria = list_create();
+		uint32_t cantidadMarcos = tamanioMemoria/tamanioPagina;
+		uint32_t i = 0;
 		uint32_t tamanioSwap = confDatos.tamanioSwap;
 		uint32_t paginasSwap = tamanioSwap/tamanioPagina;
 		swapFrames = bitarray_create_with_mode(malloc(paginasSwap/8),paginasSwap/8,LSB_FIRST);
@@ -50,17 +49,22 @@ int crear_memoria_(void){
 			bitarray_clean_bit(swapFrames,i);//1 = LIBRE
 			i++;
 		}
-		paginasUsadas = list_create();
-	}
-	i = 0;
+		if(!strcmp(confDatos.algoritmo,"LRU")){
+			paginasUsadas = list_create();
+		}
+
+		i = 0;
 		while(i < cantidadMarcos) {
 			frame_t* frame = malloc(sizeof(frame_t));
 			frame->estado = true;
 			frame->numeroFrame = i;
 			list_add(framesMemoria,frame);
 			i++;
-		}
+			}
 		log_info(logger,"Cree la memoria con sus %i frames",cantidadMarcos);
+		if(!strcmp(confDatos.algoritmo,"CLOCK")){
+			punteroClock = list_get(framesMemoria,0);
+		}
 	}
 	if(!strcmp(confDatos.esquema,"SEGMENTACION")) {
 		mem_ppal = malloc(tamanioMemoria);
@@ -448,7 +452,6 @@ int compactar_memoria(void) {
 		uint32_t cantidad = list_size(listaSegmentos);
 		uint32_t i = 0;
 		uint32_t offset = 0;
-		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		log_info(logger,"--------Procediendo a compactar-------");
 		if(cantidad <= 1){
 			return -1;
@@ -466,7 +469,7 @@ int compactar_memoria(void) {
 		actual = list_get(listaSegmentos,i);
 		i++;
 		while (i < cantidad-1){
-			if(actual->tipoDato == VACIO) {
+			if(actual->tipoDato == VACIO || actual->id == 0) {
 				offset += actual->fin - actual->inicio;
 				free(list_remove(listaSegmentos,i));
 				cantidad--;
@@ -482,11 +485,13 @@ int compactar_memoria(void) {
 			desplazar_segmento(actual,offset);
 		}
 		else {
+
 			offset += actual->fin - actual->inicio;
 			free(list_remove(listaSegmentos,i));
 
 		}
-		crear_segmento(tamanio-offset,tamanio);
+		crear_segmento(tamanioMemoria-offset,tamanioMemoria);
+		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		return 0;
 }
 int eliminar_patota(tabla_t* tabla){
@@ -812,6 +817,7 @@ uint32_t reconocerTamanioInstruccion3(uint32_t direccionLogica,tabla_t* tabla) {
 		}
 
 		uint32_t offsetMem =pagina->Nframe*tamanioPagina;
+		log_debug(logger,"El offset en memoria fisica de la tarea es %i",offsetMem);
 		char aux;
 		uint32_t maxPag = list_size(tabla->listaAsignados);
 		while(nPagina < maxPag){
@@ -1144,6 +1150,7 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 			}
 			else{
 				actualizarPagina(pagina);
+				pagina->modificada = true;
 			}
 			offset += pagina->Nframe*tamanioPagina;
 			memcpy(mem_ppal+offset,dato+guardado,tamanio-guardado);
@@ -1157,6 +1164,7 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 				realizarSwap(pagina);
 			}
 			else{
+				pagina->modificada = true;
 				actualizarPagina(pagina);
 			}
 			offset += pagina->Nframe*tamanioPagina;
@@ -1171,6 +1179,7 @@ uint32_t actualizarDato(tabla_t* tabla,void* dato,uint32_t tamanio,uint32_t dire
 			realizarSwap(pagina);
 		}
 		else{
+			pagina->modificada = true;
 			actualizarPagina(pagina);
 		}
 		offset = pagina->Nframe * tamanioPagina;
@@ -1214,15 +1223,24 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 
 	if(!strcmp(confDatos.esquema,"PAGINACION")){//PAginacion
 	uint32_t framesAsignados = 0;
-	uint32_t framesLibresMemoria = calcularFramesLibres();
+	/*uint32_t framesLibresMemoria = calcularFramesLibres();
 	if(framesLibresMemoria < framesNecesarios){
 		if(!swapFile){
 			inicializarAreaSwap();
 		}
 		llevarNframesSwap(framesNecesarios - framesLibresMemoria);
-	}
+	}*/
 	while(framesAsignados < framesNecesarios) {
-		frame_t* frame = list_find(framesMemoria,condicionFrameLibre);
+		frame_t* frame;
+		if(calcularFramesLibres()){
+			frame = list_find(framesMemoria,condicionFrameLibre);
+		}
+		else{
+			uint32_t frameLiberado;
+			pagina_t* victima = paginaSegun(confDatos.algoritmo);
+			llevarPaginaASwap(victima,&frameLiberado);
+			frame = list_get(framesMemoria,frameLiberado);
+		}
 		uint32_t frameSwap = frameLibreSwap();
 		frame->estado = false;
 		pagina_t* pagina = malloc(sizeof(pagina_t));
@@ -1230,9 +1248,15 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		pagina->bytesOcupado = 0;
 		pagina->NframeVirtual = frameSwap;
 		pagina->valida = true;
+		pagina->modificada = true;
+		pagina->uso = true;
+		frame->pagina = pagina;
 		log_debug(logger,"Pagina Creada Frame: %i FrameVirtual: %i",pagina->Nframe,pagina->NframeVirtual);
 		list_add(tablaPatota->listaAsignados,pagina);
-		list_add(paginasUsadas,pagina);
+
+		if(!strcmp(confDatos.algoritmo,"LRU")){
+			list_add(paginasUsadas,pagina);
+		}
 		framesAsignados++;
 	}
 	return 0;
@@ -1283,6 +1307,18 @@ int frameLibreSwap(void){
 	return tamanioSwap/tamanioPagina + 1;
 }
 int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado){
+	if(!swapFile){
+		inicializarAreaSwap();
+	}
+	if (!paginaASwap->modificada){
+		log_debug(logger,"La pagina no fue modificada, no es necesario sincronizar con disco");
+		*frameLiberado = paginaASwap->Nframe;
+		frame_t* frame = list_get(framesMemoria,*frameLiberado);
+		frame->estado = true;
+		frame->pagina = NULL;
+		paginaASwap->valida = false;
+		return SWAP_OK;
+	}
 	uint32_t offset = paginaASwap->NframeVirtual*tamanioPagina;
 	uint32_t offsetMem = paginaASwap->Nframe * tamanioPagina;
 	frame_t* frame = list_get(framesMemoria,paginaASwap->Nframe);
@@ -1294,11 +1330,16 @@ int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado){
 	*frameLiberado = paginaASwap->Nframe;
 	log_debug(logger,"Frame liberado: %i",*frameLiberado);
 	paginaASwap->valida = false;
+	paginaASwap->modificada = false;
+	frame->estado = true;
+	frame->pagina = NULL;
 	free(aux);
 	return SWAP_OK;
 }
 int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria) {
-
+	if(!swapFile){
+		inicializarAreaSwap();
+	}
 	uint32_t offsetSwap = pagina->NframeVirtual*tamanioPagina;
 	void* aux = malloc(tamanioPagina);
 	fseek(swapFile,offsetSwap,SEEK_SET);
@@ -1307,10 +1348,17 @@ int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria) {
 	memcpy(mem_ppal+offsetMemoria,aux,tamanioPagina);
 	pagina->Nframe = offsetMemoria/tamanioPagina;
 	pagina->valida = true;
+	pagina->modificada = false;
 	frame_t* frame = list_get(framesMemoria,pagina->Nframe);
 	log_debug(logger,"Frame utilizado para swapear: %i",offsetMemoria/tamanioPagina);
 	frame->estado = false;
-	list_add(paginasUsadas,pagina);
+	frame->pagina = pagina;
+	if(!strcmp(confDatos.algoritmo,"LRU")){
+		list_add(paginasUsadas,pagina);
+	}
+	if(!strcmp(confDatos.algoritmo,"CLOCK")){
+		pagina->uso = true;
+	}
 	return SWAP_OK;
 }
 int calcularFramesLibres(void) {
@@ -1328,6 +1376,9 @@ int calcularFramesLibres(void) {
 }
 //SIRVE PARA TRAER PAGINA A MEMORIA SI EXISTE
 int realizarSwap(pagina_t* paginaSwap){
+	if(!swapFile){
+		inicializarAreaSwap();
+	}
 	if(!calcularFramesLibres()){
 		log_debug(logger,"No existen frames libres en memoria, procediendo a intercambiar 2 paginas");
 		pagina_t* paginaEncontrada = paginaSegun(confDatos.algoritmo);
@@ -1346,17 +1397,60 @@ int realizarSwap(pagina_t* paginaSwap){
 //PARA LRU
 
 int actualizarPagina(pagina_t* paginaBuscada){
+	if(!strcmp(confDatos.algoritmo,"LRU")){
 	bool quitarPagina(void* dato){
 		pagina_t* pagina = (pagina_t*)dato;
 		return pagina->Nframe == paginaBuscada->Nframe;
 	}
 	log_debug(logger,"Actualizando pagina LRU");
 	list_add(paginasUsadas,list_remove_by_condition(paginasUsadas,quitarPagina));
+	}
+	if(!strcmp(confDatos.algoritmo,"CLOCK")){
+		paginaBuscada->uso = true;
+	}
 	return 0;
+}
+bool aumentarPunteroClock(void){
+	uint32_t cantFrames = tamanioMemoria/tamanioPagina;
+	if((punteroClock->numeroFrame +1) >= cantFrames){
+		punteroClock = list_get(framesMemoria,0);
+	}
+	else{
+		punteroClock = list_get(framesMemoria,punteroClock->numeroFrame +1);
+	}
+	return true;
 }
 pagina_t* paginaSegun(char* algoritmoRemplazo){
 	if(!strcmp(algoritmoRemplazo,"LRU")){
 	return (pagina_t*)list_remove(paginasUsadas,0);
+	}
+	if(!strcmp(algoritmoRemplazo,"CLOCK")){
+		bool primeraVuelta = true;
+		uint32_t cantFrames = tamanioMemoria/tamanioPagina;
+		if(primeraVuelta) {
+			log_debug(logger,"Buscando pagina con 0-0 primera vuelta");
+			while(cantFrames > 0){
+				log_debug(logger,"Puntero -> %i",punteroClock->numeroFrame);
+				if(!punteroClock->pagina->uso && !punteroClock->pagina->modificada){
+					return punteroClock->pagina;
+				}
+				aumentarPunteroClock();
+				cantFrames--;
+			}
+			primeraVuelta = false;
+		}
+		cantFrames = (tamanioMemoria/tamanioPagina)*2; //POR SI TODAS LAS PAGINAS TIENEN 1-X
+		log_debug(logger,"Buscando pagina con 0-X segunda vuelta");
+		while(cantFrames > 0){
+			if(!punteroClock->pagina->uso){
+				return punteroClock->pagina;
+			}
+			else {
+				punteroClock->pagina->uso = false;
+			}
+			aumentarPunteroClock();
+			cantFrames--;
+		}
 	}
 	return NULL;
 }

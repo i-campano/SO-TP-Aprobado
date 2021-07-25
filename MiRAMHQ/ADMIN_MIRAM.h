@@ -46,11 +46,20 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t fin;
 }segmento_t;
+typedef struct {
+	uint32_t Nframe;
+	uint32_t bytesOcupado;
+	bool valida;
+	uint32_t NframeVirtual;
+	bool modificada;
+	bool uso;
+}pagina_t;
 
 //Paginacion
 typedef struct {
 	uint32_t numeroFrame;
 	bool estado; //true = Libre
+	pagina_t* pagina; //PARA CLOCK
 }frame_t;
 typedef struct {
 
@@ -60,12 +69,6 @@ typedef struct {
 	uint32_t ocupado;
 }tabla_t;
 
-typedef struct {
-	uint32_t Nframe;
-	uint32_t bytesOcupado;
-	bool valida;
-	uint32_t NframeVirtual;
-}pagina_t;
 
 typedef struct {
 	uint32_t id;
@@ -102,6 +105,7 @@ t_bitarray* swapFrames;
 FILE* swapFile;
 int swap_fd;
 t_list* paginasUsadas;
+frame_t* punteroClock;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES

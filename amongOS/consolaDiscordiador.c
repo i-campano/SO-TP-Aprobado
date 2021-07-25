@@ -14,7 +14,7 @@ void leer_consola() {
 	while(strncmp(leido, "TERM", 4) != 0) {
 		log_info(logger, leido);
 
-		if(strncmp(leido, "DETENER", 1) == 0){
+		if(strncmp(leido, "DETENER", 2) == 0){
 			log_info(logger,"PLANIFICACION DETENIDA !!!: ");
 			sem_wait(&detenerReaunudarEjecucion);
 		}
@@ -48,6 +48,10 @@ void leer_consola() {
 			//EJEMPLO COMANDO: INICIAR_PATOTA pag_b.txt 1 2 0|0
 			//EJEMPLO COMANDO: INICIAR_PATOTA pag_c.txt 1 3 0|0
 
+			//EJEMPLO COMANDO: INICIAR_PATOTA segA.txt 4 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA segB.txt 2 2 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA segC.txt 1 3 0|0
+
 			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 15 5|2 3|6
 
 			crear_patota(leido);
@@ -55,6 +59,20 @@ void leer_consola() {
 		else if(strncmp(leido, "GET_DATOS", 3) == 0){
 			sendDeNotificacion(socketServerMiRam, GET_PCB);
 			sendDeNotificacion(socketServerMiRam,1);
+		}
+		else if(strncmp(leido, "DUMP", 3) == 0){
+			sendDeNotificacion(socketServerMiRam, DUMP);
+		}
+		else if(strncmp(leido, "COMPACTAR", 3) == 0){
+			sendDeNotificacion(socketServerMiRam, COMPACTACION);
+		}
+		else if(strncmp(leido, "EXPULSAR_TRIPULANTE", 9) == 0){
+			char** separado = string_split(leido," ");
+			sendDeNotificacion(socketServerMiRam, EXPULSAR_TRIPULANTE);
+			t_tripulante* trip = buscarTripulante(atoi(separado[1]));
+			sendDeNotificacion(socketServerMiRam,trip->id);
+			sendDeNotificacion(socketServerMiRam,trip->patota_id);
+			sendDeNotificacion(socketServerMiRam,trip->direccionLogica);
 		}
 		else{
 			log_info(logger,"COMANDO INVALIDO");
@@ -129,4 +147,61 @@ void mostrar_lista_tripulantes_exec(){
 		log_info(logger,"Tripulante: %d   Patota: %d    Status EXEC", tripulante->id,tripulante->patota_id);
 	}
 	list_iterate(lista_exec, (void*) mostrar_patota);
+}
+t_tripulante* buscarTripulante(uint32_t id_trip){
+	bool condicionId(void* dato){
+		t_tripulante* trip = (t_tripulante*)dato;
+		return trip->id == id_trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_new);
+	t_tripulante* trip = list_find(planificacion_cola_new->elements,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_fin);
+		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_new->elements,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_fin);
+	}
+	pthread_mutex_unlock(&planificacion_mutex_new);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_ready);
+	trip = list_find(planificacion_cola_ready->elements,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_fin);
+		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_ready->elements,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_fin);
+	}
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&mutex_cola_ejecutados);
+	trip = list_find(lista_exec,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_fin);
+		queue_push(planificacion_cola_fin,list_remove_by_condition(lista_exec,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_fin);
+	}
+	pthread_mutex_unlock(&mutex_cola_ejecutados);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_bloq);
+	trip = list_find(planificacion_cola_bloq->elements,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_fin);
+		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_bloq->elements,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_fin);
+	}
+	pthread_mutex_unlock(&planificacion_mutex_bloq);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_fin);
+	trip = list_find(planificacion_cola_fin->elements,condicionId);
+	pthread_mutex_unlock(&planificacion_mutex_fin);
+	if(trip != NULL){
+		return trip;
+	}
+	return NULL;
 }

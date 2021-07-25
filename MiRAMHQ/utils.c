@@ -161,15 +161,15 @@ void *atenderNotificacion(void * paqueteSocket){
 			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
 
-			//int dx = x - tcb->x;
-			//int dy = y - tcb->y;
+			int dx = x - tcb->x;
+			int dy = y - tcb->y;
 			tcb->x = x;
 			tcb->y = y;
 
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
 			pthread_mutex_unlock(&accesoListaTablas);
-			//item_desplazar(nivel,tcb->id, dx,dy);
+			item_desplazar(nivel,tcb->id, dx,dy);
 
 
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
@@ -193,8 +193,38 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
-			//item_borrar(nivel,id_trip);
+			item_borrar(nivel,id_trip);
 			sendDeNotificacion(socket,1);
+			break;
+		}
+		case COMPACTACION: {
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+			break;
+		}
+		case DUMP: {
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+			break;
+		}
+		case EXPULSAR_TRIPULANTE: {
+			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
+			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
 			break;
 		}
 		default:
@@ -245,7 +275,7 @@ int crear_pcb(int socket) {
 		temp.y = (uint32_t)atoi(coordenadas_posicion_inicial[1]);
 		temp.id = *id;
 
-		//err = personaje_crear(nivel,temp.id,temp.x, temp.y);
+		err = personaje_crear(nivel,temp.id,temp.x, temp.y);
 
 		log_debug(logger,"Por crear trip %i",temp.id);
 		crear_tripulante_(temp,patotaid,tablaPatota);
