@@ -13,8 +13,8 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
 	archivo->clave = string_new();
 	string_append(&(archivo->clave),tripulante);
-
-	char *resto_path = string_from_format(tripulante,".ims");
+	char *resto_path = string_new();
+	string_append_with_format(&resto_path,"%s.ims",tripulante);
 
 
 	char *aux = NULL;
@@ -255,14 +255,23 @@ char * obtener_bitacora(int n_tripulante){
 
 	char * n_trip =string_itoa(n_tripulante);
 	char *clave = string_from_format("tripulante_%s", n_trip);
+	char * path = string_new();
+	string_append_with_format(&path,"%s.ims",clave);
+
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "%s%s", path_files,path);
+	log_info(logger,aux);
 
 	pthread_mutex_lock(&mutex_archivos_bitacora);
 	_archivo_bitacora * archivo_bit = find_bitacora(archivos_bitacora,clave);
 	pthread_mutex_unlock(&mutex_archivos_bitacora);
 
 	pthread_mutex_lock(&(archivo_bit->mutex_file));
-	char *resto_path = string_from_format("bitacora/tripulante_%s%s", n_trip,".ims");
-	t_config * config = config_create(resto_path);
+	t_config * config = config_create(aux);
 	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
 	char * cadena = string_new();
 	//TODO: sacar este mutex ¿
@@ -276,11 +285,11 @@ char * obtener_bitacora(int n_tripulante){
 	}
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 //	free(cadena);
-	free(resto_path);
+	free(aux);
 	config_destroy(config);
 
 	pthread_mutex_unlock(&(archivo_bit->mutex_file));
-	log_info(logger,"BITACORA: %s",cadena);
+	log_trace(logger,"BITACORA: %s",cadena);
 	return cadena;
 }
 
