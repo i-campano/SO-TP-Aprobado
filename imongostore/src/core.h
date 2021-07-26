@@ -12,7 +12,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<commons/log.h>
 #include "utils.h"
 #include "socket.h"
 #include <sys/mman.h>
