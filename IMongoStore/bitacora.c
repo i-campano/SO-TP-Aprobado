@@ -14,24 +14,35 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	archivo->clave = string_new();
 	string_append(&(archivo->clave),tripulante);
 
-	char *resto_path = string_from_format("bitacora/%s%s", tripulante,".ims");
+	char *resto_path = string_from_format(tripulante,".ims");
 
-	if( access( resto_path, F_OK ) == 0 ) {
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "%s%s", path_files,resto_path);
+	log_info(logger,aux);
+
+	if( access( aux, F_OK ) == 0 ) {
 		log_debug(logger,"YA EXISTE ARCHIVO BITACORA para: %s", tripulante);
 		//Si tengo acceso al archivo, creo el config
-		archivo->metadata = config_create(resto_path);
-	} else {
+		archivo->metadata = config_create(aux);
+	}else
+	{
 		log_debug(logger,"CREO NUEVO ARCHIVO BITACORA para: %s", tripulante);
-		FILE * metadata = fopen(resto_path,"a+");
+		FILE * metadata = fopen(aux,"a+");
 		close(metadata);
-		archivo->metadata = config_create(resto_path);
+		archivo->metadata = config_create(aux);
 
 		pthread_mutex_lock(&mutex_archivos_bitacora);
 		list_add(archivos_bitacora,archivo);
 		pthread_mutex_unlock(&mutex_archivos_bitacora);
 	}
 
-	FILE * metadata = fopen(resto_path,"a+");
+
+
+	FILE * metadata = fopen(aux,"a+");
 //	FILE * metadata = open(resto_path,  O_APPEND | O_CREAT, 0644);
 	int c = fgetc(metadata);
 	if (c == EOF) {
@@ -39,7 +50,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 		log_debug(logger,"ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
 		config_set_value(archivo->metadata,"SIZE","0");
 		config_set_value(archivo->metadata,"BLOCKS","[]");
-		config_save_in_file(archivo->metadata,resto_path);
+		config_save_in_file(archivo->metadata,aux);
 
 
 	} else {

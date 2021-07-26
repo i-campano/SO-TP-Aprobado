@@ -24,6 +24,9 @@ void iniciar_configuracion(){
 	conf_ARCHIVO_COMIDA_NOMBRE = config_get_string_value (config, "ARCHIVO_COMIDA_NOMBRE");
 	conf_ARCHIVO_BASURA_NOMBRE = config_get_string_value (config, "ARCHIVO_BASURA_NOMBRE");
 	conf_PATH_BITACORA = config_get_string_value (config, "PATH_BITACORA");
+	conf_PATH_FILES = config_get_string_value (config, "PATH_FILES");
+
+
 	conf_BYTES_BLOQUE = config_get_string_value (config, "BYTES_BLOQUE");
 	conf_CANTIDAD_BLOQUES = config_get_string_value (config, "CANTIDAD_BLOQUES");
 

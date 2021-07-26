@@ -29,7 +29,12 @@ void exit_failure() {
 void iniciar_blocks(){
 
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-	_blocks.file_blocks = open("block.ims", O_RDWR | O_CREAT | O_TRUNC, mode);
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	string_append_with_format(&aux, "/%s","blocks.ims");
+	_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
 
 	if (_blocks.file_blocks == (-1)) {
 		perror("open");
@@ -49,11 +54,11 @@ void iniciar_blocks(){
 
 }
 
-void crear_bitacora(){
-	if (access("bitacora", R_OK | W_OK) != 0) {
-		mkdir("bitacora", 0755);
-	}
-}
+//void crear_bitacora(){
+//	if (access("bitacora", R_OK | W_OK) != 0) {
+//		mkdir("bitacora", 0755);
+//	}
+//}
 
 int write_blocks(char * cadena_caracteres,int indice) {
 
@@ -162,12 +167,12 @@ void sincronizar_blocks(){
 
 		sleep(conf_TIEMPO_SINCRONIZACION);
 
-		t_list * lista_bloques = list_create();
-		obtener_todos_los_bloques_desde_metedata(lista_bloques);
-		ordenar(lista_bloques);
-
-		mostrar_blocks_ims(lista_bloques,_blocks.fs_bloques,"   COPIA");
-		mostrar_blocks_ims(lista_bloques,_blocks.original_blocks,"ORIGINAL");
+//		t_list * lista_bloques = list_create();
+//		obtener_todos_los_bloques_desde_metedata(lista_bloques);
+//		ordenar(lista_bloques);
+//
+//		mostrar_blocks_ims(lista_bloques,_blocks.fs_bloques,"   COPIA");
+//		mostrar_blocks_ims(lista_bloques,_blocks.original_blocks,"ORIGINAL");
 	}
 }
 
@@ -219,7 +224,13 @@ void iniciar_super_block(){
 //		superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
 //	}else{
 	log_debug(logger,"iniciar_super_blocks(): Creando archivo de superblock");
-	superblock.file_superblock = open("superblock.ims", O_RDWR | O_CREAT , mode);
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	string_append_with_format(&aux, "/%s","superblock.ims");
+
+	superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
 	ftruncate(superblock.file_superblock,tamanioFs);
 //	}
 
@@ -341,14 +352,23 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	string_append(&((*archivo)->clave),key_file);
 
 	(*archivo)->blocks = list_create();
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_FILES);
+	string_append_with_format(&aux, "/%s%s", path_files,name_file);
 
-	t_config *config;
-	if((config = config_create(name_file))!=NULL) {
-		FILE * metadata = open(name_file, O_RDWR | O_CREAT | O_TRUNC , (mode_t)0600);
-		ftruncate(metadata,1000);
+	if( access( aux, F_OK ) == 0 ) {
+		log_debug(logger,"Iniciando  existente");
+		(*archivo)->metadata = config_create(aux);
+	}else
+	{
+		log_debug(logger,"Creando archivo de recursos");
+		FILE * metadata = open(aux, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
+		(*archivo)->metadata = config_create(aux);
 	}
 
-	(*archivo)->metadata = config_create(name_file);
+//	(*archivo)->metadata = config_create(name_file);
 
 
 	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
@@ -359,7 +379,6 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
 
 	config_save((*archivo)->metadata);
-	config_destroy(config);
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
 

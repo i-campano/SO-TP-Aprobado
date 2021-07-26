@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "sabotaje.h"
 
+
 int main(void)
 {
 
@@ -16,23 +17,23 @@ int main(void)
 	iniciar_configuracion();
 	remove_files();
 
+	check_directories_permissions(conf_PUNTO_MONTAJE);
+	check_directorios();
+
+
 	iniciar_super_block();
 
 	iniciar_blocks();
 
-	crear_bitacora();
+//	crear_bitacora();
 
-	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE,&archivo_oxigeno, "oxigeno","O");
-	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE,&archivo_comida,"comida","C");
-	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE,&archivo_basura,"basura","B");
-//	prueba_func_core_ejecucion();
+	create_metadata_resource_files();
+	check_metadata_resources();
 
 	fs_server = iniciarServidor(5003);
 
 	hilo_sincronizar_blocks();
 
-
-//
 	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)superblock.bitmapstr);
 	log_debug(logger,"SYNC: superblocks.ims: %d",*(uint32_t*)(superblock.bitmapstr+sizeof(uint32_t)));
 	manejadorDeHilos();
@@ -45,6 +46,7 @@ int main(void)
 	log_info(logger,"TERMINO TODO OK");
 	return EXIT_SUCCESS;
 }
+
 
 void informarSabotaje(int signal){
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
@@ -117,9 +119,70 @@ void prueba_func_core_ejecucion(){
 
 
 
+void check_directories_permissions(char *mount_point) {
+	// chequeo que el punto de montaje exista y tenga permiso
+	log_info(logger, "Chequeando punto de montaje %s", mount_point);
+
+	log_debug(logger, "Chequeando directorio %s", mount_point);
+
+	if (access(mount_point, R_OK | W_OK) != 0) {
+		log_error(logger, "No se puede acceder al directorio %s", mount_point);
+		exit(0);
+	}
+
+//	check_readable_file(mount_point, FILE_METADATA);
+
+}
+
+void check_files_access(char *basedir, char *ask) {
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_FILES);
+	string_append_with_format(&aux, "/%s%s", path_files,ask);
+
+	if (access(aux, R_OK | W_OK) != 0) {
+		log_error(logger, "No se puede acceder al directorio %s", aux);
+		free(aux);
+		exit(EXIT_FAILURE);
+	}
+	free(aux);
+}
+
+void check_directory(char *basedir, char *ask) {
+	char *aux = NULL;
+	aux = string_duplicate(basedir);
+	string_append_with_format(&aux, "/%s", ask);
+
+	if (access(aux, R_OK | W_OK) != 0) {
+		log_error(logger, "No se puede acceder al directorio %s", aux);
+		free(aux);
+		exit(EXIT_FAILURE);
+	}
+	free(aux);
+}
 
 
 
+void check_directorios() {
+	check_directory(conf_PUNTO_MONTAJE, conf_PATH_FILES);
+	check_directory(conf_PUNTO_MONTAJE, conf_PATH_BITACORA);
+//	check_directory(conf_PUNTO_MONTAJE, conf_ARCHIVO_COMIDA_NOMBRE);
+//	check_directory(conf_PUNTO_MONTAJE, conf_ARCHIVO_BASURA_NOMBRE);
+//	check_directory(conf_PUNTO_MONTAJE, conf_ARCHIVO_OXIGENO_NOMBRE);
+}
+
+void check_metadata_resources() {
+	check_files_access(conf_PUNTO_MONTAJE, conf_ARCHIVO_COMIDA_NOMBRE);
+	check_files_access(conf_PUNTO_MONTAJE, conf_ARCHIVO_BASURA_NOMBRE);
+	check_files_access(conf_PUNTO_MONTAJE, conf_ARCHIVO_OXIGENO_NOMBRE);
+}
+
+void create_metadata_resource_files() {
+	iniciar_archivo(conf_ARCHIVO_OXIGENO_NOMBRE, &archivo_oxigeno, "oxigeno","O");
+	iniciar_archivo(conf_ARCHIVO_COMIDA_NOMBRE, &archivo_comida, "comida", "C");
+	iniciar_archivo(conf_ARCHIVO_BASURA_NOMBRE, &archivo_basura, "basura", "B");
+}
 
 
 
