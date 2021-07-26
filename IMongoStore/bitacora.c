@@ -254,6 +254,7 @@ char * obtener_bitacora(int n_tripulante){
 	t_config * config = config_create(resto_path);
 	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
 	char * cadena = string_new();
+	//TODO: sacar este mutex ¿
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
 		int * valor = malloc(sizeof(int));

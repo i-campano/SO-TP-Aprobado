@@ -176,11 +176,18 @@ void contrastar_size_vs_bloques_files(){
 	corregir_block_count_file(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 }
 
+void contrastar_tamanio_archivos_de_recurso(){
+	obtener_tamanio_archivo_de_recurso(archivo_comida,conf_ARCHIVO_COMIDA_NOMBRE);
+	obtener_tamanio_archivo_de_recurso(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
+	obtener_tamanio_archivo_de_recurso(archivo_basura,conf_ARCHIVO_BASURA_NOMBRE);
+}
+
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");
-//	sabotaje_bitmap_superbloque();
+	sabotaje_bitmap_superbloque();
+	contrastar_tamanio_archivos_de_recurso();
 //	contrastar_cantidad_bloques();
-	contrastar_size_vs_bloques_files();
+//	contrastar_size_vs_bloques_files();
 	log_info(logger,"Ejecutando FSCK -> FIN");
 }
 

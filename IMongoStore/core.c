@@ -623,3 +623,38 @@ void descartar_basura(_archivo * archivo){
 	log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
 }
+
+
+int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
+	pthread_mutex_lock(&(archivo->mutex_file));
+	archivo->metadata = config_create(name_file);
+	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
+	int size_archivo = 0;
+	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+		int * valor = malloc(sizeof(int));
+		*valor =atoi(bloques_ocupados[i]);
+		for(int j = 0; j<superblock.tamanio_bloque; j++){
+
+			if(!string_equals_ignore_case(_blocks.fs_bloques + (superblock.tamanio_bloque*(*valor))+j,"/0")){
+				size_archivo++;
+			}
+		}
+		free(bloques_ocupados[i]);
+
+	}
+	log_info(logger,"Tamanio real del archivo de recursos %d",size_archivo);
+
+	int metadata_size = config_get_int_value(archivo->metadata,"SIZE");
+
+	if(metadata_size!=size_archivo){
+		log_info(logger,"El tamanio del archivo fue saboteado, por lo que tuvo que ser restaurado");
+		config_set_value(archivo->metadata,"SIZE",string_itoa(size_archivo));
+		config_save(archivo->metadata);
+	}
+
+
+	pthread_mutex_unlock(&(archivo->mutex_file));
+	return size_archivo;
+}
+
+
