@@ -1,0 +1,295 @@
+/*
+ * bitacora.c
+ *
+ *  Created on: 11 jul. 2021
+ *      Author: utnso
+ */
+
+#include "bitacora.h"
+
+_archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
+
+	_archivo_bitacora *archivo = (_archivo_bitacora*)malloc(sizeof(_archivo_bitacora));
+
+	archivo->clave = string_new();
+	string_append(&(archivo->clave),tripulante);
+	char *resto_path = string_new();
+	string_append_with_format(&resto_path,"%s.ims",tripulante);
+
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "%s%s", path_files,resto_path);
+	log_info(logger,aux);
+
+	if( access( aux, F_OK ) == 0 ) {
+		log_debug(logger,"YA EXISTE ARCHIVO BITACORA para: %s", tripulante);
+		//Si tengo acceso al archivo, creo el config
+		archivo->metadata = config_create(aux);
+	}else
+	{
+		log_debug(logger,"CREO NUEVO ARCHIVO BITACORA para: %s", tripulante);
+		FILE * metadata = fopen(aux,"a+");
+		close(metadata);
+		archivo->metadata = config_create(aux);
+
+		pthread_mutex_lock(&mutex_archivos_bitacora);
+		list_add(archivos_bitacora,archivo);
+		pthread_mutex_unlock(&mutex_archivos_bitacora);
+	}
+
+
+
+	FILE * metadata = fopen(aux,"a+");
+//	FILE * metadata = open(resto_path,  O_APPEND | O_CREAT, 0644);
+	int c = fgetc(metadata);
+	if (c == EOF) {
+
+		log_debug(logger,"ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
+		config_set_value(archivo->metadata,"SIZE","0");
+		config_set_value(archivo->metadata,"BLOCKS","[]");
+		config_save_in_file(archivo->metadata,aux);
+
+
+	} else {
+	    ungetc(c, metadata);
+	}
+
+
+
+
+
+	pthread_mutex_init(&((archivo)->mutex_file), NULL);
+
+
+	return archivo;
+
+}
+
+
+
+uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo){
+	string_append(&cadenaAGuardar,"\n");
+	pthread_mutex_lock(&(archivo->mutex_file));
+
+	uint32_t resultado;
+	int bytesArchivo = config_get_int_value(archivo->metadata,"SIZE");
+
+	log_trace(logger,"bytes archivo %s : %d",archivo->clave,bytesArchivo);
+
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	//Chequeo si hay lugar en el ultimo bloque
+	if(bytesArchivo%superblock.tamanio_bloque==0){
+
+		//Si el ultiimo bloque esta completo -> creo los bloques nuevos que necesito para almacenar la cadena
+		llenar_nuevo_bloque_bitacora(cadenaAGuardar, archivo);
+
+	}else{
+		//bytesArchivo : restas sucesivas para quedarme con el espacio OCUPADO del ultimo bloque.
+		while(bytesArchivo>superblock.tamanio_bloque) bytesArchivo-=superblock.tamanio_bloque;
+
+		int espacioLibreUltimoBloque = superblock.tamanio_bloque-bytesArchivo;
+
+		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
+
+		int longitud_blocks = longitud_array(blocks);
+		char * last_block = blocks[longitud_blocks-1];
+
+		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
+
+			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
+
+			write_blocks_with_offset_bitacora(cadenaAGuardar,atoi(last_block),bytesArchivo);
+
+			//TODO: podria armar un actualizar metadata mas generico con varios if
+			actualizar_metadata_sin_crear_bloque_bitacora(archivo,cadenaAGuardar);
+
+		}else{
+
+			char * rellenoDeUltimoBloque  = string_substring_until(cadenaAGuardar,espacioLibreUltimoBloque);
+
+			write_blocks_with_offset_bitacora(rellenoDeUltimoBloque,atoi(last_block),bytesArchivo);
+
+			actualizar_metadata_sin_crear_bloque_bitacora(archivo,rellenoDeUltimoBloque);
+
+			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
+
+			llenar_nuevo_bloque_bitacora(contenidoProximoBloque, archivo);
+
+		}
+	}
+	log_trace(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&(archivo->mutex_file));
+	return 1;
+}
+
+
+
+
+void actualizar_metadata_sin_crear_bloque_bitacora(_archivo_bitacora * archivo,char * valorAux){
+
+	int bytes = string_length(valorAux);
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	size+=bytes;
+
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
+	config_save(archivo->metadata);
+
+}
+
+
+void actualizar_metadata_bitacora(_archivo_bitacora * archivo,int indice_bloque,char * valorAux){
+
+
+	string_length(valorAux);
+	int bytes = string_length(valorAux);
+
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	size+=bytes;
+	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
+
+	char ** array;
+	array = config_get_array_value(archivo->metadata,"BLOCKS");
+	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
+
+	char * cadena = array_to_string(nuevo);
+	int i = 0;
+	while(nuevo[i]!=NULL){
+		free(nuevo[i]);
+		i++;
+	}
+	free(nuevo[i]);
+	free(nuevo);
+	config_set_value(archivo->metadata,"BLOCKS",cadena);
+	config_save(archivo->metadata);
+}
+
+
+
+void llenar_nuevo_bloque_bitacora(char* cadenaAGuardar, _archivo_bitacora* archivo) {
+	//Si el ultiimo bloque esta completo -> creo los bloques nuevos que necesito para almacenar la cadena
+	int posicionesStorageAOcupar = calcular_cantidad_bloques_requeridos(
+			cadenaAGuardar);
+	int offsetBytesAlmacenados = 0;
+	int bloqueslibres = calcular_bloques_libres();
+	for (int i = 0; i < posicionesStorageAOcupar; i++) {
+		char* valorAux = string_substring(cadenaAGuardar,
+				offsetBytesAlmacenados, superblock.tamanio_bloque);
+		int indice_bloque = obtener_indice_para_guardar_en_bloque_bitacora(valorAux);
+		log_trace(logger, "llenar_nuevo_bloque_bitacora(): Bitacora: %s -> bloque asignado: %d", archivo->clave,
+				indice_bloque);
+		write_blocks(valorAux, indice_bloque);
+		actualizar_metadata_bitacora(archivo, indice_bloque, valorAux);
+		bitarray_set_bit_monitor(indice_bloque);
+		offsetBytesAlmacenados += superblock.tamanio_bloque;
+	}
+}
+
+int obtener_indice_para_guardar_en_bloque_bitacora(char * valor){
+	int lugares = calcular_cantidad_bloques_requeridos(valor);
+	int cont = 0;
+	int i;
+	int resultado = 0;
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+
+	for(i=0;i<cantidadDePosiciones;i++){
+
+		if(bitarray_test_bit(superblock.bitmap,i)){
+			cont = 0;
+		} else{
+			cont++;
+		}
+		if(cont >= lugares){
+			return i - lugares + 1;
+			break;
+		}
+	}
+	return 99999;
+}
+
+int calcular_cantidad_bloques_requeridos_bitacora(char* cadenaAGuardar){
+	int cantidadBloques = string_length(cadenaAGuardar)/superblock.tamanio_bloque;
+
+	if(string_length(cadenaAGuardar) % superblock.tamanio_bloque > 0 ){
+		cantidadBloques++;
+	}
+
+	return cantidadBloques;
+}
+
+
+int write_blocks_with_offset_bitacora(char * cadena_caracteres,int indice,int offset) {
+//	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
+//	char * pad = string_repeat('#',padding);
+	void * cad = malloc(superblock.tamanio_bloque);
+	bzero(cad,superblock.tamanio_bloque);
+	char * cadena  = string_duplicate(cadena_caracteres);
+	memcpy(cad,(void*)cadena,string_length(cadena));
+
+//	string_append(&cadena,pad);
+
+//	TODO : meter la validacion de bitarray aca  ¿
+	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cad, string_length(cad));
+	return 1;
+}
+
+_archivo_bitacora* find_bitacora(t_list * bitacoras, char * clave){
+	bool encontrar_bitacora(void * archivo){
+		_archivo_bitacora* archivo_bit = (_archivo_bitacora*) archivo;
+		return (strcmp(archivo_bit->clave, clave)==0);
+	}
+	_archivo_bitacora* retorno =  (_archivo_bitacora*)list_find(bitacoras,(void*)encontrar_bitacora);
+
+	return retorno;
+}
+
+
+char * obtener_bitacora(int n_tripulante){
+
+	char * n_trip =string_itoa(n_tripulante);
+	char *clave = string_from_format("tripulante_%s", n_trip);
+	char * path = string_new();
+	string_append_with_format(&path,"%s.ims",clave);
+
+
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "%s%s", path_files,path);
+	log_info(logger,aux);
+
+	pthread_mutex_lock(&mutex_archivos_bitacora);
+	_archivo_bitacora * archivo_bit = find_bitacora(archivos_bitacora,clave);
+	pthread_mutex_unlock(&mutex_archivos_bitacora);
+
+	pthread_mutex_lock(&(archivo_bit->mutex_file));
+	t_config * config = config_create(aux);
+	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
+	char * cadena = string_new();
+	//TODO: sacar este mutex ¿
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+		int * valor = malloc(sizeof(int));
+		*valor =atoi(bloques_ocupados[i]);
+
+		string_append(&cadena,string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(*valor),superblock.tamanio_bloque));
+		free(bloques_ocupados[i]);
+	}
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+//	free(cadena);
+	free(aux);
+	config_destroy(config);
+
+	pthread_mutex_unlock(&(archivo_bit->mutex_file));
+	log_trace(logger,"BITACORA: %s",cadena);
+	return cadena;
+}
+
