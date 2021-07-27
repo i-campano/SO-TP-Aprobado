@@ -15,5 +15,5 @@
 #include "patota.h"
 
 void listar_tripulantes();
-
+t_tripulante* buscarTripulante(uint32_t id_trip);void mostrar_lista_tripulantes(t_queue* queue,char * nombre_cola);
 #endif /* CONSOLADISCORDIADOR_H_ */

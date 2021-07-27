@@ -5,6 +5,8 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<stdint.h>
+#include<sys/mman.h>
+#include<fcntl.h>
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
@@ -44,11 +46,20 @@ typedef struct {
 	uint32_t id; //A que proceso corresponde?
 	uint32_t fin;
 }segmento_t;
+typedef struct {
+	uint32_t Nframe;
+	uint32_t bytesOcupado;
+	bool valida;
+	uint32_t NframeVirtual;
+	bool modificada;
+	bool uso;
+}pagina_t;
 
 //Paginacion
 typedef struct {
 	uint32_t numeroFrame;
 	bool estado; //true = Libre
+	pagina_t* pagina; //PARA CLOCK
 }frame_t;
 typedef struct {
 
@@ -58,11 +69,6 @@ typedef struct {
 	uint32_t ocupado;
 }tabla_t;
 
-typedef struct {
-	uint32_t Nframe;
-	uint32_t bytesOcupado;
-	uint32_t vecesUsada;
-}pagina_t;
 
 typedef struct {
 	uint32_t id;
@@ -94,8 +100,12 @@ bool algoritmoReemplazo;
 bool algoritmo;
 //-----------------------
 void* mem_ppal;
+void* memoria_virt;
 t_bitarray* swapFrames;
 FILE* swapFile;
+int swap_fd;
+t_list* paginasUsadas;
+frame_t* punteroClock;
 //PPAL
 int admin_memoria(void);
 //FUNCIONES
@@ -143,15 +153,32 @@ int crear_memoria_(void);
 int crear_tripulante_(tcb_t tcb,uint32_t idpatota,tabla_t* tablaPatota);
 int crear_patota_(pcb_t pcb,char* tareas,uint32_t cantidad_tripulantes,tabla_t* tabla);
 uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla);
+uint32_t reconocerTamanioInstruccion2(uint32_t direccionLogica,tabla_t* tabla); //MODIFICADO PARA PAG
+uint32_t reconocerTamanioInstruccion3(uint32_t direccionLogica,tabla_t* tabla);
 void* getInstruccion(uint32_t id_patota,uint32_t tamanio,uint32_t direccionLogica);
 tabla_t* buscarTablaId(uint32_t id);
 
 
-////SWAP PROCESO
-int inicializarAreaSwap(void);
+////AUXILIARES DE SWAP
 int calcularFramesLibres(void);
-int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria);
-int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado);
 int frameLibreSwap(void);
-int inicializarAreaSwap(void);
+int actualizarPagina(pagina_t* paginaBuscada);
+uint32_t paginaTareas(int tamanioTarea);
+//CONFIG SWAP
+int inicializarAreaSwap(void); //ANDANDO LRU
+
+//ESCOJE PAGINA SEGUN ALGORITMO
+pagina_t* paginaSegun(char* algoritmoRemplazo);
+//REALIZAN EL SWAP
+int realizarSwap(pagina_t* paginaSwap);
+int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria);
+int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado);//ANDANDO LRU 1/2
+int llevarNframesSwap(uint32_t n);
+///LIMPIANDO MEMORIA
+int eliminarTabla(tabla_t* tabla,char* esquema);
+int eliminarListaTablas(void);
+int liberarBloquesMemoria(char* esquema);
+int limpiarEstructurasAlgoritmo(char* algoritmo);
+void limpiarSwap(void);
+void liberarMemoriaHilos(void);
 #endif /* ADMIN_MIRAM_H_ */
