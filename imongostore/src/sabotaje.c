@@ -113,21 +113,6 @@ void sabotaje_bitmap_superbloque(){
 	log_info(logger,"FSCK: Chequeando BITMAP -> FIN");
 }
 
-void descartar_bloques_bitacora(){
-	t_list * lista_bloques = list_create();
-
-	log_info(logger,"FSCK: Chequeando BITMAP -> INICIO");
-
-	bloques_ocupados_file(archivo_oxigeno, lista_bloques);
-	bloques_ocupados_file(archivo_comida, lista_bloques);
-	bloques_ocupados_file(archivo_basura, lista_bloques);
-
-//	mostrar_bloques(lista_bloques);
-
-	igualar_bitmap_contra_bloques(lista_bloques);
-
-	log_info(logger,"FSCK: Chequeando BITMAP -> FIN");
-}
 
 
 

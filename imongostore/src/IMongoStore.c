@@ -20,19 +20,16 @@ int main(void)
 	check_directories_permissions(conf_PUNTO_MONTAJE);
 	check_directorios();
 
-
 	iniciar_super_block();
 
 	iniciar_blocks();
 
-//	crear_bitacora();
-
 	create_metadata_resource_files();
+
 	check_metadata_resources();
 
-
 	delete_bitacora_files(conf_PUNTO_MONTAJE);
-	sabotaje_bitmap_superbloque();
+	liberar_bloques_bitacora_al_iniciar_fs();
 
 
 

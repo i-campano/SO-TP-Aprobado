@@ -109,7 +109,7 @@ void escuchoIMongo() {
 		else if(nroNotificacion==ENVIAR_BITACORA){
 			//Recibe informacion de bitacora
 			char * bitacora = recibirString(socketServerIMongoStore);
-			printf("Bitacora:\n%s",bitacora);
+			log_info(logger,"%s",bitacora);
 		}
 		else{
 			//Notificacion desconocida -> IMongo caido

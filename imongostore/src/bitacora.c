@@ -71,7 +71,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
 
 uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo){
-	string_append(&cadenaAGuardar,"\n");
+	string_append(&cadenaAGuardar,".");
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	uint32_t resultado;
@@ -289,7 +289,7 @@ char * obtener_bitacora(int n_tripulante){
 	config_destroy(config);
 
 	pthread_mutex_unlock(&(archivo_bit->mutex_file));
-	log_trace(logger,"BITACORA: %s",cadena);
+	log_info(logger,"BITACORA: %s",cadena);
 	return cadena;
 }
 

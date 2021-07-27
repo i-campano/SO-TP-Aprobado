@@ -739,4 +739,57 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 	return size_archivo;
 }
 
+void obtener_todos_los_bloques_de_recursos_metedata(t_list* lista_bloques) {
+	bloques_ocupados_file(archivo_oxigeno, lista_bloques);
+	bloques_ocupados_file(archivo_comida, lista_bloques);
+	bloques_ocupados_file(archivo_basura, lista_bloques);
+
+}
+
+void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
+
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	char * string_bloques_ocupados = string_new();
+	for(int i=0; i<cantidadDePosiciones-2;i++){
+		if(!encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
+//			log_trace(logger,"limpio bloque");
+			bitarray_clean_bit(superblock.bitmap,i);
+			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
+		}else{
+			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+		}
+
+	}
+	log_debug(logger,"Se liberaron los bloques de bitacora -> Los bloques de recursos ocupados son:");
+	log_debug(logger,"%s",string_bloques_ocupados);
+	free(string_bloques_ocupados);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+}
+
+bool encontrar_bloque_para_iniciar_fs(t_list * lista_bloques, int i){
+	bool condicion_bloque(void *bloque){
+		int * bloque_n = (int*)bloque;
+		return  *bloque_n == i;
+	}
+	return list_any_satisfy(lista_bloques,condicion_bloque);
+}
+
+
+
+void liberar_bloques_bitacora_al_iniciar_fs(){
+	t_list * lista_bloques = list_create();
+
+
+	obtener_todos_los_bloques_de_recursos_metedata(lista_bloques);
+
+
+	igualar_bitmap_contra_bloques_al_iniciar_fs(lista_bloques);
+
+}
+
+
 
