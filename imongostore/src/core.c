@@ -2,7 +2,7 @@
 
 
 
-t_bitarray * crear_bit_array(uint32_t cantBloques){
+t_bitarray * crear_bit_array_limpio(uint32_t cantBloques){
 
 	int tamanioBitarray=cantBloques/8;
 	if(cantBloques % 8 != 0){
@@ -17,6 +17,21 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 	for(; cont < tamanioBitarray*8; cont++){
 		bitarray_clean_bit(bitarray, cont);
 	}
+
+	return bitarray;
+}
+
+t_bitarray * crear_bit_array(uint32_t cantBloques){
+
+	int tamanioBitarray=cantBloques/8;
+	if(cantBloques % 8 != 0){
+	  tamanioBitarray++;
+	 }
+
+	char* bits=malloc(tamanioBitarray);
+
+	t_bitarray * bitarray = bitarray_create_with_mode(bits,tamanioBitarray,MSB_FIRST);
+
 
 	return bitarray;
 }
@@ -259,27 +274,37 @@ void iniciar_super_block(){
 	char *aux = NULL;
 	char *path_files = NULL;
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
-	string_append_with_format(&aux, "/%s","superblock.ims");
-
-	superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
-	ftruncate(superblock.file_superblock,tamanioFs);
-//	}
+	string_append_with_format(&aux, "%s","superblock.ims");
 
 
 
-	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
+	if (access(aux, R_OK | W_OK) != 0) {
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		ftruncate(superblock.file_superblock,1);
+
+		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(superblock.bitmapstr,tamanioFs);
 
 
-	superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
-	bzero(superblock.bitmapstr,tamanioFs);
+		close(superblock.file_superblock);
+		log_error(logger, "No se puede acceder al directorio %s", aux);
+	}
 
-	superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
-	uint32_t cantidad_bloques_fs = *(uint32_t*)(superblock.bitmapstr);
-
+	struct stat info;
+	bzero(&info, sizeof(struct stat));
+	FILE *fptr;
+	if (stat(aux, &info) != 0) {
+		log_error(logger, "No se puede hacer stat en el bitmap file");
+		exit_failure();
+	}
 
 	//TODO : Buscar otra validacion para confirmar que existe un fs.
-	if(cantidad_bloques_fs!=superblock.cantidad_bloques || 1){
+	if (info.st_size == 1){
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		superblock.bitmap = crear_bit_array_limpio(superblock.cantidad_bloques);
+		superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
 		ftruncate(superblock.file_superblock,tamanioFs);
 		log_debug(logger,"Creando metadata de FS...");
 
@@ -293,6 +318,12 @@ void iniciar_super_block(){
 
 		log_debug(logger,"Metadata creada...");
 	}else{
+		superblock.bitmap = crear_bit_array_limpio(superblock.cantidad_bloques);
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
+		memcpy(superblock.bitmap->bitarray,superblock.bitmapstr+(sizeof(uint32_t))*2, tamanioBitarray);
+
 		log_debug(logger,"Usando FS existente...");
 	}
 
@@ -397,19 +428,20 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 		log_debug(logger,"Creando archivo de recursos");
 		FILE * metadata = open(aux, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
 		(*archivo)->metadata = config_create(aux);
+		config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
+
+		config_set_value((*archivo)->metadata,"MD5","XXXX");
+		config_set_value((*archivo)->metadata,"SIZE","0");
+		config_set_value((*archivo)->metadata,"BLOCKS","[]");
+		config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
+
+		config_save((*archivo)->metadata);
 	}
 
 //	(*archivo)->metadata = config_create(name_file);
 
 
-	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
 
-	config_set_value((*archivo)->metadata,"MD5","XXXX");
-	config_set_value((*archivo)->metadata,"SIZE","0");
-	config_set_value((*archivo)->metadata,"BLOCKS","[]");
-	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
-
-	config_save((*archivo)->metadata);
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
 

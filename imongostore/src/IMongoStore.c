@@ -32,7 +32,7 @@ int main(void)
 
 
 	delete_bitacora_files(conf_PUNTO_MONTAJE);
-
+	sabotaje_bitmap_superbloque();
 
 
 
