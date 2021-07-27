@@ -13,7 +13,7 @@ int main(void)
 	}
 
 	admin_memoria();
-	server_fd = iniciarServidor(5002);
+	server_fd = iniciarServidor(confDatos.puerto);
 	iniciarEstructurasAdministrativas();
 	if(mapaActivo){
 		iniciar_mapa();

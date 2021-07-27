@@ -9,7 +9,7 @@
 
 //bool
 void crear_patota(char * comando){
-	socketServerMiRam = reConectarAServer("127.0.0.1", 5002);
+	socketServerMiRam = reConectarAServer(IP_MIRAM, PUERTO_MIRAM);
 	if(socketServerMiRam<0){
 		log_info(logger,"no me pude conectar con mi ram");
 		return ;

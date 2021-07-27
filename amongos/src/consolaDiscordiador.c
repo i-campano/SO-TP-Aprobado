@@ -119,7 +119,7 @@ void escuchoIMongo() {
 			while(1){
 				sleep(5);
 				log_info(logger,"escuchoIMongo(): Intentando reestablecer la comunicacion con iMongo");
-				socketServerIMongoStore = reConectarAServer("127.0.0.1", 5003);
+				socketServerIMongoStore = reConectarAServer(IP_MONGO, PUERTO_MONGO);
 				if(socketServerIMongoStore>0){
 					log_info(logger,"escuchoIMongo(): se pudo reconectar");
 					break;

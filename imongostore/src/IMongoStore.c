@@ -30,7 +30,7 @@ int main(void)
 	create_metadata_resource_files();
 	check_metadata_resources();
 
-	fs_server = iniciarServidor(5003);
+	fs_server = iniciarServidor(conf_PUERTO_IMONGO);
 
 	hilo_sincronizar_blocks();
 
