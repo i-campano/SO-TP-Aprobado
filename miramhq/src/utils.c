@@ -14,7 +14,7 @@ void iniciarEstructurasAdministrativas(){
 
 void manejadorDeHilos(){
 	int socketCliente;
-
+	listaHilosAtendedores = list_create();
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(server_fd))) { 	// hago el accept
 		pthread_t * thread_id = malloc(sizeof(pthread_t));
@@ -25,7 +25,7 @@ void manejadorDeHilos(){
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
-
+		list_add(listaHilosAtendedores,thread_id);
 	}
 
 	//Chequeo que no falle el accept
@@ -83,17 +83,15 @@ void *atenderNotificacion(void * paqueteSocket){
 			break;
 		}
 		case PEDIR_TAREA:{
-
 			uint32_t id_trip = recvDeNotificacion(socket);
 			uint32_t id_patota = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
 			pthread_mutex_lock(&accesoMemoria);
-
+			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %d,DirLog: %i, Tarea: %i",id_trip,socket,direccionLogica,tcb->prox_tarea);
-			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion(tcb->prox_tarea,tabla);
+			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %i,DirLog: %i, Tarea: %i",tcb->id,socket,direccionLogica,tcb->prox_tarea);
+			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion3(tcb->prox_tarea,tabla);
 			char * tarea = getInstruccion(id_patota,tamanioProximaInstruccion,tcb->prox_tarea);
 			tcb->prox_tarea += tamanioProximaInstruccion + 1; //ELIMINO \N;
 			log_info(logger,"La tarea encontrada es %s",tarea);
@@ -134,18 +132,16 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t id_patota = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
-
-			uint32_t estado = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
+			uint32_t estado = recvDeNotificacion(socket);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			pthread_mutex_unlock(&accesoMemoria);
-			pthread_mutex_unlock(&accesoListaTablas);
 			char estadoV[5] = {'N','R','B','E','F'};
 			tcb->estado = estadoV[estado];
-			pthread_mutex_lock(&accesoMemoria);
+
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
+			pthread_mutex_unlock(&accesoListaTablas);
 			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
 			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %c",id_trip,estadoV[estado]);
@@ -160,19 +156,21 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t x = recvDeNotificacion(socket);
 			uint32_t y = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
-			tabla_t* tabla = buscarTablaId(id_patota);
 			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			pthread_mutex_unlock(&accesoListaTablas);
-			pthread_mutex_unlock(&accesoMemoria);
-			//int dx = x - tcb->x;
-			//int dy = y - tcb->y;
+			if(mapaActivo){
+			int dx = x - tcb->x;
+			int dy = y - tcb->y;
+			item_desplazar(nivel,tcb->id, dx,dy);
+			}
 			tcb->x = x;
 			tcb->y = y;
-			pthread_mutex_lock(&accesoMemoria);
+
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
-			//item_desplazar(nivel,tcb->id, dx,dy);
+			pthread_mutex_unlock(&accesoListaTablas);
+
 
 
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
@@ -193,11 +191,49 @@ void *atenderNotificacion(void * paqueteSocket){
 			tabla_t* tabla = buscarTablaId(id_patota);
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
+			//eliminarTabla(tabla,confDatos.esquema);
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
-			//item_borrar(nivel,id_trip);
+			if(mapaActivo){
+				item_borrar(nivel,id_trip);
+			}
 			sendDeNotificacion(socket,1);
+			return 0;
+			break;
+		}
+		case COMPACTACION: {
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+			break;
+		}
+		case DUMP: {
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			list_iterate(listaSegmentos,mostrarEstadoMemoria);
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+			break;
+		}
+		case EXPULSAR_TRIPULANTE: {
+			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t direccionLogica = recvDeNotificacion(socket);
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
+			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
+			if(mapaActivo){
+				item_borrar(nivel,id_trip);
+			}
+			//eliminarTabla(tabla,confDatos.esquema);
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
 			break;
 		}
 		default:
@@ -226,6 +262,9 @@ int crear_pcb(int socket) {
 	if (crear_patota_(pcbRam,tareaRam,cantidad_patota,tablaPatota) != PATOTA_CREADA){
 		sendDeNotificacion(socket,ERROR);
 		log_error(logger,"No se pudo crear la patota");
+		free(tareaRam);
+		free(id_posiciones);
+		free(tablaPatota);
 		return ERROR;
 	}
 	sendDeNotificacion(socket,PATOTA_CREADA);
@@ -233,13 +272,12 @@ int crear_pcb(int socket) {
 		int * id = malloc(sizeof(int));
 		*id = (int)recibirUint(socket);
 		log_info(logger,"Trip Creado OK");
-		t_tripulante * trip = malloc(sizeof(t_tripulante));
+		/*t_tripulante * trip = malloc(sizeof(t_tripulante));
 		trip->id =*id;
 		trip->socket = socket;
-
 		pthread_mutex_lock(&pthread_mutex_tcb_list);
 		list_add(lista_tcb,trip);
-		pthread_mutex_unlock(&pthread_mutex_tcb_list);
+		pthread_mutex_unlock(&pthread_mutex_tcb_list);*/
 		char * coordenadas = string_new();
 		asignar_posicion(&coordenadas,id_posiciones,i);
 		char ** coordenadas_posicion_inicial = string_split(coordenadas,"|");
@@ -248,12 +286,15 @@ int crear_pcb(int socket) {
 		temp.x = (uint32_t)atoi(coordenadas_posicion_inicial[0]);
 		temp.y = (uint32_t)atoi(coordenadas_posicion_inicial[1]);
 		temp.id = *id;
-
-		//err = personaje_crear(nivel,temp.id,temp.x, temp.y);
-
+		free(coordenadas);
+		liberarCadenaDoble(coordenadas_posicion_inicial);
+		if(mapaActivo){
+		err = personaje_crear(nivel,temp.id,temp.x, temp.y);
+		}
 		log_debug(logger,"Por crear trip %i",temp.id);
 		crear_tripulante_(temp,patotaid,tablaPatota);
 		if(!strcmp(confDatos.esquema,"PAGINACION")){
+			log_debug(logger,"Dir log: %i",(tablaPatota->ocupado));
 			sendDeNotificacion(socket,(tablaPatota->ocupado)-sizeof(tcb_t));
 		}
 		if(!strcmp(confDatos.esquema,"SEGMENTACION")) {
@@ -265,7 +306,9 @@ int crear_pcb(int socket) {
 
 		free(id); //malloc linea 79 dentro de este while
 	}
-	crear_tareas(tareaRam); //EN MAPA!!
+	if(mapaActivo && tareasActivas){
+		crear_tareas(tareaRam); //EN MAPA!!
+	}
 	free(tareaRam);
 	return PATOTA_CREADA;
 
@@ -283,8 +326,17 @@ void asignar_posicion(char** destino,char* posiciones,uint32_t creados) {
 	else {
 		string_append(destino,posiciones_separadas[creados]);
 	}
+	liberarCadenaDoble(posiciones_separadas);
 }
 
 
-
+void liberarCadenaDoble(char** cadena){
+	uint32_t i = 0;
+	while(cadena[i] != NULL){
+		free(cadena[i]);
+		i++;
+	}
+	free(cadena[i]);
+	free(cadena);
+}
 

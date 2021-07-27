@@ -77,7 +77,7 @@ void *labor_tripulante_new(void * trip){
 
 	sem_wait(&tripulante->creacion);
 
-	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d", tripulante->id,tripulante->patota_id );
+	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
 
 
 	sem_init(&tripulante->new,0,0);

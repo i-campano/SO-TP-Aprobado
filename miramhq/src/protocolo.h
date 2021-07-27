@@ -20,6 +20,9 @@
 #define LISTA_ID_TRIPULANTES 17
 #define FIN_TAREAS 18
 #define GET_PCB 19
+#define DUMP 20
+#define COMPACTACION 21
+#define EXPULSAR_TRIPULANTE 22
 //--------------------------------------------------------------------
 
 
