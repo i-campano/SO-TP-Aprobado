@@ -6,7 +6,6 @@
 int main(void)
 {
 
-	logger = log_create("MiRAMHQ.log", "MiRAMHQ",0, LOG_LEVEL_DEBUG);
 	crear_configuracion();
 	void iterator(char* value)
 	{
@@ -16,7 +15,9 @@ int main(void)
 	admin_memoria();
 	server_fd = iniciarServidor(5002);
 	iniciarEstructurasAdministrativas();
-	iniciar_mapa();
+	if(mapaActivo){
+		iniciar_mapa();
+	}
 
 	log_info(logger, "Servidor listo para recibir al clientexxxxx");
 	manejadorDeHilos();

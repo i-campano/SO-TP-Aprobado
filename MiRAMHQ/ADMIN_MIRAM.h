@@ -174,4 +174,11 @@ int realizarSwap(pagina_t* paginaSwap);
 int traerPaginaMemoria(pagina_t* pagina,uint32_t offsetMemoria);
 int llevarPaginaASwap(pagina_t* paginaASwap,uint32_t* frameLiberado);//ANDANDO LRU 1/2
 int llevarNframesSwap(uint32_t n);
+///LIMPIANDO MEMORIA
+int eliminarTabla(tabla_t* tabla,char* esquema);
+int eliminarListaTablas(void);
+int liberarBloquesMemoria(char* esquema);
+int limpiarEstructurasAlgoritmo(char* algoritmo);
+void limpiarSwap(void);
+void liberarMemoriaHilos(void);
 #endif /* ADMIN_MIRAM_H_ */

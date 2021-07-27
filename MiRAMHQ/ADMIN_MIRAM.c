@@ -30,7 +30,6 @@ int admin_memoria(void)
 	pthread_mutex_init(&accesoListaTablas,NULL);
 	crear_memoria_();
 	swapFile = NULL;
-	//free(mem_ppal);
 	return 0;
 }
 //Crear Memoria
@@ -1453,4 +1452,101 @@ pagina_t* paginaSegun(char* algoritmoRemplazo){
 		}
 	}
 	return NULL;
+}
+int liberar_memoria(void){
+	free(mem_ppal);
+	log_destroy(logger);
+	eliminarListaTablas();
+	liberarBloquesMemoria(confDatos.esquema);
+	liberarMemoriaHilos();
+	//LIBERAR CONEXIONES
+	return 0;
+}
+int eliminarListaTablas(void){
+	uint32_t cantidad = list_size(tablasPatotaPaginacion);
+	while(cantidad > 0){
+		tabla_t* tabla = list_remove(tablasPatotaPaginacion,0);
+		eliminarTabla(tabla,confDatos.esquema);
+		cantidad--;
+	}
+	list_destroy(tablasPatotaPaginacion);
+	return OK;
+}
+int eliminarTabla(tabla_t* tabla,char* esquema){
+	uint32_t cantidadPaginas = list_size(tabla->listaAsignados);
+	if(!strcmp(esquema,"PAGINACION")){
+	while(cantidadPaginas > 0){
+		pagina_t* pagina = list_remove(tabla->listaAsignados,0);
+		free(pagina);
+		cantidadPaginas--;
+	}
+	list_destroy(tabla->listaAsignados);
+	free(tabla);
+	}
+	if(!strcmp(esquema,"SEGMENTACION")){
+	while(cantidadPaginas > 0){
+		list_remove(tabla->listaAsignados,0); //EL FREE LO HAGO DESPUES
+		cantidadPaginas--;
+	}
+	list_destroy(tabla->listaAsignados);
+	free(tabla);
+	}
+	return OK;
+
+}
+int liberarBloquesMemoria(char* esquema){
+	if(!strcmp(esquema,"PAGINACION")){
+		log_info(logger,"Eliminando frames en memoria");
+		uint32_t frames = tamanioMemoria/tamanioPagina;
+		while(frames > 0){
+			frame_t* frame = list_remove(framesMemoria,0);
+			free(frame);
+			frames--;
+		}
+		list_destroy(framesMemoria);
+		limpiarEstructurasAlgoritmo(confDatos.algoritmo);
+		limpiarSwap();
+	}
+	if(!strcmp(esquema,"SEGMENTACION")){
+		log_info(logger,"Eliminando segmentos en memoria");
+		uint32_t cantidad = list_size(listaSegmentos);
+		while(cantidad > 0){
+			free(list_remove(listaSegmentos,0));
+			cantidad--;
+		}
+	}
+	return OK;
+}
+int limpiarEstructurasAlgoritmo(char* algoritmo){
+	if(!strcmp(algoritmo,"LRU")){
+		uint32_t cantidad = list_size(paginasUsadas);
+		if(cantidad > 0){
+			list_remove(paginasUsadas,0);
+			cantidad--;
+		}
+		list_destroy(paginasUsadas);
+	}
+
+	return OK;
+}
+void limpiarSwap(void){
+	if(!swapFile){
+		log_info(logger,"No es necesario liberar el swap ya que no se inicializo");
+		bitarray_destroy(swapFrames);
+	}
+	else {
+		log_info(logger,"Cerrando archivo swap y eliminando bitarray");
+		fclose(swapFile);
+		bitarray_destroy(swapFrames);
+	}
+}
+void liberarMemoriaHilos(void){
+	uint32_t cantidad = list_size(listaHilosAtendedores);
+	log_info(logger,"Liberando memoria de hilos");
+	while(cantidad > 0){
+		pthread_t* thread = list_remove(listaHilosAtendedores,0);
+		free(thread);
+		cantidad--;
+	}
+	list_destroy(listaHilosAtendedores);
 }

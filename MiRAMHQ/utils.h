@@ -32,7 +32,7 @@ typedef enum
 t_list * lista_tcb;
 
 t_list * lista_tripulantes;
-
+t_list * listaHilosAtendedores;
 pthread_mutex_t pthread_mutex_tcb_list;
 
 
@@ -53,10 +53,12 @@ typedef struct {
 
 
 t_log* logger;
-
+bool mapaActivo;
+bool tareasActivas;
 int crear_pcb();
 void *atenderNotificacion(void * paqueteSocket);
 void iniciarEstructurasAdministrativas();
 void manejadorDeHilos();
 void asignar_posicion(char** destino,char* posiciones,uint32_t creados);
+void liberarCadenaDoble(char** cadena);
 #endif /* CONEXIONES_H_ */

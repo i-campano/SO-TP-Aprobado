@@ -8,6 +8,14 @@
 #include "estructuras.h"
 
 int crear_configuracion(void){
+	mapaActivo = false;
+	tareasActivas = false;
+	if(mapaActivo){
+		logger = log_create("MiRAMHQ.log", "MiRAMHQ",0, LOG_LEVEL_DEBUG);
+	}
+	else{
+		logger = log_create("MiRAMHQ.log", "MiRAMHQ",1, LOG_LEVEL_DEBUG);
+	}
 	configuracion = config_create("memoria.config");
 	confDatos.esquema = config_get_string_value(configuracion,"ESQUEMA_MEMORIA");
 	confDatos.pathSwap = config_get_string_value(configuracion,"PATH_SWAP");
