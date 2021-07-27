@@ -30,6 +30,12 @@ int main(void)
 	create_metadata_resource_files();
 	check_metadata_resources();
 
+
+	delete_bitacora_files(conf_PUNTO_MONTAJE);
+
+
+
+
 	fs_server = iniciarServidor(conf_PUERTO_IMONGO);
 
 	hilo_sincronizar_blocks();
@@ -132,6 +138,25 @@ void check_directories_permissions(char *mount_point) {
 
 //	check_readable_file(mount_point, FILE_METADATA);
 
+}
+
+void delete_bitacora_files(char *basedir) {
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "/%s", path_files);
+	char * command = string_new();
+	string_append_with_format(&command, "rm -r %s*", aux);
+
+	system(command);
+	log_warning(logger, "El directorio bitacora esta limpio");
+
+	//TODO LIMPIAR BITMAP¿
+
+	free(path_files);
+	free(command);
+	free(aux);
 }
 
 void check_files_access(char *basedir, char *ask) {
