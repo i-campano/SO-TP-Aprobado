@@ -33,22 +33,53 @@ void iniciar_blocks(){
 	char *aux = NULL;
 	char *path_files = NULL;
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
-	string_append_with_format(&aux, "/%s","blocks.ims");
-	_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+	string_append_with_format(&aux, "%s","blocks.ims");
+
+	if (access(aux, R_OK | W_OK) != 0) {
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+		ftruncate(_blocks.file_blocks,1);
+		close(_blocks.file_blocks);
+		log_error(logger, "No se puede acceder al directorio %s", aux);
+	}
 
 	if (_blocks.file_blocks == (-1)) {
 		perror("open");
 		exit_failure();
 	}
-	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
-	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-	_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 
-	bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-	bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+	struct stat info;
+	bzero(&info, sizeof(struct stat));
+	FILE *fptr;
+	if (stat(aux, &info) != 0) {
+		log_error(logger, "No se puede hacer stat en el bitmap file");
+		exit_failure();
+	}
+	if (info.st_size > 50) {
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT , mode);
+		log_info(logger,"Usando Blocks de FILE SYSTEM EXISTENTE");
+		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
+		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+		memcpy(_blocks.fs_bloques,_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
+	}else
+	{
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+		log_info(logger,"Creando Blocks");
+		ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
-	_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
+		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+
+		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+
+		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+	}
+
+
 
 	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
 

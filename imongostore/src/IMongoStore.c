@@ -15,7 +15,7 @@ int main(void)
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
-	remove_files();
+//	remove_files();
 
 	check_directories_permissions(conf_PUNTO_MONTAJE);
 	check_directorios();
@@ -145,7 +145,7 @@ void delete_bitacora_files(char *basedir) {
 	char *path_files = NULL;
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
 	path_files = string_duplicate(conf_PATH_BITACORA);
-	string_append_with_format(&aux, "/%s", path_files);
+	string_append_with_format(&aux, "%s", path_files);
 	char * command = string_new();
 	string_append_with_format(&command, "rm -r %s*", aux);
 
