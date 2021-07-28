@@ -240,6 +240,48 @@ t_tripulante* buscarTripulante(uint32_t id_trip){
 	return NULL;
 }
 
+t_tripulante* buscarTripulanteYMover(uint32_t id_trip,t_queue * target){
+	bool condicionId(void* dato){
+		t_tripulante* trip = (t_tripulante*)dato;
+		return trip->id == id_trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_new);
+	t_tripulante* trip = list_find(planificacion_cola_new->elements,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_bloq);
+		queue_push(target,list_remove_by_condition(planificacion_cola_new->elements,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
+	}
+	pthread_mutex_unlock(&planificacion_mutex_new);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_ready);
+	trip = list_find(planificacion_cola_ready->elements,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_bloq);
+		queue_push(target,list_remove_by_condition(planificacion_cola_ready->elements,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
+	}
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	if(trip != NULL){
+		return trip;
+	}
+	pthread_mutex_lock(&mutex_cola_ejecutados);
+	trip = list_find(lista_exec,condicionId);
+	if(trip != NULL){
+		pthread_mutex_lock(&planificacion_mutex_bloq);
+		queue_push(target,list_remove_by_condition(lista_exec,condicionId));
+		pthread_mutex_unlock(&planificacion_mutex_bloq);
+	}
+	pthread_mutex_unlock(&mutex_cola_ejecutados);
+	if(trip != NULL){
+		return trip;
+	}
+
+	return NULL;
+}
+
 t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 	void * condicionPorUbicacion(void* dato,void* dato2){
 		t_tripulante* trip = (t_tripulante*)dato;
@@ -264,6 +306,8 @@ t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 	pthread_mutex_unlock(&planificacion_mutex_ready);
 	pthread_mutex_unlock(&planificacion_mutex_exec);
 	pthread_mutex_unlock(&planificacion_mutex_new);
+	//sem_wait(&trip->emergencia);
+	buscarTripulanteYMover(trip->id,planificacion_cola_bloq);
 	if(trip != NULL){
 		return trip;
 	}

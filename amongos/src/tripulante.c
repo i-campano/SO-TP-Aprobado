@@ -80,6 +80,7 @@ void *labor_tripulante_new(void * trip){
 	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
 
 
+//	sem_init(&tripulante->emergencia,0,0);
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
@@ -161,7 +162,7 @@ void *labor_tripulante_new(void * trip){
 	int rafaga = 0;
 
 	string_append(&claveNueva,tarea);
-
+//	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){

@@ -26,6 +26,7 @@ typedef struct {
 	char* tarea; //Calculo que es necesario 50 50 SEGURIDAD
 	pthread_t hilo_asociado;
 	int socket;
+//	sem_t emergencia;
 	sem_t ready;
 	sem_t new;
 	sem_t exec;
