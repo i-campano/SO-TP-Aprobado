@@ -156,6 +156,14 @@ void * obtener_contenido_bloque(int indice) {
 	return bloque;
 }
 
+void * obtener_contenido_bloque_with_mutex(int indice) {
+	void * bloque = malloc(superblock.tamanio_bloque);
+	//TODO: DEL ORIGINAL O DE LA COPIA
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), superblock.tamanio_bloque);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	return bloque;
+}
 
 
 
@@ -746,23 +754,58 @@ void obtener_todos_los_bloques_de_recursos_metedata(t_list* lista_bloques) {
 
 }
 
+void obtener_todos_los_bloques_de_recursos_y_bitacora(){
+	t_list * lista_bloques = list_create();
+
+
+	obtener_todos_los_bloques_desde_metedata(lista_bloques);
+	mostrar_bloques_ocupados(lista_bloques);
+
+
+}
+
+void mostrar_bloques_ocupados(t_list * bloques_ocupados){
+
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	char * string_bloques_ocupados = string_new();
+	int ocupados = 0;
+	//TODO EL -2 QUE ONDA
+	for(int i=0; i<cantidadDePosiciones-2;i++){
+		if(encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
+			ocupados++;
+			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+		}
+	}
+	log_debug(logger," Hay %d bloques ocupados son:",ocupados);
+	log_debug(logger,"%s",string_bloques_ocupados);
+	free(string_bloques_ocupados);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+}
+
 void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
 
 	int cantidadDePosiciones = superblock.cantidad_bloques;
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	char * string_bloques_ocupados = string_new();
+	int ocupados = 0;
+	//TODO EL -2 QUE ONDA
 	for(int i=0; i<cantidadDePosiciones-2;i++){
 		if(!encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
 //			log_trace(logger,"limpio bloque");
 			bitarray_clean_bit(superblock.bitmap,i);
 			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
 		}else{
+			ocupados++;
 			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
 		}
 
 	}
-	log_debug(logger,"Se liberaron los bloques de bitacora -> Los bloques de recursos ocupados son:");
+	log_debug(logger,"Se liberaron los bloques de bitacora -> Hay %d bloques de recursos ocupados son:",ocupados);
 	log_debug(logger,"%s",string_bloques_ocupados);
 	free(string_bloques_ocupados);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
@@ -791,5 +834,17 @@ void liberar_bloques_bitacora_al_iniciar_fs(){
 
 }
 
+void calcular_md5(char * cadena){
 
+    char * command = string_from_format("echo -n %s | md5sum | cut -d' ' -f1 > md5.txt",cadena);
+    log_info(logger,"%s",command);
+    system(command);
+
+    char buff[1024];
+    FILE *f = fopen("md5.txt", "r");
+    fgets(buff, 1024, f);
+    log_info(logger,"%s",buff);
+    fclose(f);
+
+}
 

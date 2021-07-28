@@ -61,8 +61,15 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 
 void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 		pthread_mutex_lock(&(archivo->mutex_file));
-		char *resto_path = string_from_format("bitacora/%s%s", archivo->clave,".ims");
-		t_config * config = config_create(resto_path);
+		char *aux = NULL;
+		char *path_files = NULL;
+		aux = string_duplicate(conf_PUNTO_MONTAJE);
+		path_files = string_duplicate(conf_PATH_BITACORA);
+		string_append_with_format(&aux, "%s", path_files);
+		char *resto_path = string_from_format("%s%s", archivo->clave,".ims");
+		string_append_with_format(&aux, "%s", resto_path );
+		log_info(logger,"%s",aux);
+		t_config * config = config_create(aux);
 		char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
 		char * cadena = string_new();
 		cadena = array_to_string(bloques_ocupados);
@@ -182,6 +189,8 @@ void contrastar_tamanio_archivos_de_recurso(){
 	obtener_tamanio_archivo_de_recurso(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
 	obtener_tamanio_archivo_de_recurso(archivo_basura,conf_ARCHIVO_BASURA_NOMBRE);
 }
+
+
 
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");

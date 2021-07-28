@@ -12,6 +12,7 @@ int main(void)
 
 
 	signal(SIGUSR1,informarSabotaje);
+	signal(SIGTSTP,ctrlZ);
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
@@ -55,6 +56,15 @@ void informarSabotaje(int signal){
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
 	//	_informar_sabotaje_a_discordiador();
 	fsck();
+}
+void ctrlZ(int signal){
+	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
+	//	_informar_sabotaje_a_discordiador();
+//	calcular_md5("nacho");
+	obtener_todos_los_bloques_de_recursos_y_bitacora();
+	log_info(logger,"atrapando el ctrl z");
+	int libres = calcular_bloques_libres_ONLY();
+	log_info(logger,"Libres %s",string_itoa(libres));
 }
 
 void _informar_sabotaje_a_discordiador(){

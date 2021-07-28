@@ -44,4 +44,6 @@ void crear_bitacora();
 
 void liberar_bloques_bitacora_al_iniciar_fs();
 bool encontrar_bloque_para_iniciar_fs(t_list * lista_bloques, int i);
+
+void calcular_md5();
 #endif /* CORE_H_ */
