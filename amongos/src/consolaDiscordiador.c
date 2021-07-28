@@ -171,14 +171,14 @@ void listar_tripulantes(){
 
 void mostrar_lista_tripulantes(t_queue* queue,char * nombre_cola){
 	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status: %s", tripulante->id,tripulante->patota_id,nombre_cola);
+		log_info(logger,"Tripulante: %d   Patota: %d    Status: %s - Ubicacion x:%d y:%d", tripulante->id,tripulante->patota_id,nombre_cola, tripulante->ubi_x, tripulante->ubi_y);
 	}
 	list_iterate(queue->elements, (void*) mostrar_patota);
 }
 
 void mostrar_lista_tripulantes_exec(){
 	void mostrar_patota(t_tripulante* tripulante){
-		log_info(logger,"Tripulante: %d   Patota: %d    Status EXEC", tripulante->id,tripulante->patota_id);
+		log_info(logger,"Tripulante: %d   Patota: %d    Status EXEC - Ubicacion x:%d y:%d", tripulante->id,tripulante->patota_id,tripulante->ubi_x, tripulante->ubi_y);
 	}
 	list_iterate(lista_exec, (void*) mostrar_patota);
 }
@@ -245,17 +245,24 @@ t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 		t_tripulante* trip = (t_tripulante*)dato;
 		t_tripulante* trip2 = (t_tripulante*)dato2;
 
-		int dist1 = (((trip->ubi_x)-x) *((trip->ubi_x)-x)) + (((trip->ubi_y)-y) * ((trip->ubi_y)-y));
-		int dist2 = (((trip2->ubi_x)-x) *((trip2->ubi_x)-x)) + (((trip2->ubi_y)-y) * ((trip2->ubi_y)-y));
+		double dist1 = sqrt(pow(((double)trip->ubi_x-(double)x),2) + pow(((double)trip->ubi_y-(double)y),2));
+		double dist2 = sqrt(pow(((double)trip2->ubi_x-(double)x),2) + pow(((double)trip2->ubi_y-(double)y),2));
 
-		log_info(logger,"Potencia 1%d",dist1);
-		log_info(logger,"Potencia 2%d",dist2);
+		log_debug(logger,"trip:%d distancia  %f",trip->id,dist1);
+		log_debug(logger,"trip:%d distancia %f",trip2->id,dist2);
 
 		return dist1 < dist2? dato: dato2 ;
 	}
+	t_list * tripulantes_disponibles = list_create();
 	pthread_mutex_lock(&planificacion_mutex_new);
-	t_tripulante* trip = list_get_minimum(planificacion_cola_new->elements,condicionPorUbicacion);
-
+	pthread_mutex_lock(&planificacion_mutex_exec);
+	pthread_mutex_lock(&planificacion_mutex_ready);
+	list_add_all(tripulantes_disponibles,planificacion_cola_new->elements);
+	list_add_all(tripulantes_disponibles,planificacion_cola_ready->elements);
+	list_add_all(tripulantes_disponibles,lista_exec);
+	t_tripulante* trip = list_get_minimum(tripulantes_disponibles,condicionPorUbicacion);
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	pthread_mutex_unlock(&planificacion_mutex_exec);
 	pthread_mutex_unlock(&planificacion_mutex_new);
 	if(trip != NULL){
 		return trip;
