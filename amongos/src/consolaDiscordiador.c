@@ -101,7 +101,9 @@ void escuchoIMongo() {
 		if(nroNotificacion==INFORMAR_SABOTAJE){
 			//Recibe notificacion de sabojate
 			char * posicion = recibirString(socketServerIMongoStore);
-
+			char ** xy = string_split(posicion,"|");
+			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(atoi(xy[0]),atoi(xy[1]));
+			log_info(logger,"el Mas cercano %d",masCercano->id);
 			sendDeNotificacion(socketServerIMongoStore,FSCK);
 
 			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
@@ -237,3 +239,31 @@ t_tripulante* buscarTripulante(uint32_t id_trip){
 	}
 	return NULL;
 }
+
+t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
+	void * condicionPorUbicacion(void* dato,void* dato2){
+		t_tripulante* trip = (t_tripulante*)dato;
+		t_tripulante* trip2 = (t_tripulante*)dato2;
+
+		int dist1 = (((trip->ubi_x)-x) *((trip->ubi_x)-x)) + (((trip->ubi_y)-y) * ((trip->ubi_y)-y));
+		int dist2 = (((trip2->ubi_x)-x) *((trip2->ubi_x)-x)) + (((trip2->ubi_y)-y) * ((trip2->ubi_y)-y));
+
+		log_info(logger,"Potencia 1%d",dist1);
+		log_info(logger,"Potencia 2%d",dist2);
+
+		return dist1 < dist2? dato: dato2 ;
+	}
+	pthread_mutex_lock(&planificacion_mutex_new);
+	t_tripulante* trip = list_get_minimum(planificacion_cola_new->elements,condicionPorUbicacion);
+
+	pthread_mutex_unlock(&planificacion_mutex_new);
+	if(trip != NULL){
+		return trip;
+	}
+
+
+	return NULL;
+}
+
+
+

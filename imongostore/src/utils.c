@@ -138,7 +138,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			}
 			case FSCK:{
 				log_info(logger,"atenderNotificacion(): EJECUTO FSCK");
-				fsck();
+//				fsck();
 				break;
 			}
 			case PEDIR_BITACORA:{
