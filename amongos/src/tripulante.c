@@ -85,7 +85,8 @@ void *labor_tripulante_new(void * trip){
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 	sem_init(&tripulante->bloq,0,0);
-
+	tripulante->block_io_rafaga = 0;
+	tripulante->elegido = false;
 //	tripulante->instrucciones_ejecutadas = 0;
 
 	int firstMove = 0;
@@ -107,8 +108,8 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	list_add(conexiones,socketMongo);
-	list_add(conexiones,socketRam);
+	list_add(conexiones,&socketMongo);
+	list_add(conexiones,&socketRam);
 
 	log_info(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
@@ -160,10 +161,18 @@ void *labor_tripulante_new(void * trip){
 	tripulante->instrucciones_ejecutadas = 0;
 	//int tareas_pedidas = 0;
 	int rafaga = 0;
-
+	bool sabotaje;
 	string_append(&claveNueva,tarea);
 //	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
+	if (sabotaje2){
+		log_info(logger,"Hola");
+		sem_wait(&tripulante->bloq);
+
+		sem_wait(&tripulante->ready);
+		actualizar_estado(socketRam,tripulante,READY);
+		sem_wait(&tripulante->exec);
+	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
@@ -177,9 +186,24 @@ void *labor_tripulante_new(void * trip){
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
 		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
 
+
+			if (sabotaje2 && !tripulante->elegido){
+				log_info(logger,"Pinto sabotaje");
+				sem_wait(&tripulante->bloq);
+				sem_wait(&tripulante->ready);
+				log_info(logger,"Ready Sabotaje");
+				actualizar_estado(socketRam,tripulante,READY);
+				sem_wait(&tripulante->exec);
+			}
+			if(sabotaje2 && tripulante->elegido){
+				//movers
+				//tripulante->elegido = false;
+				sem_wait(&tripulante->ready);
+				actualizar_estado(socketRam,tripulante,READY);
+				sem_wait(&tripulante->exec);
+			}
 			sem_wait(&detenerReaunudarEjecucion);
 			sem_post(&detenerReaunudarEjecucion);
-
 			tripulante->instrucciones_ejecutadas++;
 
 			sleep(CICLO_CPU);
@@ -223,15 +247,20 @@ void *labor_tripulante_new(void * trip){
 				tripulante->estado = 'R';
 
 				pthread_mutex_lock(&mutex_cola_ejecutados);
+				if(!sabotaje2){
 				queue_push(cola_ejecutados,tripulante);
+				}
 				pthread_mutex_unlock(&mutex_cola_ejecutados);
-				sem_post(&colaEjecutados);
-				sem_post(&exec);
-				sem_wait(&tripulante->exec);
-				actualizar_estado(socketRam,tripulante,EXEC);
+				if(!sabotaje2){
+					sem_post(&colaEjecutados);
+					sem_post(&exec);
+					sem_wait(&tripulante->exec);
+					actualizar_estado(socketRam,tripulante,EXEC);
 
 
-				rafaga = 0;
+					rafaga = 0;
+				}
+
 			}
 
 

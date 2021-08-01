@@ -11,7 +11,7 @@
 void iniciar_configuracion(){
 
 	tripulantes_creados = 0;
-
+	sabotaje = false;
 	t_config* config = leer_config();
 
 	IP_MONGO = config_get_string_value(config, "IP_MONGO");
@@ -53,6 +53,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	sem_init(&exec, 0, GRADO_MULTIPROGRAMACION);
 	sem_init(&terminarPrograma,0,0);
+	sem_init(&sabotajeEnCurso,0,1);
 	pthread_mutex_init(&planificacion_mutex_new,NULL);
 	pthread_mutex_init(&planificacion_mutex_ready,NULL);
 	pthread_mutex_init(&planificacion_mutex_exec,NULL);

@@ -9,7 +9,6 @@
 
 
 
-
 t_config* config;
 
 #endif /* DISCORDIADOR_H_ */

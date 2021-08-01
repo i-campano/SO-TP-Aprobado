@@ -40,6 +40,7 @@ void planificar_cola_ready(){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 
+
 	}
 }
 
@@ -61,10 +62,14 @@ void planificar_cola_bloq(){
 		while(timer<tripulante->block_io_rafaga){
 			sem_wait(&detenerReaunudarEjecucion);
 			sem_post(&detenerReaunudarEjecucion);
+			sem_wait(&sabotajeEnCurso);
+			sem_post(&sabotajeEnCurso);
 			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			sleep(CICLO_IO);
 			timer++;
 		}
+		sem_wait(&sabotajeEnCurso);
+		sem_post(&sabotajeEnCurso);
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = queue_pop(planificacion_cola_bloq);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
@@ -98,23 +103,24 @@ void planificar_cola_exec(){
 		sem_wait(&cola_ready);
 		sem_wait(&exec);
 
-
 		pthread_mutex_lock(&planificacion_mutex_ready);
-		t_tripulante * tripulante = queue_pop(planificacion_cola_ready);
-		//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+		t_tripulante * tripulante = NULL;
+			if(list_size(planificacion_cola_ready->elements)){
+				tripulante = queue_pop(planificacion_cola_ready);
+				//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+			}
 		pthread_mutex_unlock(&planificacion_mutex_ready);
+		if(tripulante != NULL){
+			sem_wait(&cola_exec);
+			pthread_mutex_lock(&planificacion_mutex_exec);
+			//queue_push(planificacion_cola_ready,tripulante);
+			list_add(lista_exec,tripulante);
+			log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
+			pthread_mutex_unlock(&planificacion_mutex_exec);
 
 
-		sem_wait(&cola_exec);
-		pthread_mutex_lock(&planificacion_mutex_exec);
-		//queue_push(planificacion_cola_ready,tripulante);
-		list_add(lista_exec,tripulante);
-		log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
-		pthread_mutex_unlock(&planificacion_mutex_exec);
-
-
-		sem_post(&tripulante->exec);
-
+			sem_post(&tripulante->exec);
+		}
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 
@@ -127,56 +133,59 @@ void planificar_cola_exec(){
 
 
 void replanificar(){
-	t_tripulante * tripulante;
+	t_tripulante * tripulante = NULL;
 	while(1){
 
 		sem_wait(&colaEjecutados);
 
 
 		pthread_mutex_lock(&mutex_cola_ejecutados);
-		tripulante = queue_pop(cola_ejecutados);
+		if(list_size(cola_ejecutados->elements)){
+			tripulante = queue_pop(cola_ejecutados);
+		}
 		pthread_mutex_unlock(&mutex_cola_ejecutados);
+		if(tripulante != NULL){
+			sacar_de_exec(tripulante->id);
+			sem_post(&cola_exec);
 
-		sacar_de_exec(tripulante->id);
-		sem_post(&cola_exec);
 
 
+			log_trace(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
+			switch(tripulante->estado) {
+				case 'F':{
+					//MUTEX COLA FIN LOCK
+					pthread_mutex_lock(&planificacion_mutex_fin);
+					queue_push(planificacion_cola_fin,tripulante);
+					log_info(logger,"T%d - P%d : FIN", tripulante->id,tripulante->patota_id);
+					pthread_mutex_unlock(&planificacion_mutex_fin);
+					sem_post(&cola_fin);
 
-		log_trace(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
-		switch(tripulante->estado) {
-			case 'F':{
-				//MUTEX COLA FIN LOCK
-				pthread_mutex_lock(&planificacion_mutex_fin);
-				queue_push(planificacion_cola_fin,tripulante);
-				log_info(logger,"T%d - P%d : FIN", tripulante->id,tripulante->patota_id);
-				pthread_mutex_unlock(&planificacion_mutex_fin);
-				sem_post(&cola_fin);
+					//MUTEX COLA FIN UNLOCK
+					break;
+				}
+				case 'B':{
+					//MUTEX COLA BLOQ LOCK
+	//				log_info(logger,"T%d - P%d : ESPERANDO PARA ENTRAR A BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
+					pthread_mutex_lock(&planificacion_mutex_bloq);
+					queue_push(planificacion_cola_bloq,tripulante);
+					log_info(logger,"T%d - P%d : BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
+					pthread_mutex_unlock(&planificacion_mutex_bloq);
+					sem_post(&cola_bloq);
+					break;
+					//MUTEX COLA BLOQ UNLO
+				}
+				case 'R':{
+					pthread_mutex_lock(&planificacion_mutex_ready);
+					queue_push(planificacion_cola_ready,tripulante);
+					log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
+					pthread_mutex_unlock(&planificacion_mutex_ready);
+					sem_post(&cola_ready);
+					break;
+				}
+				default:
+					break;
 
-				//MUTEX COLA FIN UNLOCK
-				break;
 			}
-			case 'B':{
-				//MUTEX COLA BLOQ LOCK
-//				log_info(logger,"T%d - P%d : ESPERANDO PARA ENTRAR A BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
-				pthread_mutex_lock(&planificacion_mutex_bloq);
-				queue_push(planificacion_cola_bloq,tripulante);
-				log_info(logger,"T%d - P%d : BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
-				pthread_mutex_unlock(&planificacion_mutex_bloq);
-				sem_post(&cola_bloq);
-				break;
-				//MUTEX COLA BLOQ UNLO
-			}
-			case 'R':{
-				pthread_mutex_lock(&planificacion_mutex_ready);
-				queue_push(planificacion_cola_ready,tripulante);
-				log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
-				pthread_mutex_unlock(&planificacion_mutex_ready);
-				sem_post(&cola_ready);
-				break;
-			}
-			default:
-				break;
-
 		}
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);

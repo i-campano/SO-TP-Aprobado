@@ -38,7 +38,21 @@ void leer_consola() {
 			log_info(logger,"PLANIFICACION INICIADA !!!: ");
 			sem_post(&iniciar_planificacion);
 
-		}else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
+		}
+		else if(strncmp(leido, "SABOTAJE", 3) == 0){
+					sem_wait(&detenerReaunudarEjecucion);
+					sabotaje2 = 1;
+					sem_wait(&sabotajeEnCurso);
+					moverTripulantes(0);
+
+		}
+		else if(strncmp(leido, "XXX", 3) == 0){
+					sabotaje2 = 0;
+					sem_post(&sabotajeEnCurso);
+					sem_post(&detenerReaunudarEjecucion);
+
+		}
+		else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
 				log_info(logger,"PEDIR_BITACORA !!!: ");
 				char ** parametros = string_n_split(leido,2," ");
 				sendDeNotificacion(socketServerIMongoStore,PEDIR_BITACORA);
@@ -51,7 +65,7 @@ void leer_consola() {
 			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 14 1|2 4|5
 			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 15 5|2 3|6
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_a.txt 1 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_a.txt 1 1 0|0
 			//EJEMPLO COMANDO: INICIAR_PATOTA pag_b.txt 1 2 0|0
 			//EJEMPLO COMANDO: INICIAR_PATOTA pag_c.txt 1 3 0|0
 
@@ -299,22 +313,91 @@ t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 	pthread_mutex_lock(&planificacion_mutex_new);
 	pthread_mutex_lock(&planificacion_mutex_exec);
 	pthread_mutex_lock(&planificacion_mutex_ready);
-	list_add_all(tripulantes_disponibles,planificacion_cola_new->elements);
 	list_add_all(tripulantes_disponibles,planificacion_cola_ready->elements);
 	list_add_all(tripulantes_disponibles,lista_exec);
 	t_tripulante* trip = list_get_minimum(tripulantes_disponibles,condicionPorUbicacion);
 	pthread_mutex_unlock(&planificacion_mutex_ready);
 	pthread_mutex_unlock(&planificacion_mutex_exec);
-	pthread_mutex_unlock(&planificacion_mutex_new);
 	//sem_wait(&trip->emergencia);
-	buscarTripulanteYMover(trip->id,planificacion_cola_bloq);
-	if(trip != NULL){
-		return trip;
-	}
-
-
-	return NULL;
+	return trip;
 }
 
+int moverTripulantes (int id){
+	bool ordenarId(void* dato, void* otroDato){
+		t_tripulante* unTrip =  (t_tripulante*) dato;
+		t_tripulante* otroTrip = (t_tripulante*) otroDato;
+		return unTrip->id < otroTrip->id;
+	}
+	uint32_t cantidad;
+	pthread_mutex_lock(&mutex_cola_ejecutados);
+	pthread_mutex_lock(&planificacion_mutex_exec);
+	pthread_mutex_lock(&planificacion_mutex_ready);
+
+	cantidad = list_size(lista_exec);
+	log_info(logger,"Cantidad exec: %i",cantidad);
+	if(cantidad > 1){
+		list_sort(lista_exec,ordenarId);
+	}
+	log_info(logger,"1");
+		while(cantidad > 0){
+			t_tripulante* aux = list_remove(lista_exec,0);
+			log_info(logger,"2");
+			sem_post(&exec);
+			sem_post(&cola_exec);
+			pthread_mutex_lock(&planificacion_mutex_bloq);
+			queue_push(planificacion_cola_bloq,aux);
+			sem_post(&cola_bloq);
+			pthread_mutex_unlock(&planificacion_mutex_bloq);
+			cantidad--;
+		}
 
 
+
+
+	cantidad = list_size(planificacion_cola_ready->elements);
+	log_info(logger,"Cantidad ready: %i",cantidad);
+	if(cantidad > 1){
+	list_sort(planificacion_cola_ready->elements,ordenarId);
+	}
+	log_info(logger,"3");
+		while(cantidad > 0){
+			t_tripulante* aux = list_remove(planificacion_cola_ready->elements,0);
+			log_info(logger,"4");
+			sem_post(&aux->exec);
+			pthread_mutex_lock(&planificacion_mutex_bloq);
+			queue_push(planificacion_cola_bloq,aux);
+			sem_post(&cola_bloq);
+			pthread_mutex_unlock(&planificacion_mutex_bloq);
+			if(cantidad-1 > 0){
+				sem_wait(&cola_ready);
+			}
+			cantidad--;
+		}
+	sleep(7);
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	log_info(logger,"5");
+	sleep(3);
+	pthread_mutex_unlock(&planificacion_mutex_exec);
+	log_info(logger,"6");
+	sleep(3);
+	pthread_mutex_unlock(&mutex_cola_ejecutados);
+	log_info(logger,"7");
+
+	return 0;
+}
+
+int sacarElegido(uint32_t id_trip){
+	bool condicionId(void* dato){
+		t_tripulante* trip = (t_tripulante*)dato;
+		return trip->id == id_trip;
+	}
+	pthread_mutex_lock(&planificacion_mutex_bloq);
+	t_tripulante* tripElegido = list_remove_by_condition(planificacion_cola_bloq->elements,condicionId);
+	pthread_mutex_unlock(&planificacion_mutex_bloq);
+	//tripElegido->elegido = true;
+	pthread_mutex_lock(&planificacion_mutex_ready);
+	queue_push(planificacion_cola_ready,tripElegido);
+	sem_post(&tripElegido->ready);
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	return 0;
+}

@@ -19,7 +19,6 @@
 #include "tripulante.h"
 #include "protocolo.h"
 
-
 char* IP_MONGO;
 char* IP_MIRAM;
 int PUERTO_MONGO;
@@ -88,7 +87,7 @@ pthread_mutex_t mutexHilos;
 
 sem_t iniciar_planificacion;
 sem_t detenerReaunudarEjecucion;
-
+sem_t sabotajeEnCurso;
 
 //sem de tipo cola, N = grado multiprogramacion
 sem_t exec;
@@ -97,6 +96,7 @@ sem_t colaEjecutados;
 
 sem_t activar_actualizaciones_mongo;
 sem_t terminarPrograma;
+bool sabotaje;
 
 typedef struct _infoHilos{
 	int socket;
