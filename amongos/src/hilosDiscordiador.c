@@ -54,10 +54,12 @@ void planificar_cola_bloq(){
 
 
 
-
+		log_info(logger,"1");
 		pthread_mutex_lock(&planificacion_mutex_bloq);
+		log_info(logger,"2");
 		tripulante = list_get(planificacion_cola_bloq->elements,0);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);
+		log_info(logger,"3");
 		int timer = 0;
 		while(timer<tripulante->block_io_rafaga){
 			sem_wait(&detenerReaunudarEjecucion);
@@ -117,6 +119,7 @@ void planificar_cola_exec(){
 			list_add(lista_exec,tripulante);
 			log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
 			pthread_mutex_unlock(&planificacion_mutex_exec);
+			log_info(logger,"salio DEL MUTEX T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
 
 
 			sem_post(&tripulante->exec);

@@ -41,13 +41,13 @@ void leer_consola() {
 		}
 		else if(strncmp(leido, "SABOTAJE", 3) == 0){
 					sem_wait(&detenerReaunudarEjecucion);
-					sabotaje2 = 1;
+					sabotaje = 1;
 					sem_wait(&sabotajeEnCurso);
 					moverTripulantes(0);
 
 		}
 		else if(strncmp(leido, "XXX", 3) == 0){
-					sabotaje2 = 0;
+					sabotaje = 0;
 					sem_post(&sabotajeEnCurso);
 					sem_post(&detenerReaunudarEjecucion);
 
@@ -117,6 +117,13 @@ void escuchoIMongo() {
 			char * posicion = recibirString(socketServerIMongoStore);
 			char ** xy = string_split(posicion,"|");
 			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(atoi(xy[0]),atoi(xy[1]));
+
+			sem_wait(&detenerReaunudarEjecucion);
+			sabotaje = 1;
+			sem_wait(&sabotajeEnCurso);
+			moverTripulantes(0);
+			sacarElegido(masCercano->id);
+			sem_post(&detenerReaunudarEjecucion);
 			log_info(logger,"el Mas cercano %d",masCercano->id);
 			sendDeNotificacion(socketServerIMongoStore,FSCK);
 
@@ -310,7 +317,6 @@ t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 		return dist1 < dist2? dato: dato2 ;
 	}
 	t_list * tripulantes_disponibles = list_create();
-	pthread_mutex_lock(&planificacion_mutex_new);
 	pthread_mutex_lock(&planificacion_mutex_exec);
 	pthread_mutex_lock(&planificacion_mutex_ready);
 	list_add_all(tripulantes_disponibles,planificacion_cola_ready->elements);
@@ -394,10 +400,14 @@ int sacarElegido(uint32_t id_trip){
 	pthread_mutex_lock(&planificacion_mutex_bloq);
 	t_tripulante* tripElegido = list_remove_by_condition(planificacion_cola_bloq->elements,condicionId);
 	pthread_mutex_unlock(&planificacion_mutex_bloq);
-	//tripElegido->elegido = true;
+	sem_wait(&cola_bloq);
+	sem_post(&tripElegido->bloq);
+	tripElegido->elegido = true;
 	pthread_mutex_lock(&planificacion_mutex_ready);
 	queue_push(planificacion_cola_ready,tripElegido);
 	sem_post(&tripElegido->ready);
+	sem_post(&cola_ready);
+	sem_post(&exec);
 	pthread_mutex_unlock(&planificacion_mutex_ready);
 	return 0;
 }

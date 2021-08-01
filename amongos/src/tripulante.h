@@ -18,7 +18,7 @@ int tripulantes_creados;
 #define BLOCK 2
 #define EXEC 3
 #define FIN 4
-int sabotaje2;
+int sabotaje;
 typedef struct {
 	int id;
 	int patota_id;

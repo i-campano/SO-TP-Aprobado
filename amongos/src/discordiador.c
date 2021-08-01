@@ -2,7 +2,7 @@
 
 int main(void) {
 	signal(SIGSEGV,terminar_discordiador);
-	sabotaje2 = 0;
+	sabotaje = 0;
 	iniciar_logger();
 	//Inicia las colas de planificacion
 

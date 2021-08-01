@@ -96,7 +96,6 @@ sem_t colaEjecutados;
 
 sem_t activar_actualizaciones_mongo;
 sem_t terminarPrograma;
-bool sabotaje;
 
 typedef struct _infoHilos{
 	int socket;

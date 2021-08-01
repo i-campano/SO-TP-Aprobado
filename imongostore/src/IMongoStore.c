@@ -11,7 +11,7 @@ int main(void)
 {
 
 
-	signal(SIGTSTP,informarSabotaje);
+	signal(SIGUSR1,informarSabotaje);
 //	signal(SIGTSTP,ctrlZ);
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
