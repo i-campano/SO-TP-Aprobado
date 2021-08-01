@@ -18,6 +18,7 @@ void iniciar_configuracion(){
 	conf_TIEMPO_SINCRONIZACION = config_get_int_value (config, "TIEMPO_SINCRONIZACION");
 	//conf_TIEMPO_SICRONIZACION = config_get_int_value (config, "TIEMPO_SICRONIZACION");
 	conf_POSICIONES_SABOTAJE = config_get_array_value(config, "POSICIONES_SABOTAJE");
+	conf_TIEMPO_SABOTAJE = config_get_int_value(config, "TIEMPO_SABOTAJE");
 	//conf_PUERTO_DISCORDIADOR = config_get_int_value (config, "PUERTO_DISCORDIADOR");
 	//conf_IP_DISCORDIADOR = config_get_string_value (config, "IP_DISCORDIADOR");
 	conf_ARCHIVO_OXIGENO_NOMBRE = config_get_string_value (config, "ARCHIVO_OXIGENO_NOMBRE");
@@ -138,8 +139,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			}
 			case FSCK:{
 				log_info(logger,"atenderNotificacion(): EJECUTANDO FSCK");
-				sleep(5);
-//				fsck();
+
+				fsck();
 				log_info(logger,"atenderNotificacion(): termino FSCK aviso al tripulante");
 				sendDeNotificacion(socket,888);
 				break;

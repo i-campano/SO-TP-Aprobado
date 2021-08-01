@@ -199,6 +199,7 @@ void fsck(){
 //	contrastar_cantidad_bloques();
 //	contrastar_size_vs_bloques_files();
 	log_info(logger,"Ejecutando FSCK -> FIN");
+	sleep(conf_TIEMPO_SABOTAJE);
 }
 
 
