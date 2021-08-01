@@ -39,7 +39,7 @@ void iniciar_configuracion(){
 
 t_config* leer_config() {
 	t_config *config;
-	if((config = config_create("config/IMongoStore.config"))==NULL) {
+	if((config = config_create("IMongoStore.config"))==NULL) {
 		perror("No se pudo leer de la config. Revise. \n");
 		exit(-1);
 	}
