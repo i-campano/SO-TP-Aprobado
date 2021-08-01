@@ -25,6 +25,7 @@
 
 #define FSCK 100
 #define INFORMAR_SABOTAJE 101
+#define SABOTAJE_RESUELTO 105
 //-----------------------Notificaciones-iMongo----------------
 #define PEDIR_BITACORA 102
 #define ENVIAR_BITACORA 103

@@ -103,21 +103,14 @@ void *atenderNotificacion(void * paqueteSocket){
 
 
 			case DISCORDIADOR:{
-				//Case para hacer HANDSHAKE = Chequear la conexion
 				log_info(logger,"Se ha conectado el DISCORDIADOR");
 				sendDeNotificacion(socket, IMONGOSTORE);
 				socketDiscordiador = socket;
-				//while(1){
-					//sleep(10);
-					//log_info(logger,"ENVIANDO TAREAS");
-					//sendDeNotificacion(socket, ACTUALIZACION_IMONGOSTORE);
-				//}
 				break;
 			}
 
 			case EJECUTAR_TAREA:{
 				char * tarea = recibirString(socket);
-				//Case para hacer HANDSHAKE = Chequear la conexion
 				uint32_t id_trip = recvDeNotificacion(socket);
 				log_debug(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				tipoTarea(tarea);
@@ -142,7 +135,7 @@ void *atenderNotificacion(void * paqueteSocket){
 
 				fsck();
 				log_info(logger,"atenderNotificacion(): termino FSCK aviso al tripulante");
-				sendDeNotificacion(socket,888);
+				sendDeNotificacion(socket,SABOTAJE_RESUELTO);
 				break;
 			}
 			case PEDIR_BITACORA:{

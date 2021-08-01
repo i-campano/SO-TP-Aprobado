@@ -165,14 +165,10 @@ void *labor_tripulante_new(void * trip){
 //	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
 	if (sabotaje){
-		log_info(logger,"Hola");
 		sem_wait(&tripulante->bloq);
-		log_info(logger,"Hola2");
 		sem_wait(&tripulante->ready);
-		log_info(logger,"Hola3");
 		actualizar_estado(socketRam,tripulante,READY);
 		sem_wait(&tripulante->exec);
-		log_info(logger,"Hola4");
 	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
@@ -182,12 +178,8 @@ void *labor_tripulante_new(void * trip){
 
 
 			if (sabotaje && !tripulante->elegido){
-				log_info(logger,"Pinto sabotaje");
 				sem_wait(&tripulante->bloq);
-				log_info(logger,"paso block");
 				sem_wait(&tripulante->ready);
-				log_info(logger,"paso ready");
-				log_info(logger,"Ready Sabotaje");
 				actualizar_estado(socketRam,tripulante,READY);
 				sem_wait(&tripulante->exec);
 				log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
@@ -233,9 +225,13 @@ void *labor_tripulante_new(void * trip){
 					moveBoundS--;
 
 				}
+				char * evento_sabotaje = string_new();
+				string_append_with_format(&evento_sabotaje,"Resolvio sabotaje en x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
+				enviar_evento_bitacora(socketMongo,tripulante->id,evento_sabotaje);
+				free(evento_sabotaje);
 				sendDeNotificacion(socketMongo,FSCK);
 				uint32_t fin = recvDeNotificacion(socketMongo);
-				if(fin == 888){
+				if(fin == SABOTAJE_RESUELTO){
 					log_debug(logger,"T%d - P%d: Resolvio el sabotaje", tripulante->id,tripulante->patota_id);
 				}else{
 					log_debug(logger,"T%d - P%d: Error al resolver el sabotaje", tripulante->id,tripulante->patota_id);
@@ -243,7 +239,6 @@ void *labor_tripulante_new(void * trip){
 				sem_post(&exec);
 				tripulante->elegido = false;
 				sabotaje = 0;
-				sleep(5);
 
 				tripulante->instrucciones_ejecutadas = 0;
 				firstMove = 0;

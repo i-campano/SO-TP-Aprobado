@@ -341,14 +341,14 @@ int moverTripulantes (int id){
 	pthread_mutex_lock(&planificacion_mutex_ready);
 
 	cantidad = list_size(lista_exec);
-	log_info(logger,"Cantidad exec: %i",cantidad);
+	log_debug(logger,"moverTripulantes(): Cantidad exec: %i",cantidad);
 	if(cantidad > 1){
 		list_sort(lista_exec,ordenarId);
 	}
-	log_info(logger,"1");
+	log_trace(logger,"moverTripulantes(): 1");
 		while(cantidad > 0){
 			t_tripulante* aux = list_remove(lista_exec,0);
-			log_info(logger,"2");
+			log_trace(logger,"moverTripulantes(): 2");
 			sem_post(&exec);
 			sem_post(&cola_exec);
 			pthread_mutex_lock(&planificacion_mutex_bloq);
@@ -362,14 +362,14 @@ int moverTripulantes (int id){
 
 
 	cantidad = list_size(planificacion_cola_ready->elements);
-	log_info(logger,"Cantidad ready: %i",cantidad);
+	log_debug(logger,"moverTripulantes(): Cantidad ready: %i",cantidad);
 	if(cantidad > 1){
 	list_sort(planificacion_cola_ready->elements,ordenarId);
 	}
-	log_info(logger,"3");
+	log_trace(logger,"moverTripulantes(): 3");
 		while(cantidad > 0){
 			t_tripulante* aux = list_remove(planificacion_cola_ready->elements,0);
-			log_info(logger,"4");
+			log_info(logger,"moverTripulantes(): 4");
 			sem_post(&aux->exec);
 			pthread_mutex_lock(&planificacion_mutex_bloq);
 			queue_push(planificacion_cola_bloq,aux);
@@ -380,15 +380,12 @@ int moverTripulantes (int id){
 			}
 			cantidad--;
 		}
-	sleep(7);
 	pthread_mutex_unlock(&planificacion_mutex_ready);
-	log_info(logger,"5");
-	sleep(3);
+	log_trace(logger,"moverTripulantes(): 5");
 	pthread_mutex_unlock(&planificacion_mutex_exec);
-	log_info(logger,"6");
-	sleep(3);
+	log_trace(logger,"moverTripulantes(): 6");
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
-	log_info(logger,"7");
+	log_trace(logger,"moverTripulantes(): 7");
 
 	return 0;
 }
