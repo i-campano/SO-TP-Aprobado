@@ -42,16 +42,17 @@ void enviar_tarea(int socket, char * tarea) {
 	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
 	tamanio += largoClave;
 	sendRemasterizado(socket, ENVIAR_TAREA, tamanio, (void*) buffer);
+	free(buffer);
 }
 
 void *atenderNotificacion(void * paqueteSocket){
 
 	int socket = *(int*)paqueteSocket;
-
+	free(paqueteSocket);
 	while(1){
 
 	uint32_t nroNotificacion = recvDeNotificacion(socket);
-	log_info(logger,"recibo notificacion n# %d de socket %d",nroNotificacion, socket);
+	log_debug(logger,"recibo notificacion n# %d de socket %d",nroNotificacion, socket);
 
 	switch(nroNotificacion){
 
@@ -68,6 +69,8 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		case CREAR_PATOTA:{
 			int state;
+			log_info(logger,"\n");
+			log_info(logger, "----------------CREANDO PATOTA----------------");
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
 			state = crear_pcb(socket);
@@ -75,7 +78,6 @@ void *atenderNotificacion(void * paqueteSocket){
 			pthread_mutex_unlock(&accesoListaTablas);
 			if(state == PATOTA_CREADA){
 			sendDeNotificacion(socket, PATOTA_CREADA);
-			log_info(logger, "----------------FIN PATOTA CREADA----------------");
 			}
 			else {
 			sendDeNotificacion(socket,ERROR);
@@ -88,9 +90,11 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger, "----------------Pedir tarea----------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			log_info(logger,"Pide tarea el id_tripulante: %d desde socket: %i,DirLog: %i, Tarea: %i",tcb->id,socket,direccionLogica,tcb->prox_tarea);
+			log_info(logger,"Pide tarea el id_tripulante: %d DirLog: %i, Tarea: %i",tcb->id,direccionLogica,tcb->prox_tarea);
 			uint32_t tamanioProximaInstruccion = reconocerTamanioInstruccion3(tcb->prox_tarea,tabla);
 			char * tarea = getInstruccion(id_patota,tamanioProximaInstruccion,tcb->prox_tarea);
 			tcb->prox_tarea += tamanioProximaInstruccion + 1; //ELIMINO \N;
@@ -102,7 +106,9 @@ void *atenderNotificacion(void * paqueteSocket){
 
 
 			enviar_tarea(socket,tarea);
-			//free(tarea);
+			if(strcmp(tarea,"FIN\0")){
+				free(tarea);
+			}
 
 
 			break;
@@ -112,16 +118,17 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t trip_id = recvDeNotificacion(socket);
 			uint32_t patota_id = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
-			log_info(logger, "trip: %d,dirLog: %i",trip_id,direccionLogica);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Pedir Ubicacion -------------------");
+			log_info(logger, "El tripulante %i solicita ubicacion",trip_id);
 			tcb_t* tcb = getDato(patota_id,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
 			pthread_mutex_unlock(&accesoListaTablas);
-			log_info(logger, "trip: %d, x:%d , y:%d",trip_id,tcb->x,tcb->y);
 			sendDeNotificacion(socket, tcb->x);
 			sendDeNotificacion(socket, tcb->y);
-			log_info(logger, "ubicacion enviada al discordiador");
+			log_info(logger, "Ubicacion enviada al discordiador");
 			free(tcb);
 			break;
 
@@ -133,18 +140,20 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Actualizar Estado -------------------");
+			char estadoV[5] = {'N','R','B','E','F'};
 			tabla_t* tabla = buscarTablaId(id_patota);
 			uint32_t estado = recvDeNotificacion(socket);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			char estadoV[5] = {'N','R','B','E','F'};
+			log_info(logger, "Actualizando estado anterior %c -> actual ->%c",tcb->estado,estadoV[estado]);
 			tcb->estado = estadoV[estado];
-
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
 			pthread_mutex_unlock(&accesoListaTablas);
 			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
-			log_info(logger, "estado ACTUALIZADO tripulante: %d, estado: %c",id_trip,estadoV[estado]);
+			log_info(logger, "Estado actualizado tripulante: %d, estado: %c",id_trip,estadoV[estado]);
 			break;
 
 		}
@@ -157,6 +166,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t y = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Actualizar Ubicacion -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
 			if(mapaActivo){
@@ -176,7 +187,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
 			free(tcb);
 
-			log_info(logger, "estado ACTUALIZADO tripulante: %d, ubicacion-> X: %d ; Y: %d",id_trip,x,y);
+			log_info(logger, "Ubicacion actualizada tripulante: %d, ubicacion-> X: %d ; Y: %d",id_trip,x,y);
 
 			break;
 
@@ -188,17 +199,20 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Fin tripulante -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
-			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
 			//eliminarTabla(tabla,confDatos.esquema);
-			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
 			if(mapaActivo){
 				item_borrar(nivel,id_trip);
 			}
 			sendDeNotificacion(socket,1);
+			close(socket);
+			liberarMemoriaHilos();
 			return 0;
 			break;
 		}
@@ -224,16 +238,19 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t direccionLogica = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Expulsar tripulante -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
-			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
-			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i --> Liberado %i",id_trip,id_patota,direccionLogica,liberado);
+			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			if(mapaActivo){
 				item_borrar(nivel,id_trip);
 			}
 			//eliminarTabla(tabla,confDatos.esquema);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
+			close(socket);
+			return 0;
 			break;
 		}
 		default:
@@ -310,6 +327,7 @@ int crear_pcb(int socket) {
 		crear_tareas(tareaRam); //EN MAPA!!
 	}
 	free(tareaRam);
+	free(id_posiciones);
 	return PATOTA_CREADA;
 
 }

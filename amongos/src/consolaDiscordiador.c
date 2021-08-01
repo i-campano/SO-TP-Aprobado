@@ -51,9 +51,9 @@ void leer_consola() {
 			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 14 1|2 4|5
 			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 15 5|2 3|6
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_a.txt 1 1 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_b.txt 1 2 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_c.txt 1 3 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_a.txt 1 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_b.txt 1 2 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_c.txt 1 3 0|0
 
 			//EJEMPLO COMANDO: INICIAR_PATOTA tareasLargas.txt 1 1 0|0
 

@@ -220,6 +220,7 @@ void *labor_tripulante_new(void * trip){
 
 			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
 				tripulante->estado = 'R';
+				actualizar_estado(socketRam,tripulante,READY);
 
 				pthread_mutex_lock(&mutex_cola_ejecutados);
 				queue_push(cola_ejecutados,tripulante);
@@ -351,6 +352,5 @@ void enviar_evento_bitacora(int socketMongo, int id, char* claveNueva) {
 	sendDeNotificacion(socketMongo, (uint32_t) id);
 	free(buffer); //Malloc linea 253
 }
-
 
 
