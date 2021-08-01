@@ -79,15 +79,12 @@ void *labor_tripulante_new(void * trip){
 
 	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
 
-
-//	sem_init(&tripulante->emergencia,0,0);
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 	sem_init(&tripulante->bloq,0,0);
 	tripulante->block_io_rafaga = 0;
 	tripulante->elegido = false;
-//	tripulante->instrucciones_ejecutadas = 0;
 
 	int firstMove = 0;
 	int moveUp = 0;
@@ -122,23 +119,7 @@ void *labor_tripulante_new(void * trip){
 	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
 	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
 	log_info(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
-//	sendDeNotificacion(socketRam,tripulante->patota_id);
-//
-//
-//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[0]));
-//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[1]));
-//	free(coordenadas_posicion_inicial);
-//
-//
-//
-//	if(creado==TRIPULANTE_CREADO){
-//
-//		log_debug(logger,"T%d - P%d : TRIPULANTE CREADO OK", tripulante->id,tripulante->patota_id);
-//	}
 
-
-
-//	actualizar_estado(socketRam,tripulante,NEW);
 	sem_wait(&tripulante->ready);
 
 	log_info(logger,"Pido la proxima tarea");

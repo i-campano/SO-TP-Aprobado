@@ -39,19 +39,6 @@ void leer_consola() {
 			sem_post(&iniciar_planificacion);
 
 		}
-		else if(strncmp(leido, "SABOTAJE", 3) == 0){
-					sem_wait(&detenerReaunudarEjecucion);
-					sabotaje = 1;
-					sem_wait(&sabotajeEnCurso);
-					moverTripulantes(0);
-
-		}
-		else if(strncmp(leido, "XXX", 3) == 0){
-					sabotaje = 0;
-					sem_post(&sabotajeEnCurso);
-					sem_post(&detenerReaunudarEjecucion);
-
-		}
 		else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
 				log_info(logger,"PEDIR_BITACORA !!!: ");
 				char ** parametros = string_n_split(leido,2," ");
