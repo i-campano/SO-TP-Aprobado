@@ -122,7 +122,8 @@ typedef struct
 	void* stream;
 } t_buffer;
 
-
+int ubic_sab_x;
+int ubic_sab_y;
 
 void iniciar_configuracion();
 

@@ -193,8 +193,8 @@ void *labor_tripulante_new(void * trip){
 				log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
 			}
 			if(sabotaje && tripulante->elegido){
-				int movXS = 1;
-				int movYS = 1;
+				int movXS = ubic_sab_x;
+				int movYS = ubic_sab_y;
 				int firstMoveS = 0;
 				int moveRightS = 0;
 				int moveUpS = 0;
@@ -233,7 +233,13 @@ void *labor_tripulante_new(void * trip){
 					moveBoundS--;
 
 				}
-				log_debug(logger,"T%d - P%d: Resuelve el sabotaje", tripulante->id,tripulante->patota_id);
+				sendDeNotificacion(socketMongo,FSCK);
+				uint32_t fin = recvDeNotificacion(socketMongo);
+				if(fin == 888){
+					log_debug(logger,"T%d - P%d: Resolvio el sabotaje", tripulante->id,tripulante->patota_id);
+				}else{
+					log_debug(logger,"T%d - P%d: Error al resolver el sabotaje", tripulante->id,tripulante->patota_id);
+				}
 				sem_post(&exec);
 				tripulante->elegido = false;
 				sabotaje = 0;

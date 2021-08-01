@@ -14,6 +14,7 @@
 #include "tripulante.h"
 #include "patota.h"
 
+
 t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y);
 void listar_tripulantes();
 t_tripulante* buscarTripulanteYMover(uint32_t id_trip,t_queue * targetList);

@@ -116,7 +116,9 @@ void escuchoIMongo() {
 			//Recibe notificacion de sabojate
 			char * posicion = recibirString(socketServerIMongoStore);
 			char ** xy = string_split(posicion,"|");
-			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(atoi(xy[0]),atoi(xy[1]));
+			ubic_sab_x = atoi(xy[0]);
+			ubic_sab_y = atoi(xy[1]);
+			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(ubic_sab_x,ubic_sab_y);
 
 			sem_wait(&detenerReaunudarEjecucion);
 			sabotaje = 1;
@@ -125,7 +127,6 @@ void escuchoIMongo() {
 			sacarElegido(masCercano->id);
 			sem_post(&detenerReaunudarEjecucion);
 			log_info(logger,"el Mas cercano %d",masCercano->id);
-			sendDeNotificacion(socketServerIMongoStore,FSCK);
 
 			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
 		}
