@@ -146,23 +146,23 @@ void *labor_tripulante_new(void * trip){
 //	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
 	if (sabotaje){
-		sem_wait(&tripulante->bloq);
-		sem_wait(&tripulante->ready);
-		actualizar_estado(socketRam,tripulante,READY);
-		sem_wait(&tripulante->exec);
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
 		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
+			if(!sabotaje){
+				sem_wait(&detenerReaunudarEjecucion);
+				sem_post(&detenerReaunudarEjecucion);
 
+			}
 
 			if (sabotaje && !tripulante->elegido){
-				sem_wait(&tripulante->bloq);
-				sem_wait(&tripulante->ready);
-				actualizar_estado(socketRam,tripulante,READY);
-				sem_wait(&tripulante->exec);
+				sem_wait(&detenerReaunudarEjecucion);
+				sem_post(&detenerReaunudarEjecucion);
 				log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
 			}
 			if(sabotaje && tripulante->elegido){
@@ -210,6 +210,7 @@ void *labor_tripulante_new(void * trip){
 				string_append_with_format(&evento_sabotaje,"Resolvio sabotaje en x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
 				enviar_evento_bitacora(socketMongo,tripulante->id,evento_sabotaje);
 				free(evento_sabotaje);
+				log_info(logger,"T%d - P%d: Resolviendo sabotaje", tripulante->id,tripulante->patota_id);
 				sendDeNotificacion(socketMongo,FSCK);
 				uint32_t fin = recvDeNotificacion(socketMongo);
 				if(fin == SABOTAJE_RESUELTO){
@@ -217,8 +218,7 @@ void *labor_tripulante_new(void * trip){
 				}else{
 					log_debug(logger,"T%d - P%d: Error al resolver el sabotaje", tripulante->id,tripulante->patota_id);
 				}
-				sem_post(&exec);
-				tripulante->elegido = false;
+				tripulante->elegido = true;
 				sabotaje = 0;
 
 				tripulante->instrucciones_ejecutadas = 0;
@@ -231,29 +231,40 @@ void *labor_tripulante_new(void * trip){
 
 				moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
 
-				sem_post(&sabotajeEnCurso);
 
-				//Llevar a bloqueados
-				log_debug(logger,"T%d - P%d -  Fin de Sabotaje -> a bloqueados  ", tripulante->id,tripulante->patota_id);
+				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
 				tripulante->block_io_rafaga = 0;
 				pthread_mutex_lock(&mutex_cola_ejecutados);
 				queue_push(cola_ejecutados,tripulante);
 				pthread_mutex_unlock(&mutex_cola_ejecutados);
 				sem_post(&colaEjecutados);
+				sem_post(&exec);
 
 				//ACA INVERTIDO PARA QUE ME DIGA EFECTIVAMENTE CUANDO ESTA EN BLOCK
 				actualizar_estado(socketRam,tripulante,BLOCK);
 
+				tripulante->elegido = false;
+				sem_post(&detenerReaunudarEjecucion);
+
+
 				sem_wait(&tripulante->bloq);
+
+
+
+				tripulante->instrucciones_ejecutadas+=tiempo_tarea;
+
+
+
 				sem_wait(&tripulante->ready);
+				actualizar_estado(socketRam,tripulante,READY);
+
 				sem_wait(&tripulante->exec);
+				actualizar_estado(socketRam,tripulante,EXEC);
 
 
 
 			}
-			sem_wait(&detenerReaunudarEjecucion);
-			sem_post(&detenerReaunudarEjecucion);
 
 
 

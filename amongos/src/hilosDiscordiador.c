@@ -27,7 +27,7 @@ void planificar_cola_ready(){
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
 		//log_info(logger,"T%d - P%d : SALIENDO DE NEW", tripulante->id,tripulante->patota_id);
 		pthread_mutex_unlock(&planificacion_mutex_new);
-		sleep(CICLO_CPU);
+
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		queue_push(planificacion_cola_ready,tripulante);
 		sem_post(&tripulante->ready);
@@ -66,6 +66,10 @@ void planificar_cola_bloq(){
 			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			sleep(CICLO_IO);
 			timer++;
+		}
+		if(tripulante->elegido){
+					log_info(logger,"bloqueado por sabotaje");
+					sleep(10);
 		}
 		sem_wait(&sabotajeEnCurso);
 		sem_post(&sabotajeEnCurso);

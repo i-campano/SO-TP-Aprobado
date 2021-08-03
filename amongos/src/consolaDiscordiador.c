@@ -105,17 +105,22 @@ void escuchoIMongo() {
 			char ** xy = string_split(posicion,"|");
 			ubic_sab_x = atoi(xy[0]);
 			ubic_sab_y = atoi(xy[1]);
-			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(ubic_sab_x,ubic_sab_y);
-
-			sem_wait(&detenerReaunudarEjecucion);
-			sabotaje = 1;
-			sem_wait(&sabotajeEnCurso);
-			moverTripulantes(0);
-			sacarElegido(masCercano->id);
-			sem_post(&detenerReaunudarEjecucion);
-			log_info(logger,"el Mas cercano %d",masCercano->id);
-
 			log_info(logger,"Llego un SABOTAJE en la posicion: %s",posicion);
+			sabotaje = 1;
+
+			t_tripulante * masCercano = (t_tripulante *)buscarTripulantePorUbicacion(ubic_sab_x,ubic_sab_y);
+			if(masCercano!=NULL){
+				masCercano->elegido = true;
+				sem_wait(&detenerReaunudarEjecucion);
+				log_info(logger,"el Mas cercano %d",masCercano->id);
+
+			}else{
+				log_info(logger,"No hay tripulantes para atender el sabotaje");
+				sabotaje = 0;
+			}
+
+
+
 		}
 		else if(nroNotificacion==ENVIAR_BITACORA){
 			//Recibe informacion de bitacora
@@ -306,13 +311,14 @@ t_tripulante* buscarTripulantePorUbicacion(uint32_t x,uint32_t y){
 	}
 	t_list * tripulantes_disponibles = list_create();
 	pthread_mutex_lock(&planificacion_mutex_exec);
-	pthread_mutex_lock(&planificacion_mutex_ready);
-	list_add_all(tripulantes_disponibles,planificacion_cola_ready->elements);
-	list_add_all(tripulantes_disponibles,lista_exec);
-	t_tripulante* trip = list_get_minimum(tripulantes_disponibles,condicionPorUbicacion);
-	pthread_mutex_unlock(&planificacion_mutex_ready);
+	t_tripulante* trip = NULL;
+	if(list_size(lista_exec)>1){
+		list_add_all(tripulantes_disponibles,lista_exec);
+		trip = list_get_minimum(tripulantes_disponibles,condicionPorUbicacion);
+	}else if(list_size(lista_exec)==1){
+		trip = list_get(lista_exec,0);
+	}
 	pthread_mutex_unlock(&planificacion_mutex_exec);
-	//sem_wait(&trip->emergencia);
 	return trip;
 }
 
