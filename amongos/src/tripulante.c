@@ -221,7 +221,7 @@ void *labor_tripulante_new(void * trip){
 				tripulante->elegido = true;
 				sabotaje = 0;
 
-				tripulante->instrucciones_ejecutadas = 0;
+				tripulante->instrucciones_ejecutadas = 0; // TODO: VER
 				firstMove = 0;
 				moveUp = 0;
 				moveRight = 0;
@@ -250,9 +250,6 @@ void *labor_tripulante_new(void * trip){
 
 				sem_wait(&tripulante->bloq);
 
-
-
-				tripulante->instrucciones_ejecutadas+=tiempo_tarea;
 
 
 
