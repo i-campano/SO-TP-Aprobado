@@ -628,9 +628,14 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	char * bloque = bloques[cantidad_bloques];
 
 	int sizeUltimoBloque = size;
+	log_info(logger,"Size1");
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
+	log_info(logger,"Size2");
 
+	log_info(logger,"Size: %d",sizeUltimoBloque);
+	log_info(logger,"Size: %d",size);
 	void * contenidoBloque = NULL;
+	if(size>0){
 
 	int indice = atoi(bloque);
 
@@ -640,20 +645,30 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
 	contenidoBloque = obtener_contenido_bloque(indice);
 
+	bool sinRecursos = false;
 	int longitudBloque = 0 ;
-
+	log_info(logger,"Size: %d",sizeUltimoBloque);
+	log_info(logger,"Size: %d",size);
 	while((cantidadAConsumir>0)){
 
 		if(cantidadAConsumir>sizeUltimoBloque){
+			log_info(logger,"Size: %d",size);
+			if(size!=0){
+				log_info(logger,"Se borraron mas de los existentes");
+				cantidadAConsumir-=sizeUltimoBloque;
+				remover_bloque(indice,archivo,sizeUltimoBloque);
+				cantidad_bloques--;
+				bloque = bloques[cantidad_bloques];
+				indice = atoi(bloque);
+				contenidoBloque = obtener_contenido_bloque(indice);
 
-			cantidadAConsumir-=sizeUltimoBloque;
-			remover_bloque(indice,archivo,sizeUltimoBloque);
-			cantidad_bloques--;
-			bloque = bloques[cantidad_bloques];
-			indice = atoi(bloque);
-			contenidoBloque = obtener_contenido_bloque(indice);
+				sizeUltimoBloque = superblock.tamanio_bloque;
+			}else if(size==0){
+				log_info(logger,"No hay recursos para borrar");
+				break;
+			}
 
-			sizeUltimoBloque = superblock.tamanio_bloque;
+
 		}
 		else if(cantidadAConsumir==sizeUltimoBloque){
 			cantidadAConsumir-=sizeUltimoBloque;
@@ -669,10 +684,15 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 		}
 
 	}
+
 	log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	log_trace(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
+	}
+	else{
+		log_info(logger,"NO HAY RECURSOS PARA CONSUMIR");
+	}
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
@@ -690,27 +710,30 @@ void descartar_basura(_archivo * archivo){
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
 
 	void * contenidoBloque = NULL;
+	if(size!=0){
+		int indice = atoi(bloque);
 
-	int indice = atoi(bloque);
+		pthread_mutex_lock(&_blocks.mutex_blocks);
+		log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+		log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
+		contenidoBloque = obtener_contenido_bloque(indice);
 
-	pthread_mutex_lock(&_blocks.mutex_blocks);
-	log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
-	pthread_mutex_lock(&superblock.mutex_superbloque);
-	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
-	contenidoBloque = obtener_contenido_bloque(indice);
+		while((cantidad_bloques>=0)){
 
-	while((cantidad_bloques>=0)){
+				bloque = bloques[cantidad_bloques];
+				indice = atoi(bloque);
+				remover_bloque(indice,archivo,sizeUltimoBloque);
+				cantidad_bloques--;
 
-			bloque = bloques[cantidad_bloques];
-			indice = atoi(bloque);
-			remover_bloque(indice,archivo,sizeUltimoBloque);
-			cantidad_bloques--;
-
+		}
+		log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
+		pthread_mutex_unlock(&(superblock.mutex_superbloque));
+		pthread_mutex_unlock(&(_blocks.mutex_blocks));
+		log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
+	}else{
+		log_info(logger,"Se quiso descartar la basura, pero estaba todo limpio!");
 	}
-	log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
-	pthread_mutex_unlock(&(superblock.mutex_superbloque));
-	pthread_mutex_unlock(&(_blocks.mutex_blocks));
-	log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
 }
 
