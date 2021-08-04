@@ -1,7 +1,8 @@
 #include "discordiador.h"
 
 int main(void) {
-	signal(SIGSEGV,terminar_discordiador);
+	state = RUN;
+	//signal(SIGSEGV,terminar_discordiador);
 	sabotaje = 0;
 	iniciar_logger();
 	//Inicia las colas de planificacion
@@ -32,7 +33,10 @@ int main(void) {
 	planificar();
 
 	sem_wait(&terminarPrograma);
+	log_info(logger,"Wati");
+	terminar_discordiador(0);
 	terminar_programa(logger,config);
+
 	return 0;
 }
 

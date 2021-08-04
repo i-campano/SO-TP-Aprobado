@@ -102,6 +102,7 @@ void crear_patota(char * comando){
 	free(posiciones); //stringNew linea 52
 	free(tareasX);//stringNew linea 18
 	free(tareasOk); // linea 31
+	liberarCadenaDoble(parametros);
 	}
 }
 //Mallocs Revisados
@@ -117,6 +118,7 @@ void asignar_posicion(char** destino,char* posiciones,uint32_t creados) {
 	else {
 		string_append(destino,posiciones_separadas[creados]);
 	}
+	liberarCadenaDoble(posiciones_separadas);
 }
 
 void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t patotaId, uint32_t cantidad_tripulantes, int* tamanioGet, char* tareas, char* posiciones) {

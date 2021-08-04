@@ -6,7 +6,6 @@
 void iniciarEstructurasAdministrativas(){
 	//lista_pcb = list_create();
 	lista_tcb = list_create();
-
 	pthread_mutex_init(&pthread_mutex_tcb_list,NULL);
 
 	//pthread_mutex_init(&pthread_mutex_pcb_list,NULL);
@@ -42,6 +41,7 @@ void enviar_tarea(int socket, char * tarea) {
 	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
 	tamanio += largoClave;
 	sendRemasterizado(socket, ENVIAR_TAREA, tamanio, (void*) buffer);
+	free(buffer);
 }
 
 void *atenderNotificacion(void * paqueteSocket){
@@ -339,4 +339,3 @@ void liberarCadenaDoble(char** cadena){
 	free(cadena[i]);
 	free(cadena);
 }
-

@@ -1,9 +1,9 @@
 #ifndef HILOSDISCORDIADOR_H_
 #define HILOSDISCORDIADOR_H_
-
 #include "utils.h"
 #include "tripulante.h"
 #include "socket.h"
+
 //Funciones del discordiador
 void leer_consola();
 void planificar_tripulantes();

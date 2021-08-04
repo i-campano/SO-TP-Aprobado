@@ -19,6 +19,8 @@
 #include "tripulante.h"
 #include "protocolo.h"
 
+#define EXIT 2
+#define RUN 1
 char* IP_MONGO;
 char* IP_MIRAM;
 int PUERTO_MONGO;
@@ -61,7 +63,8 @@ t_queue* cola_ejecutados;
 pthread_t hiloConsola;
 pthread_t hiloCoordinador;
 pthread_t hiloPlanificador;
-
+t_list* lista_hilos;
+t_list* lista_attr;
 //HILOS PARA COLAS
 pthread_t hiloColaReady;
 pthread_t hiloColaNew;
@@ -72,7 +75,7 @@ sem_t cola_new;
 sem_t cola_exec;
 sem_t cola_bloq;
 sem_t cola_fin;
-
+sem_t eliminarAttr;
 //MUTEX PARA COLAS
 pthread_mutex_t planificacion_mutex_new;
 pthread_mutex_t planificacion_mutex_ready;
@@ -96,7 +99,8 @@ sem_t colaEjecutados;
 
 sem_t activar_actualizaciones_mongo;
 sem_t terminarPrograma;
-
+t_config* config;
+int state;
 typedef struct _infoHilos{
 	int socket;
 	pthread_t hiloAtendedor;
@@ -137,6 +141,6 @@ int cerrar_conexiones_hilos(t_log* logger);
 t_config* leer_config();
 int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger);
 int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger);
-
-int terminar_discordiador(int signal);
+void* terminar_discordiador(int signal);
+int liberarListaHilos(void);
 #endif /* UTILS_H_ */

@@ -51,4 +51,5 @@ void enviar_tarea_a_ejecutar(int socketMongo, int id, char* claveNueva);
 void actualizar_ubicacion(int socketRam, t_tripulante* tripulante);
 void actualizar_estado(int socketRam, t_tripulante* tripulante,int estado);
 char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea);
+int liberarCadenaDoble(char** cadenaDoble);
 #endif

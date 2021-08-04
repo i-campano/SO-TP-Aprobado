@@ -12,7 +12,7 @@ void iniciar_configuracion(){
 
 	tripulantes_creados = 0;
 	sabotaje = false;
-	t_config* config = leer_config();
+	config = leer_config();
 
 	IP_MONGO = config_get_string_value(config, "IP_MONGO");
 
@@ -48,7 +48,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	sem_init(&cola_exec, 0, GRADO_MULTIPROGRAMACION);
 	sem_init(&cola_bloq, 0, 0);
 	sem_init(&cola_fin,0,0);
-
+	sem_init(&eliminarAttr, 0, 0);
 	sem_init(&colaEjecutados, 0, 0);
 
 	sem_init(&exec, 0, GRADO_MULTIPROGRAMACION);
@@ -73,14 +73,28 @@ void iniciarEstructurasAdministrativasPlanificador(){
 
 	lista_exec = list_create();
 	hilosParaConexiones = list_create();
-
+	lista_hilos = list_create();
+	lista_attr = list_create();
 	pthread_mutex_init(&mutexHilos,NULL);
 }
 
 
-int terminar_discordiador(int signal) {
+void* terminar_discordiador(int signal) {
+	log_info(logger,"Terminando programa");
+	state = EXIT;
+	sem_post(&cola_new);
+	sem_post(&cola_bloq);
+	sem_post(&cola_ready);
+	sem_post(&exec);
+	sem_post(&cola_exec);
+	sem_post(&colaEjecutados);
+	sleep(1);
+
+	sem_post(&eliminarAttr);
+	liberarListaHilos();
 	cerrar_conexiones_hilos(logger);
 	log_destroy(logger);
+	config_destroy(config);
 	return 0;
 }
 
@@ -88,16 +102,17 @@ int terminar_programa(t_log* logger,t_config* config) {
 	cerrar_conexiones_hilos(logger);
 	log_destroy(logger);
 	config_destroy(config);
+
 	return 0;
 }
 
-void liberar_conexion_e(int* conexion){
+void liberar_conexion_e(void* dato){
+	int* conexion = (int*) dato;
 	close(*conexion);
 }
 int cerrar_conexiones_hilos(t_log* logger){
-	list_destroy_and_destroy_elements(conexiones,liberar_conexion_e);
+	//list_destroy_and_destroy_elements(conexiones,liberar_conexion_e);
 	log_info(logger,"Deteniendo planificacion para terminar, por favor espere");
-	sem_wait(&detenerReaunudarEjecucion);
 	sleep(2);
 	log_info(logger,"Planificacion detenida");
 	log_info(logger,"Cerrando conexiones y liberando memoria");
@@ -169,5 +184,28 @@ t_config* leer_config() {
 	return config;
 }
 
+int liberarListaHilos(void){
+	pthread_mutex_lock(&mutexHilos);
 
+	uint32_t cantidadHilos = list_size(hilosParaConexiones);
+	uint32_t cantidad = list_size(lista_hilos);
+	while(cantidadHilos){
+		free(list_remove(hilosParaConexiones,0));
+		cantidadHilos--;
+	}
+	list_destroy(hilosParaConexiones);
+	while(cantidad){
+		free(list_remove(lista_hilos,0));
+		cantidad--;
+	}
+	list_destroy(lista_hilos);
+	cantidad = list_size(lista_attr);
+	while(cantidad){
+		pthread_attr_destroy(list_remove(lista_attr,0));
+		cantidad--;
+	}
+	list_destroy(lista_attr);
+	pthread_mutex_unlock(&mutexHilos);
+	return 0;
+}
 

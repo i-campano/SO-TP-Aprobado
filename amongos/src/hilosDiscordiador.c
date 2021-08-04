@@ -17,117 +17,117 @@ void planificar_tripulantes(){
 }
 
 void planificar_cola_ready(){
-	while(1){
+	while(state != EXIT){
 
 
 		//Esperamos que haya algo en new
 		sem_wait(&cola_new);
+		if(state != EXIT){
+			pthread_mutex_lock(&planificacion_mutex_new);
+			t_tripulante * tripulante = queue_pop(planificacion_cola_new);
+			//log_info(logger,"T%d - P%d : SALIENDO DE NEW", tripulante->id,tripulante->patota_id);
+			pthread_mutex_unlock(&planificacion_mutex_new);
 
-		pthread_mutex_lock(&planificacion_mutex_new);
-		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
-		//log_info(logger,"T%d - P%d : SALIENDO DE NEW", tripulante->id,tripulante->patota_id);
-		pthread_mutex_unlock(&planificacion_mutex_new);
+			pthread_mutex_lock(&planificacion_mutex_ready);
+			queue_push(planificacion_cola_ready,tripulante);
+			sem_post(&tripulante->ready);
+			sem_post(&cola_ready);
+			log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
+			pthread_mutex_unlock(&planificacion_mutex_ready);
 
-		pthread_mutex_lock(&planificacion_mutex_ready);
-		queue_push(planificacion_cola_ready,tripulante);
-		sem_post(&tripulante->ready);
-		sem_post(&cola_ready);
-		log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
-		pthread_mutex_unlock(&planificacion_mutex_ready);
+			//wait(planificacion_mutex_ready);
+			//hacer algo en la cola ready
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
 
-		//wait(planificacion_mutex_ready);
-		//hacer algo en la cola ready
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
-
-
+		}
 	}
 }
 
 void planificar_cola_bloq(){
 	t_tripulante * tripulante;
-	while(1){
+	while(state != EXIT){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
-
 		sem_wait(&cola_bloq);
+		if(state != EXIT){
 
 
-
-		pthread_mutex_lock(&planificacion_mutex_bloq);
-		tripulante = list_get(planificacion_cola_bloq->elements,0);
-		pthread_mutex_unlock(&planificacion_mutex_bloq);
-		int timer = 0;
-		while(timer<tripulante->block_io_rafaga){
-			sem_wait(&detenerReaunudarEjecucion);
-			sem_post(&detenerReaunudarEjecucion);
+			pthread_mutex_lock(&planificacion_mutex_bloq);
+			tripulante = list_get(planificacion_cola_bloq->elements,0);
+			pthread_mutex_unlock(&planificacion_mutex_bloq);
+			int timer = 0;
+			while(timer<tripulante->block_io_rafaga){
+				sem_wait(&detenerReaunudarEjecucion);
+				sem_post(&detenerReaunudarEjecucion);
+				sem_wait(&sabotajeEnCurso);
+				sem_post(&sabotajeEnCurso);
+				log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+				sleep(CICLO_IO);
+				timer++;
+			}
+			if(tripulante->elegido){
+						log_info(logger,"bloqueado por sabotaje");
+						sleep(10);
+			}
 			sem_wait(&sabotajeEnCurso);
 			sem_post(&sabotajeEnCurso);
-			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
-			sleep(CICLO_IO);
-			timer++;
+			pthread_mutex_lock(&planificacion_mutex_bloq);
+			tripulante = queue_pop(planificacion_cola_bloq);
+			pthread_mutex_unlock(&planificacion_mutex_bloq);
+			sem_post(&tripulante->bloq);
+
+			//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
+
+
+			pthread_mutex_lock(&planificacion_mutex_ready);
+			queue_push(planificacion_cola_ready,tripulante);
+			log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
+			sem_post(&cola_ready);
+			sem_post(&tripulante->ready);
+			pthread_mutex_unlock(&planificacion_mutex_ready);
+
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
+
+
 		}
-		if(tripulante->elegido){
-					log_info(logger,"bloqueado por sabotaje");
-					sleep(10);
-		}
-		sem_wait(&sabotajeEnCurso);
-		sem_post(&sabotajeEnCurso);
-		pthread_mutex_lock(&planificacion_mutex_bloq);
-		tripulante = queue_pop(planificacion_cola_bloq);
-		pthread_mutex_unlock(&planificacion_mutex_bloq);
-		sem_post(&tripulante->bloq);
-
-		//log_info(logger,"SACO DE BLOQ TRIPULANTE %d",tripulante->id);
-
-
-		pthread_mutex_lock(&planificacion_mutex_ready);
-		queue_push(planificacion_cola_ready,tripulante);
-		log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
-		sem_post(&cola_ready);
-		sem_post(&tripulante->ready);
-		pthread_mutex_unlock(&planificacion_mutex_ready);
-
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
-
-
-
 	}
+	log_info(logger,"Hilo muriendo");
 }
 
 
 
 
 void planificar_cola_exec(){
-	while(1){
+	while(state != EXIT){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 		sem_wait(&cola_ready);
 		sem_wait(&exec);
+		if(state != EXIT){
+			pthread_mutex_lock(&planificacion_mutex_ready);
+			t_tripulante * tripulante = NULL;
+				if(list_size(planificacion_cola_ready->elements)){
+					tripulante = queue_pop(planificacion_cola_ready);
+					//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+				}
+			pthread_mutex_unlock(&planificacion_mutex_ready);
+			if(tripulante != NULL){
+				sem_wait(&cola_exec);
+				pthread_mutex_lock(&planificacion_mutex_exec);
+				//queue_push(planificacion_cola_ready,tripulante);
+				list_add(lista_exec,tripulante);
+				log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
+				pthread_mutex_unlock(&planificacion_mutex_exec);
 
-		pthread_mutex_lock(&planificacion_mutex_ready);
-		t_tripulante * tripulante = NULL;
-			if(list_size(planificacion_cola_ready->elements)){
-				tripulante = queue_pop(planificacion_cola_ready);
-				//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+
+				sem_post(&tripulante->exec);
 			}
-		pthread_mutex_unlock(&planificacion_mutex_ready);
-		if(tripulante != NULL){
-			sem_wait(&cola_exec);
-			pthread_mutex_lock(&planificacion_mutex_exec);
-			//queue_push(planificacion_cola_ready,tripulante);
-			list_add(lista_exec,tripulante);
-			log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
-			pthread_mutex_unlock(&planificacion_mutex_exec);
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
 
-
-			sem_post(&tripulante->exec);
 		}
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
-
-
 	}
 }
 
@@ -137,61 +137,62 @@ void planificar_cola_exec(){
 
 void replanificar(){
 	t_tripulante * tripulante = NULL;
-	while(1){
+	while(state != EXIT){
 
 		sem_wait(&colaEjecutados);
+		if(state != EXIT){
 
-
-		pthread_mutex_lock(&mutex_cola_ejecutados);
-		if(list_size(cola_ejecutados->elements)){
-			tripulante = queue_pop(cola_ejecutados);
-		}
-		pthread_mutex_unlock(&mutex_cola_ejecutados);
-		if(tripulante != NULL){
-			sacar_de_exec(tripulante->id);
-			sem_post(&cola_exec);
-
-
-
-			log_trace(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
-			switch(tripulante->estado) {
-				case 'F':{
-					//MUTEX COLA FIN LOCK
-					pthread_mutex_lock(&planificacion_mutex_fin);
-					queue_push(planificacion_cola_fin,tripulante);
-					log_info(logger,"T%d - P%d : FIN", tripulante->id,tripulante->patota_id);
-					pthread_mutex_unlock(&planificacion_mutex_fin);
-					sem_post(&cola_fin);
-
-					//MUTEX COLA FIN UNLOCK
-					break;
-				}
-				case 'B':{
-					//MUTEX COLA BLOQ LOCK
-	//				log_info(logger,"T%d - P%d : ESPERANDO PARA ENTRAR A BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
-					pthread_mutex_lock(&planificacion_mutex_bloq);
-					queue_push(planificacion_cola_bloq,tripulante);
-					log_info(logger,"T%d - P%d : BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
-					pthread_mutex_unlock(&planificacion_mutex_bloq);
-					sem_post(&cola_bloq);
-					break;
-					//MUTEX COLA BLOQ UNLO
-				}
-				case 'R':{
-					pthread_mutex_lock(&planificacion_mutex_ready);
-					queue_push(planificacion_cola_ready,tripulante);
-					log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
-					pthread_mutex_unlock(&planificacion_mutex_ready);
-					sem_post(&cola_ready);
-					break;
-				}
-				default:
-					break;
-
+			pthread_mutex_lock(&mutex_cola_ejecutados);
+			if(list_size(cola_ejecutados->elements)){
+				tripulante = queue_pop(cola_ejecutados);
 			}
+			pthread_mutex_unlock(&mutex_cola_ejecutados);
+			if(tripulante != NULL){
+				sacar_de_exec(tripulante->id);
+				sem_post(&cola_exec);
+
+
+
+				log_trace(logger,"DISPATCHER - TRIPULANTE: %d , ESTADO: %c", tripulante->id, tripulante->estado);
+				switch(tripulante->estado) {
+					case 'F':{
+						//MUTEX COLA FIN LOCK
+						pthread_mutex_lock(&planificacion_mutex_fin);
+						queue_push(planificacion_cola_fin,tripulante);
+						log_info(logger,"T%d - P%d : FIN", tripulante->id,tripulante->patota_id);
+						pthread_mutex_unlock(&planificacion_mutex_fin);
+						sem_post(&cola_fin);
+
+						//MUTEX COLA FIN UNLOCK
+						break;
+					}
+					case 'B':{
+						//MUTEX COLA BLOQ LOCK
+		//				log_info(logger,"T%d - P%d : ESPERANDO PARA ENTRAR A BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
+						pthread_mutex_lock(&planificacion_mutex_bloq);
+						queue_push(planificacion_cola_bloq,tripulante);
+						log_info(logger,"T%d - P%d : BLOCK -> DURACION DE RAFAGA(CICLOS) = %d", tripulante->id,tripulante->patota_id,tripulante->block_io_rafaga);
+						pthread_mutex_unlock(&planificacion_mutex_bloq);
+						sem_post(&cola_bloq);
+						break;
+						//MUTEX COLA BLOQ UNLO
+					}
+					case 'R':{
+						pthread_mutex_lock(&planificacion_mutex_ready);
+						queue_push(planificacion_cola_ready,tripulante);
+						log_info(logger,"T%d - P%d : READY", tripulante->id,tripulante->patota_id);
+						pthread_mutex_unlock(&planificacion_mutex_ready);
+						sem_post(&cola_ready);
+						break;
+					}
+					default:
+						break;
+
+				}
+			}
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
 		}
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
 	}
 }
 
@@ -213,41 +214,56 @@ void sacar_de_exec(int id_tripulante){
 
 
 void hilo_cola_exec(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) planificar_cola_exec,NULL);
+	pthread_create(&hilo , attr1,(void*) planificar_cola_exec,NULL);
+	pthread_mutex_lock(&mutexHilos);
+	list_add(lista_hilos,&hilo);
+	list_add(lista_attr,attr1);
+	pthread_mutex_unlock(&mutexHilos);
+
 
 }
 void hilo_cola_replanificar(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) replanificar,NULL);
-
+	pthread_create(&hilo , attr1,(void*) replanificar,NULL);
+	pthread_mutex_lock(&mutexHilos);
+	list_add(lista_hilos,&hilo);
+	list_add(lista_attr,attr1);
+	pthread_mutex_unlock(&mutexHilos);
 }
 
 
 
 
 void hilo_cola_ready(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) planificar_cola_ready,NULL);
-
+	pthread_create(&hilo , attr1,(void*) planificar_cola_ready,NULL);
+	pthread_mutex_lock(&mutexHilos);
+	list_add(lista_hilos,&hilo);
+	list_add(lista_attr,attr1);
+	pthread_mutex_unlock(&mutexHilos);
 }
 
 
 void hilo_cola_bloq(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) planificar_cola_bloq,NULL);
+	pthread_create(&hilo , attr1,(void*) planificar_cola_bloq,NULL);
+	pthread_mutex_lock(&mutexHilos);
+	list_add(lista_hilos,&hilo);
+	list_add(lista_attr,attr1);
+	pthread_mutex_unlock(&mutexHilos);
 }
 
 
@@ -282,10 +298,10 @@ void atender_ram(){
 
 
 void iniciarHiloConsola(){
-	pthread_attr_t attr2;
-	pthread_attr_init(&attr2);
-	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr2,(void*) leer_consola,NULL);
+	pthread_attr_t* attr2 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr2);
+	pthread_attr_setdetachstate(attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , attr2,(void*) leer_consola,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -293,14 +309,15 @@ void iniciarHiloConsola(){
 
 	pthread_mutex_lock(&mutexHilos);
 	list_add(hilosParaConexiones, datosHilo);
+	list_add(lista_attr,attr2);
 	pthread_mutex_unlock(&mutexHilos);
 }
 
 void iniciarHiloQueManejadorNotifiacionesIMongo(){
-	pthread_attr_t attr2;
-	pthread_attr_init(&attr2);
-	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr2,(void*) escuchoIMongo,NULL);
+	pthread_attr_t* attr2 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr2);
+	pthread_attr_setdetachstate(attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , attr2,(void*) escuchoIMongo,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -308,16 +325,20 @@ void iniciarHiloQueManejadorNotifiacionesIMongo(){
 
 	pthread_mutex_lock(&mutexHilos);
 	list_add(hilosParaConexiones, datosHilo);
+	list_add(lista_attr,attr2);
 	pthread_mutex_unlock(&mutexHilos);
 }
 
 void crearHiloTripulante(t_tripulante * tripulante){
-	pthread_attr_t attr2;
-	pthread_attr_init(&attr2);
-	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	pthread_attr_t* attr2 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr2);
+	pthread_attr_setdetachstate(attr2, PTHREAD_CREATE_DETACHED);
 	pthread_t hiloTripulante = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hiloTripulante , &attr2,(void*) labor_tripulante_new,(void*) tripulante);
-
+	pthread_create(&hiloTripulante , attr2,(void*) labor_tripulante_new,(void*) tripulante);
+	pthread_mutex_lock(&mutexHilos);
+	list_add(lista_hilos,&hiloTripulante);
+	list_add(lista_attr,attr2);
+	pthread_mutex_unlock(&mutexHilos);
 //	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 //	datosHilo->socket = socket;
 //	datosHilo->hiloAtendedor = hiloTripulante;
@@ -328,10 +349,10 @@ void crearHiloTripulante(t_tripulante * tripulante){
 }
 
 void planificar(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloPlanificador , &attr1,(void*) planificar_tripulantes,NULL);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloPlanificador , attr1,(void*) planificar_tripulantes,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -339,15 +360,16 @@ void planificar(){
 
 	pthread_mutex_lock(&mutexHilos);
 	list_add(hilosParaConexiones, datosHilo);
+	list_add(lista_attr,attr1);
 	pthread_mutex_unlock(&mutexHilos);
 }
 
 
 void atenderLaRam(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create(&hiloConsola , &attr1,(void*) atender_ram,NULL);
+	pthread_attr_t* attr1 = malloc(sizeof(pthread_attr_t));
+	pthread_attr_init(attr1);
+	pthread_attr_setdetachstate(attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&hiloConsola , attr1,(void*) atender_ram,NULL);
 
 	infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
 	datosHilo->socket = 0;
@@ -355,7 +377,7 @@ void atenderLaRam(){
 
 	pthread_mutex_lock(&mutexHilos);
 	list_add(hilosParaConexiones, datosHilo);
+	list_add(lista_attr,attr1);
 	pthread_mutex_unlock(&mutexHilos);
 }
-
-
+//Destructores
