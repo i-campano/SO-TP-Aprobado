@@ -456,18 +456,17 @@ int compactar_memoria(void) {
 		if(cantidad <= 1){
 			return -1;
 		}
-		anterior = list_get(listaSegmentos,i);
-		i++;
-		actual = list_get(listaSegmentos,i);
+		anterior = list_get(listaSegmentos,0);
+		actual = list_get(listaSegmentos,1);
 		if(anterior->tipoDato == VACIO){
 			offset += anterior->fin - anterior->inicio;
 			desplazar_segmento(actual,offset);
-			free(list_remove(listaSegmentos,i-1));
+			free(list_remove(listaSegmentos,i));
 			cantidad--;
 		}
-		anterior = actual;
-		actual = list_get(listaSegmentos,i);
-		i++;
+		else{
+			i++;
+		}
 		while (i < cantidad-1){
 			if(actual->tipoDato == VACIO || actual->id == 0) {
 				offset += actual->fin - actual->inicio;
@@ -693,40 +692,6 @@ void mostrarFrames(void* frame){
 }
 
 // CON DIRECCION LOGICA >
-/*
-uint32_t reconocerTamanioInstruccion(uint32_t direccionLogica,tabla_t* tabla) {
-	uint32_t tamanio = 0;
-	uint32_t direccionFisica;
-	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
-		direccionFisica = ((segmento_t*)list_get(tabla->listaAsignados,1))->inicio + direccionLogica - 1;
-	}
-	if(!strcmp(confDatos.esquema,"PAGINACION")) {
-		uint32_t pagina = direccionLogica/tamanioPagina;
-		uint32_t offset = 0;
-		if (direccionLogica > tamanioPagina) {
-			offset += direccionLogica - pagina*tamanioPagina;
-		}
-		if (direccionLogica < tamanioPagina) {
-			offset += direccionLogica;
-		}
-		direccionFisica = ((pagina_t*)list_get(tabla->listaAsignados,pagina))->Nframe*tamanioPagina + offset;
-		log_debug(logger,"Buscando instruccion desde %i logica",direccionFisica);
-	}
-	char aux;
-	log_debug(logger,"Buscando instruccion desde %i logica",direccionLogica);
-	while (tamanio < 100){
-		memcpy(&aux,mem_ppal+direccionFisica+tamanio,sizeof(char));
-		if(aux == '\0' || aux == '\n'){
-			log_debug(logger,"Tamanio Proxima instruccion desde %i, es %i",direccionFisica,tamanio);
-			if(aux == '\0'){
-				return tamanio-1;
-			}
-			return tamanio;
-		}
-		tamanio++;
-	}
-	return tamanio;
-}*/
 uint32_t paginaTareas(int tamanioTarea){
 	uint32_t paginas = 0;
 	if(sizeof(pcb_t) % tamanioPagina){
@@ -1250,6 +1215,8 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		pagina->modificada = true;
 		pagina->uso = true;
 		frame->pagina = pagina;
+		pagina->tabla = tablaPatota;
+		pagina->Npagina = framesAsignados;
 		log_debug(logger,"Pagina Creada Frame: %i FrameVirtual: %i",pagina->Nframe,pagina->NframeVirtual);
 		list_add(tablaPatota->listaAsignados,pagina);
 
@@ -1552,4 +1519,67 @@ void liberarMemoriaHilos(void){
 		cantidad--;
 	}
 	list_destroy(listaHilosAtendedores);
+}
+void manejarSignal(int signal){
+	log_info(logger,"Recibi un signal");
+		log_info(logger,"Signal de compactacion");
+		pthread_mutex_lock(&accesoListaTablas);
+		pthread_mutex_lock(&accesoMemoria);
+		compactar_memoria();
+		pthread_mutex_unlock(&accesoListaTablas);
+		pthread_mutex_unlock(&accesoMemoria);
+}
+void dumpMemoria(int signal){
+	char* nombreArchivo = string_new();
+	uint32_t i = 0;
+	char* fecha = temporal_get_string_time("%H:%M:%S:%MS");
+	log_info(logger,"----------Realizando Dump %s ----------",fecha);
+	string_append(&nombreArchivo,"Dump_");
+	string_append(&nombreArchivo,fecha);
+	string_append(&nombreArchivo,".dmp");
+
+	FILE* archivoDump = fopen(nombreArchivo,"w");
+	log_info(logger,"----------%s----------",nombreArchivo);
+	if(!archivoDump){
+		log_error(logger,"No se pudo crear el archivo dump");
+	}
+	else{
+		pthread_mutex_lock(&accesoListaTablas);
+		pthread_mutex_lock(&accesoMemoria);
+		fprintf(archivoDump,"Dump: %s  \n",fecha);
+		if(!strcmp(confDatos.esquema,"PAGINACION")){
+			uint32_t cantidad = list_size(framesMemoria);
+			while(cantidad > i){
+				frame_t* frame = list_get(framesMemoria,i);
+				if(frame->estado){
+					fprintf(archivoDump,"Marco: %i \t Estado:Libre \t Proceso: - \t Pagina: - \n",frame->numeroFrame);
+				}
+				else{
+					uint32_t nPagina = frame->pagina->Npagina;
+					uint32_t nProceso = frame->pagina->tabla->idPatota;
+					fprintf(archivoDump,"Marco: %i \t Estado:Ocupado \t Proceso:%i \t Pagina: %i \n",frame->numeroFrame,nProceso,nPagina);
+				}
+				i++;
+			}
+
+		}
+		if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+			uint32_t cantidad = list_size(listaSegmentos);
+			while(cantidad > i){
+				segmento_t* segmento = list_get(listaSegmentos,i);
+				if(segmento->tipoDato == VACIO){
+					fprintf(archivoDump,"Proceso: Libre \t Segmento: %i \t Inicio: %i \t Tam: %i \n",i,segmento->inicio,segmento->fin - segmento->inicio);
+				}
+				else{
+					fprintf(archivoDump,"Proceso: %i \t Segmento: %i \t Inicio: %X \t Tam: %i \n",segmento->id,i,segmento->inicio,segmento->fin - segmento->inicio);
+				}
+				i++;
+			}
+		}
+		fclose(archivoDump);
+		free(nombreArchivo);
+		free(fecha);
+		pthread_mutex_unlock(&accesoListaTablas);
+		pthread_mutex_unlock(&accesoMemoria);
+	}
 }

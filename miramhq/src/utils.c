@@ -212,7 +212,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			}
 			sendDeNotificacion(socket,1);
 			close(socket);
-			liberarMemoriaHilos();
+			//liberarMemoriaHilos();
 			return 0;
 			break;
 		}
