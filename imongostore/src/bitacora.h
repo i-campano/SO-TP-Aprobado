@@ -9,7 +9,7 @@
 #define BITACORA_H_
 
 #include "core.h"
-
+#include "utils.h"
 
 
 

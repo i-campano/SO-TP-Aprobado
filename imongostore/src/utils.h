@@ -83,5 +83,6 @@ char* generarPath(char* archivoTripulante);
 
 void enviar_bitacora(int socket,char * bitacora);
 
-
+//Para free
+int liberarCadenaDoble(char** cadena);
 #endif /* CONEXIONES_H_ */

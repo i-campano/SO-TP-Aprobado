@@ -19,7 +19,6 @@ char ** agregar_en_array(char ** array,char * valor_a_insertar){
 	int longitud = longitud_array(array);
 	char ** nuevo = malloc(sizeof(char*)*(longitud+2));
 	memcpy(nuevo,array,sizeof(char*)*(longitud+1));
-	free(array);
 	nuevo[longitud] =string_new();
 	string_append(&(nuevo[longitud]),valor_a_insertar);
 	nuevo[longitud+1]=NULL;

@@ -654,4 +654,13 @@ short iniciaEstructuraDeArchivos()
 	return 0;
 
 }
-
+int liberarCadenaDoble(char** cadena){
+	uint32_t i = 0;
+	while(cadena[i]!=NULL){
+			free(cadena[i]);
+			i++;
+		}
+		free(cadena[i]);
+		free(cadena);
+		return 0;
+}

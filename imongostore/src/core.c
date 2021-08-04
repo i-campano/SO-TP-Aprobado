@@ -32,7 +32,7 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 
 	t_bitarray * bitarray = bitarray_create_with_mode(bits,tamanioBitarray,MSB_FIRST);
 
-
+	free(bits);
 	return bitarray;
 }
 
@@ -95,7 +95,8 @@ void iniciar_blocks(){
 	}
 
 
-
+	free(path_files);//Linea 48
+	free(aux); //Linea 49
 	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
 
 }
@@ -119,7 +120,8 @@ int write_blocks(char * cadena_caracteres,int indice) {
 	
 
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cad, superblock.tamanio_bloque);
-
+	free(cadena);//Linea 115
+	free(cad); //Linea 113
 	return 1;
 }
 
@@ -134,6 +136,7 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, (void*)cadena, string_length(cadena));
+	free(cadena);//Linea 133
 	return 1;
 }
 
@@ -142,7 +145,7 @@ int clean_block(int indice) {
 	void * clean2 = malloc(superblock.tamanio_bloque);
 	bzero(clean2,superblock.tamanio_bloque);
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean2, superblock.tamanio_bloque);
-
+	free(clean2); //Linea 145
 	return 1;
 }
 
@@ -177,7 +180,7 @@ void ordenar(t_list * bloques){
 		if(*primero == *segundo){
 			return *primero < *segundo;
 		}else{
-			menorAMayor(primero,segundo);
+			menorAMayor(primero,segundo); //TODO: REVISAR ESTE WARNING!!!!
 		}
 	}
 	list_sort(bloques, (void*) ordenar_blocks);
@@ -232,7 +235,7 @@ void sincronizar_blocks(){
 
 void hilo_sincronizar_blocks(){
 	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
+	pthread_attr_init(&attr1); //TODO: AL igual que en mem y disc ver como liberar esto
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
 	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
 	pthread_create(&hilo , &attr1,(void*) sincronizar_blocks,NULL);
@@ -337,7 +340,8 @@ void iniciar_super_block(){
 
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
-
+	free(aux); //Linea 285
+	free(path_files);//Linea 286
 }
 
 //void liberarStorage(){
@@ -452,13 +456,14 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
-
+	free(aux);
+	free(path_files);
 
 }
 
 void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	char * md5 = string_new();
-	md5 = config_get_string_value (archivo->metadata, "MD5");
+	md5 = config_get_string_value (archivo->metadata, "MD5"); //Libere en Linea 485
 
 	string_length(valorAux);
 	int bytes = string_length(valorAux);
@@ -476,14 +481,12 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 
 	char * cadena = array_to_string(nuevo);
 	int i = 0;
-	while(nuevo[i]!=NULL){
-		free(nuevo[i]);
-		i++;
-	}
-	free(nuevo[i]);
-	free(nuevo);
+	liberarCadenaDoble(array);//476
+	liberarCadenaDoble(nuevo);//478
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	free(cadena);
+	free(md5);
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
@@ -498,6 +501,7 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
 
 	config_save(archivo->metadata);
+	free(md5);
 
 }
 
@@ -524,6 +528,8 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
+	liberarCadenaDoble(blocks);//Linea 521
+	free(bloques_str);//LInea 525
 }
 
 void bitarray_set_bit_monitor(int indice_bloque) {
@@ -547,6 +553,7 @@ void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
 		actualizar_metadata(archivo, indice_bloque, valorAux);
 		bitarray_set_bit_monitor(indice_bloque);
 		offsetBytesAlmacenados += superblock.tamanio_bloque;
+		free(valorAux); //547
 	}
 }
 
@@ -576,7 +583,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		int count_block = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 
-		char * last_block = blocks[count_block-1];
+		char * last_block = blocks[count_block-1]; //NO ES NECESARIO LIBERAR
 
 		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
 
@@ -598,8 +605,11 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
 			llenar_nuevo_bloque(contenidoProximoBloque, archivo);
+			free(rellenoDeUltimoBloque);
+			free(contenidoProximoBloque);
 
 		}
+		liberarCadenaDoble(blocks);
 	}
 	log_trace(logger,"write_archivo()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
@@ -651,6 +661,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 			cantidad_bloques--;
 			bloque = bloques[cantidad_bloques];
 			indice = atoi(bloque);
+			free(contenidoBloque);
 			contenidoBloque = obtener_contenido_bloque(indice);
 
 			sizeUltimoBloque = superblock.tamanio_bloque;
@@ -667,14 +678,14 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 			write_blocks(contenidoBloque,indice);
 			cantidadAConsumir=0;
 		}
-
+		//free(contenidoBloque);TODO: REVISAR ESTE FREE PORQUE ME LLENO DE DUDAS
 	}
 	log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	log_trace(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
-
+	liberarCadenaDoble(bloques);
 }
 
 void descartar_basura(_archivo * archivo){
@@ -712,6 +723,8 @@ void descartar_basura(_archivo * archivo){
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	liberarCadenaDoble(bloques);
+	free(contenidoBloque);
 }
 
 
@@ -729,8 +742,8 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 				size_archivo++;
 			}
 		}
-		free(bloques_ocupados[i]);
-
+		//free(bloques_ocupados[i]); Libere all en linea 760
+		free(valor);
 	}
 	log_info(logger,"Tamanio real del archivo de recursos %d",size_archivo);
 
@@ -744,6 +757,7 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 
 
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	liberarCadenaDoble(bloques_ocupados);
 	return size_archivo;
 }
 
@@ -845,6 +859,7 @@ void calcular_md5(char * cadena){
     fgets(buff, 1024, f);
     log_info(logger,"%s",buff);
     fclose(f);
+    free(command);
 
 }
 

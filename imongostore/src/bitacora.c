@@ -62,8 +62,9 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
 
 	pthread_mutex_init(&((archivo)->mutex_file), NULL);
-
-
+	free(resto_path);//Linea 16
+	free(path_files);//Linea 21
+	free(aux);//Linea 20
 	return archivo;
 
 }
@@ -96,8 +97,7 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 
 		int longitud_blocks = longitud_array(blocks);
-		char * last_block = blocks[longitud_blocks-1];
-
+		char * last_block = blocks[longitud_blocks-1]; //NO ES NECESARIO LIBERAR PORQUE LIBERO BLOCKS MAS ABAJO
 		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
 
 			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
@@ -118,8 +118,12 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
 			llenar_nuevo_bloque_bitacora(contenidoProximoBloque, archivo);
+			free(rellenoDeUltimoBloque); //Free linea 112
+			free(contenidoProximoBloque); //Free linea 118
 
 		}
+		liberarCadenaDoble(blocks);//Linea 97
+
 	}
 	log_trace(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
@@ -158,17 +162,14 @@ void actualizar_metadata_bitacora(_archivo_bitacora * archivo,int indice_bloque,
 	char ** array;
 	array = config_get_array_value(archivo->metadata,"BLOCKS");
 	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
-
 	char * cadena = array_to_string(nuevo);
 	int i = 0;
-	while(nuevo[i]!=NULL){
-		free(nuevo[i]);
-		i++;
-	}
-	free(nuevo[i]);
-	free(nuevo);
+
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	free(cadena); //String new dentro de array_to_string
+	liberarCadenaDoble(nuevo);//Linea 162
+	liberarCadenaDoble(array);//Linea 164
 }
 
 
@@ -189,6 +190,7 @@ void llenar_nuevo_bloque_bitacora(char* cadenaAGuardar, _archivo_bitacora* archi
 		actualizar_metadata_bitacora(archivo, indice_bloque, valorAux);
 		bitarray_set_bit_monitor(indice_bloque);
 		offsetBytesAlmacenados += superblock.tamanio_bloque;
+		free(valorAux); //Linea 179
 	}
 }
 
@@ -237,6 +239,9 @@ int write_blocks_with_offset_bitacora(char * cadena_caracteres,int indice,int of
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cad, string_length(cad));
+	free(cad);//Linea 228
+	free(cadena);//Linea 230
+
 	return 1;
 }
 
@@ -281,12 +286,18 @@ char * obtener_bitacora(int n_tripulante){
 		*valor =atoi(bloques_ocupados[i]);
 
 		string_append(&cadena,string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(*valor),superblock.tamanio_bloque));
-		free(bloques_ocupados[i]);
+		//free(bloques_ocupados[i]);TODO: TE COMENTE ESTO PORQUE LO LIBERO EN LA LINEA 290 JUNTO
+		free(valor);//Linea 280
 	}
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 //	free(cadena);
 	free(aux);
+	liberarCadenaDoble(bloques_ocupados);//Linea 275
+	free(path_files);//Lineas 265
 	config_destroy(config);
+	free(n_trip);//Linea 256
+	free(path); //Linea 257
+	free(clave); //Linea 258
 
 	pthread_mutex_unlock(&(archivo_bit->mutex_file));
 	log_info(logger,"BITACORA: %s",cadena);
