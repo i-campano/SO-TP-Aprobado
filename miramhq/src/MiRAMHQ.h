@@ -14,4 +14,5 @@
 #include "socket.h"
 #include "ADMIN_MIRAM.h"
 #include "mapa.h"
+#include "signal.h"
 #endif /* MiRAMHQ_H_ */

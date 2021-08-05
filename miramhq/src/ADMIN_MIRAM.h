@@ -10,6 +10,7 @@
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
+#include<commons/temporal.h>
 #include<readline/readline.h>
 #include<commons/collections/queue.h>
 #include<commons/bitarray.h>
@@ -47,12 +48,21 @@ typedef struct {
 	uint32_t fin;
 }segmento_t;
 typedef struct {
+
+	uint32_t idPatota;
+	t_list* listaAsignados;
+	uint32_t tamanioTareas;
+	uint32_t ocupado;
+}tabla_t;
+typedef struct {
 	uint32_t Nframe;
 	uint32_t bytesOcupado;
 	bool valida;
 	uint32_t NframeVirtual;
 	bool modificada;
 	bool uso;
+	tabla_t* tabla;
+	uint32_t Npagina;
 }pagina_t;
 
 //Paginacion
@@ -61,13 +71,7 @@ typedef struct {
 	bool estado; //true = Libre
 	pagina_t* pagina; //PARA CLOCK
 }frame_t;
-typedef struct {
 
-	uint32_t idPatota;
-	t_list* listaAsignados;
-	uint32_t tamanioTareas;
-	uint32_t ocupado;
-}tabla_t;
 
 
 typedef struct {
@@ -181,4 +185,6 @@ int liberarBloquesMemoria(char* esquema);
 int limpiarEstructurasAlgoritmo(char* algoritmo);
 void limpiarSwap(void);
 void liberarMemoriaHilos(void);
+void manejarSignal(int signal);
+void dumpMemoria(int signal);
 #endif /* ADMIN_MIRAM_H_ */

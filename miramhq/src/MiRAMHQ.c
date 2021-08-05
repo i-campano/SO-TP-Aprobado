@@ -20,6 +20,8 @@ int main(void)
 	}
 
 	log_info(logger, "Servidor listo para recibir al clientexxxxx");
+	signal(SIGUSR1,manejarSignal);
+	signal(SIGUSR2,dumpMemoria);
 	manejadorDeHilos();
 	/*config_destroy(configuracion);
 	log_destroy(logger);
