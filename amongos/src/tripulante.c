@@ -77,7 +77,7 @@ void *labor_tripulante_new(void * trip){
 
 	sem_wait(&tripulante->creacion);
 
-	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
+	log_info(logger,"Tripulante: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
 
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
@@ -108,7 +108,7 @@ void *labor_tripulante_new(void * trip){
 	list_add(conexiones,&socketMongo);
 	list_add(conexiones,&socketRam);
 
-	log_info(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
+	log_trace(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	//obtener data tripulante - desde tcb
 
@@ -118,14 +118,14 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
 	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
-	log_info(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
+	log_trace(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
 
 	sem_wait(&tripulante->ready);
-
-	log_info(logger,"Pido la proxima tarea");
+	log_trace(logger,"labor_tripulante_new(): T%d - P%d : READY", tripulante->id,tripulante->patota_id);
+	log_trace(logger,"labor_tripulante_new(): Pido la proxima tarea");
 	//para simular la cantidad;
 	char* tarea = pedir_tarea(socketRam, tripulante);
-	log_info(logger,"Recibi tarea %s",tarea);
+	log_debug(logger,"labor_tripulante_new(): Recibi tarea %s",tarea);
 	int movX = 0 ;
 	int movY= 0;
 	int esIo = 0;
@@ -232,7 +232,7 @@ void *labor_tripulante_new(void * trip){
 				moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
 
 
-				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
+				log_info(logger,"T%d - P%d -> A BLOQUEADOS  ", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
 				tripulante->block_io_rafaga = 0;
 				pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -271,7 +271,7 @@ void *labor_tripulante_new(void * trip){
 
 			if(esIo && tripulante->instrucciones_ejecutadas>moveBound){
 
-				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
+				log_debug(logger,"T%d - P%d -> IO BOUND ", tripulante->id,tripulante->patota_id);
 				tripulante->estado = 'B';
 				tripulante->block_io_rafaga = tiempo_tarea;
 				pthread_mutex_lock(&mutex_cola_ejecutados);
@@ -327,7 +327,7 @@ void *labor_tripulante_new(void * trip){
 
 
 			if(/*!esIo &&*/ tripulante->instrucciones_ejecutadas<=moveBound){
-				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND [MOVE]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+				log_info(logger,"T%d - P%d  -> CPU BOUND [MOVE]  ", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 
 				if( firstMove == 0){
 					firstMove = 1;
@@ -364,7 +364,7 @@ void *labor_tripulante_new(void * trip){
 				free(evento_ubicacion);
 			}else if(!esIo && tripulante->instrucciones_ejecutadas>moveBound){
 //				log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
-				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND  [TASK]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+				log_info(logger,"T%d - P%d -> CPU BOUND  [TASK] ", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			}
 
 

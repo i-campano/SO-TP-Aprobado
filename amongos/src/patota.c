@@ -32,7 +32,7 @@ void crear_patota(char * comando){
 
 
 
-    log_info(logger,"%s",tareasOk);
+    log_trace(logger,"%s",tareasOk);
 
 
 	int longitud_tareas = string_length(tareasOk);
@@ -80,7 +80,7 @@ void crear_patota(char * comando){
 
 		list_add(list_trip_aux,_tripulante);
 
-		log_info(logger,"Creando tripulante: %d de la patota id: %d ",*id,patotaId);
+		log_debug(logger,"Creando tripulante: %d de la patota id: %d ",*id,patotaId);
 		crearHiloTripulante(_tripulante);
 		free(id); //malloc linea 79 dentro de este while
 	}

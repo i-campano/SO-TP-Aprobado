@@ -39,24 +39,31 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 
 	log_trace(logger,"igualar_bitmap_contra_bloques: luego de limpiar");
-	calcular_bloques_libres();
+	calcular_bloques_libres_ONLY();
 
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 
 	pthread_mutex_lock(&mutex_archivos_bitacora);
-
+	bool saboteado = false;
 	for(int i=0; i<list_size(bloques_ocupados);i++){
 		int* bloque_ocupado = (int*)list_get(bloques_ocupados,i);
 		if(!bitarray_test_bit(superblock.bitmap,*bloque_ocupado)){
 			bitarray_set_bit(superblock.bitmap,*bloque_ocupado);
-			log_trace(logger,"igualar_bitmap_contra_bloques: el bit %d estaba distinto",*bloque_ocupado);
+			log_info(logger,"igualar_bitmap_contra_bloques: el bit %d estaba distinto",*bloque_ocupado);
+			saboteado = true;
 		}
+
+	}
+	if(saboteado){
+		log_info(logger,"Habia diferencias entre el bitmap y la metadata");
+	}else{
+		log_info(logger,"TODO OK: No habia diferencias entre el bitmap y la metadata");
 	}
 
 	pthread_mutex_unlock(&mutex_archivos_bitacora);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	log_trace(logger,"igualar_bitmap_contra_bloques: luego de igualar");
-	calcular_bloques_libres();
+	calcular_bloques_libres_ONLY();
 }
 
 void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
@@ -68,7 +75,7 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 		string_append_with_format(&aux, "%s", path_files);
 		char *resto_path = string_from_format("%s%s", archivo->clave,".ims");
 		string_append_with_format(&aux, "%s", resto_path );
-		log_info(logger,"%s",aux);
+		log_trace(logger,"%s",aux);
 		t_config * config = config_create(aux);
 		char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
 		char * cadena = string_new();
@@ -134,6 +141,8 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 		*valor =atoi(bloques_ocupados[i]);
 		list_add(lista_bloques,valor);
 		free(bloques_ocupados[i]);
+
+		//TODO :Free
 	}
 	free(cadena);
 
@@ -194,7 +203,8 @@ void contrastar_tamanio_archivos_de_recurso(){
 
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");
-	sabotaje_bitmap_superbloque();
+	sabotaje_bitmap_superbloque(); // Revisado
+
 	contrastar_tamanio_archivos_de_recurso();
 //	contrastar_cantidad_bloques();
 //	contrastar_size_vs_bloques_files();

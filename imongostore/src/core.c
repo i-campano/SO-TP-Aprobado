@@ -339,6 +339,7 @@ int calcular_bloques_libres_ONLY(){
 			resultado++;
 		}
 	}
+	log_info(logger,"calcular_bloques_libres: %d",resultado);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	return resultado;
 }
