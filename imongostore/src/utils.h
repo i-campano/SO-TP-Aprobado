@@ -35,6 +35,7 @@ char* conf_PUNTO_MONTAJE;
 uint32_t conf_PUERTO_IMONGO;
 uint32_t conf_TIEMPO_SICRONIZACION;
 char** conf_POSICIONES_SABOTAJE;
+int conf_TIEMPO_SABOTAJE;
 uint32_t conf_PUERTO_DISCORDIADOR;
 char* conf_IP_DISCORDIADOR;
 char* conf_ARCHIVO_OXIGENO_NOMBRE;
@@ -72,6 +73,8 @@ void consumirComida(uint32_t cantidad);
 void descartarBasura();
 char *devolverTarea(char* tarea);
 void ejecutarTarea(char* tarea, uint32_t cantidad);
+void tipoTarea(char* tarea,uint32_t id_trip);
+void ejecutar_tarea(char * tarea,char caracter_tarea,_archivo * archivo,uint32_t id_trip);
 ////////FUNCIONES DE TAREAS/////////
 
 /* Bitacora */

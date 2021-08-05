@@ -12,23 +12,27 @@ int main(void)
 
 
 	signal(SIGUSR1,informarSabotaje);
+//	signal(SIGTSTP,ctrlZ);
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
-	remove_files();
+//	remove_files();
 
 	check_directories_permissions(conf_PUNTO_MONTAJE);
 	check_directorios();
-
 
 	iniciar_super_block();
 
 	iniciar_blocks();
 
-//	crear_bitacora();
-
 	create_metadata_resource_files();
+
 	check_metadata_resources();
+
+	delete_bitacora_files(conf_PUNTO_MONTAJE);
+	liberar_bloques_bitacora_al_iniciar_fs();
+
+
 
 	fs_server = iniciarServidor(conf_PUERTO_IMONGO);
 
@@ -50,8 +54,17 @@ int main(void)
 
 void informarSabotaje(int signal){
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
-	//	_informar_sabotaje_a_discordiador();
-	fsck();
+		_informar_sabotaje_a_discordiador();
+//	fsck();
+}
+void ctrlZ(int signal){
+	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
+//		_informar_sabotaje_a_discordiador();
+//	calcular_md5("nacho");
+	obtener_todos_los_bloques_de_recursos_y_bitacora();
+	log_info(logger,"atrapando el ctrl z");
+	int libres = calcular_bloques_libres_ONLY();
+	log_info(logger,"Libres %s",string_itoa(libres));
 }
 
 void _informar_sabotaje_a_discordiador(){
@@ -132,6 +145,25 @@ void check_directories_permissions(char *mount_point) {
 
 //	check_readable_file(mount_point, FILE_METADATA);
 
+}
+
+void delete_bitacora_files(char *basedir) {
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_BITACORA);
+	string_append_with_format(&aux, "%s", path_files);
+	char * command = string_new();
+	string_append_with_format(&command, "rm -r %s*", aux);
+
+	system(command);
+	log_warning(logger, "El directorio bitacora esta limpio");
+
+	//TODO LIMPIAR BITMAP¿
+
+	free(path_files);
+	free(command);
+	free(aux);
 }
 
 void check_files_access(char *basedir, char *ask) {

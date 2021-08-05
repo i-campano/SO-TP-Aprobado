@@ -2,7 +2,7 @@
 
 
 
-t_bitarray * crear_bit_array(uint32_t cantBloques){
+t_bitarray * crear_bit_array_limpio(uint32_t cantBloques){
 
 	int tamanioBitarray=cantBloques/8;
 	if(cantBloques % 8 != 0){
@@ -21,6 +21,21 @@ t_bitarray * crear_bit_array(uint32_t cantBloques){
 	return bitarray;
 }
 
+t_bitarray * crear_bit_array(uint32_t cantBloques){
+
+	int tamanioBitarray=cantBloques/8;
+	if(cantBloques % 8 != 0){
+	  tamanioBitarray++;
+	 }
+
+	char* bits=malloc(tamanioBitarray);
+
+	t_bitarray * bitarray = bitarray_create_with_mode(bits,tamanioBitarray,MSB_FIRST);
+
+
+	return bitarray;
+}
+
 
 void exit_failure() {
 	perror("Error: ");
@@ -33,32 +48,60 @@ void iniciar_blocks(){
 	char *aux = NULL;
 	char *path_files = NULL;
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
-	string_append_with_format(&aux, "/%s","blocks.ims");
-	_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+	string_append_with_format(&aux, "%s","blocks.ims");
+
+	if (access(aux, R_OK | W_OK) != 0) {
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+		ftruncate(_blocks.file_blocks,1);
+		close(_blocks.file_blocks);
+		log_error(logger, "iniciar_blocks(): No se puede acceder al directorio %s", aux);
+	}
 
 	if (_blocks.file_blocks == (-1)) {
 		perror("open");
 		exit_failure();
 	}
-	ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
-	_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-	_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 
-	bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-	bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+	struct stat info;
+	bzero(&info, sizeof(struct stat));
+	FILE *fptr;
+	if (stat(aux, &info) != 0) {
+		log_error(logger, "iniciar_blocks(): No se puede hacer stat en el bitmap file");
+		exit_failure();
+	}
 
-	_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+	//TODO: VER SI MODIFICAR EL 50
+	if (info.st_size > 50) {
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT , mode);
+		log_info(logger,"iniciar_blocks(): Usando Blocks de FILE SYSTEM EXISTENTE");
+		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
+		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+		memcpy(_blocks.fs_bloques,_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
+	}else
+	{
+		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
+		log_info(logger,"iniciar_blocks(): Creando Blocks");
+		ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
+
+		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
+		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+
+		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
+
+		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
+	}
+	free(aux);
+	free(path_files);
+
 
 	pthread_mutex_init(&_blocks.mutex_blocks,NULL);
 
 }
-
-//void crear_bitacora(){
-//	if (access("bitacora", R_OK | W_OK) != 0) {
-//		mkdir("bitacora", 0755);
-//	}
-//}
 
 int write_blocks(char * cadena_caracteres,int indice) {
 
@@ -67,10 +110,6 @@ int write_blocks(char * cadena_caracteres,int indice) {
 	bzero(cad,superblock.tamanio_bloque);
 	char * cadena  = string_duplicate(cadena_caracteres);
 	memcpy(cad,(void*)cadena,string_length(cadena));
-//	int padding = superblock.tamanio_bloque - strlen(cadena_caracteres);
-//	char * pad = string_repeat('#',padding);
-//	string_append(&cadena,pad);
-	
 
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cad, superblock.tamanio_bloque);
 
@@ -79,12 +118,7 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
-
-//	int padding = superblock.tamanio_bloque - offset-strlen(cadena_caracteres);
-//	char * pad = string_repeat('#',padding);
 	char * cadena  = string_duplicate(cadena_caracteres);
-//	string_append(&cadena,pad);
-
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, (void*)cadena, string_length(cadena));
@@ -96,6 +130,7 @@ int clean_block(int indice) {
 	void * clean2 = malloc(superblock.tamanio_bloque);
 	bzero(clean2,superblock.tamanio_bloque);
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), clean2, superblock.tamanio_bloque);
+	free(clean2);
 
 	return 1;
 }
@@ -110,6 +145,14 @@ void * obtener_contenido_bloque(int indice) {
 	return bloque;
 }
 
+void * obtener_contenido_bloque_with_mutex(int indice) {
+	void * bloque = malloc(superblock.tamanio_bloque);
+	//TODO: DEL ORIGINAL O DE LA COPIA
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	memcpy(bloque,_blocks.fs_bloques + (indice*superblock.tamanio_bloque), superblock.tamanio_bloque);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	return bloque;
+}
 
 
 
@@ -126,6 +169,7 @@ void ordenar(t_list * bloques){
 			menorAMayor(primero,segundo);
 		}
 	}
+
 	list_sort(bloques, (void*) ordenar_blocks);
 }
 
@@ -167,12 +211,6 @@ void sincronizar_blocks(){
 
 		sleep(conf_TIEMPO_SINCRONIZACION);
 
-//		t_list * lista_bloques = list_create();
-//		obtener_todos_los_bloques_desde_metedata(lista_bloques);
-//		ordenar(lista_bloques);
-//
-//		mostrar_blocks_ims(lista_bloques,_blocks.fs_bloques,"   COPIA");
-//		mostrar_blocks_ims(lista_bloques,_blocks.original_blocks,"ORIGINAL");
 	}
 }
 
@@ -228,29 +266,39 @@ void iniciar_super_block(){
 	char *aux = NULL;
 	char *path_files = NULL;
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
-	string_append_with_format(&aux, "/%s","superblock.ims");
-
-	superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
-	ftruncate(superblock.file_superblock,tamanioFs);
-//	}
+	string_append_with_format(&aux, "%s","superblock.ims");
 
 
 
-	superblock.bitmap = crear_bit_array(superblock.cantidad_bloques);
+	if (access(aux, R_OK | W_OK) != 0) {
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		ftruncate(superblock.file_superblock,1);
+
+		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
+		bzero(superblock.bitmapstr,tamanioFs);
 
 
-	superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
-	bzero(superblock.bitmapstr,tamanioFs);
+		close(superblock.file_superblock);
+		log_error(logger, "iniciar_super_block(): No se puede acceder al directorio %s", aux);
+	}
 
-	superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
 
-	uint32_t cantidad_bloques_fs = *(uint32_t*)(superblock.bitmapstr);
-
+	struct stat info;
+	bzero(&info, sizeof(struct stat));
+	FILE *fptr;
+	if (stat(aux, &info) != 0) {
+		log_error(logger, "iniciar_super_block(): No se puede hacer stat en el bitmap file");
+		exit_failure();
+	}
 
 	//TODO : Buscar otra validacion para confirmar que existe un fs.
-	if(cantidad_bloques_fs!=superblock.cantidad_bloques || 1){
+	if (info.st_size == 1){
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		superblock.bitmap = crear_bit_array_limpio(superblock.cantidad_bloques);
+		superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
 		ftruncate(superblock.file_superblock,tamanioFs);
-		log_debug(logger,"Creando metadata de FS...");
+		log_debug(logger,"iniciar_super_block(): Creando metadata de FS...");
 
 
 		memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
@@ -260,34 +308,24 @@ void iniciar_super_block(){
 		memcpy(superblock.bitmapstr+(sizeof(uint32_t))*2, (superblock.bitmap->bitarray),tamanioBitarray);
 		msync(superblock.bitmapstr+ (sizeof(uint32_t))*2, tamanioFs, MS_SYNC);
 
-		log_debug(logger,"Metadata creada...");
+		log_debug(logger,"iniciar_super_block(): Metadata creada...");
 	}else{
-		log_debug(logger,"Usando FS existente...");
+		superblock.bitmap = crear_bit_array_limpio(superblock.cantidad_bloques);
+		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
+		superblock.bitmapstr = mmap ( NULL, tamanioFs, PROT_READ | PROT_WRITE, MAP_SHARED , superblock.file_superblock, 0 );
+
+		memcpy(superblock.bitmap->bitarray,superblock.bitmapstr+(sizeof(uint32_t))*2, tamanioBitarray);
+
+		log_debug(logger,"iniciar_super_block(): Usando FS existente...");
 	}
 
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
 
+	free(aux);
+	free(path_files);
+
 }
-
-//void liberarStorage(){
-//
-//	for(i=0;i<cantidadDePosiciones;i++){
-//
-//		if(bitarray_test_bit(bitArrayStorage,i)){
-//
-//			void * datos = (infoPosicion*) (superblock.bitmapstrl + i * superblock.tamanio_bloque);
-//			free(datos->porcionDeValor);
-//			//free(datos);
-//
-//			bitarray_clean_bit(bitArrayStorage, i);
-//		}
-//	}
-//
-//	free(superblock.bitmapstr);
-//
-//}
-
 
 int calcular_bloques_libres_ONLY(){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
@@ -359,26 +397,23 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 	string_append_with_format(&aux, "/%s%s", path_files,name_file);
 
 	if( access( aux, F_OK ) == 0 ) {
-		log_debug(logger,"Iniciando  existente");
+		log_debug(logger,"iniciar_archivo(): Iniciando  existente: %s",name_file);
 		(*archivo)->metadata = config_create(aux);
 	}else
 	{
 		log_debug(logger,"Creando archivo de recursos");
 		FILE * metadata = open(aux, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
 		(*archivo)->metadata = config_create(aux);
+		config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
+
+		config_set_value((*archivo)->metadata,"MD5","XXXX");
+		config_set_value((*archivo)->metadata,"SIZE","0");
+		config_set_value((*archivo)->metadata,"BLOCKS","[]");
+		config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
+
+		config_save((*archivo)->metadata);
 	}
 
-//	(*archivo)->metadata = config_create(name_file);
-
-
-	config_set_value((*archivo)->metadata,"CARACTER_LLENADO",caracter_llenado);
-
-	config_set_value((*archivo)->metadata,"MD5","XXXX");
-	config_set_value((*archivo)->metadata,"SIZE","0");
-	config_set_value((*archivo)->metadata,"BLOCKS","[]");
-	config_set_value((*archivo)->metadata,"BLOCK_COUNT","0");
-
-	config_save((*archivo)->metadata);
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
 
@@ -479,7 +514,10 @@ void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
 	}
 }
 
-uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
+uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo,uint32_t id_trip){
+	int tamanioCadenaAGuardar = string_length(cadenaAGuardar);
+
+	//TODO: si no hay lugar en el fs, no permitir que escriba..
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	uint32_t resultado;
@@ -530,6 +568,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo){
 
 		}
 	}
+	log_info(logger,"El tripulante %d genero %d recursos de %s",id_trip,tamanioCadenaAGuardar,archivo->clave);
 	log_trace(logger,"write_archivo()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
@@ -547,7 +586,8 @@ void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
 
 }
 
-void consumir_arch(_archivo * archivo,int cantidadAConsumir){
+void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
+	int cantidadOriginalAConsumir = cantidadAConsumir;
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
@@ -558,55 +598,64 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir){
 
 	int sizeUltimoBloque = size;
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
-
+	log_trace(logger,"consumir_arch(): sizeUltimoBloque: %d",sizeUltimoBloque);
+	log_trace(logger,"consumir_arch(): Size: %d",size);
 	void * contenidoBloque = NULL;
+	if(size>0){
 
-	int indice = atoi(bloque);
+		int indice = atoi(bloque);
 
-	pthread_mutex_lock(&_blocks.mutex_blocks);
-	log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
-	pthread_mutex_lock(&superblock.mutex_superbloque);
-	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
-	contenidoBloque = obtener_contenido_bloque(indice);
+		pthread_mutex_lock(&_blocks.mutex_blocks);
+		log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+		log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
+		contenidoBloque = obtener_contenido_bloque(indice);
 
-	int longitudBloque = 0 ;
+		log_debug(logger,"Size: %d",sizeUltimoBloque);
+		log_debug(logger,"Size: %d",size);
+		while((cantidadAConsumir>0)){
 
-	while((cantidadAConsumir>0)){
+			if(cantidadAConsumir>sizeUltimoBloque){
+				cantidadAConsumir-=sizeUltimoBloque;
+				remover_bloque(indice,archivo,sizeUltimoBloque);
+				cantidad_bloques--;
+				bloque = bloques[cantidad_bloques];
+				indice = atoi(bloque);
+				contenidoBloque = obtener_contenido_bloque(indice);
 
-		if(cantidadAConsumir>sizeUltimoBloque){
+				sizeUltimoBloque = superblock.tamanio_bloque;
 
-			cantidadAConsumir-=sizeUltimoBloque;
-			remover_bloque(indice,archivo,sizeUltimoBloque);
-			cantidad_bloques--;
-			bloque = bloques[cantidad_bloques];
-			indice = atoi(bloque);
-			contenidoBloque = obtener_contenido_bloque(indice);
 
-			sizeUltimoBloque = superblock.tamanio_bloque;
+			}
+			else if(cantidadAConsumir==sizeUltimoBloque){
+				cantidadAConsumir-=sizeUltimoBloque;
+				remover_bloque(indice,archivo,sizeUltimoBloque);
+			}
+			else if (cantidadAConsumir<sizeUltimoBloque){
+				actualizar_metadata_borrado(archivo,cantidadAConsumir);
+
+				contenidoBloque = string_substring_until(contenidoBloque,sizeUltimoBloque-cantidadAConsumir);
+
+				write_blocks(contenidoBloque,indice);
+				cantidadAConsumir=0;
+			}
+
 		}
-		else if(cantidadAConsumir==sizeUltimoBloque){
-			cantidadAConsumir-=sizeUltimoBloque;
-			remover_bloque(indice,archivo,sizeUltimoBloque);
-		}
-		else if (cantidadAConsumir<sizeUltimoBloque){
-			actualizar_metadata_borrado(archivo,cantidadAConsumir);
-
-			contenidoBloque = string_substring_until(contenidoBloque,sizeUltimoBloque-cantidadAConsumir);
-
-			write_blocks(contenidoBloque,indice);
-			cantidadAConsumir=0;
-		}
-
+		log_info(logger,"El tripulante %d consumio %d recursos de %s", id_trip,cantidadOriginalAConsumir,archivo->clave);
+		log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
+		pthread_mutex_unlock(&(superblock.mutex_superbloque));
+		pthread_mutex_unlock(&(_blocks.mutex_blocks));
+		log_trace(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
 	}
-	log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
-	pthread_mutex_unlock(&(superblock.mutex_superbloque));
-	pthread_mutex_unlock(&(_blocks.mutex_blocks));
-	log_trace(logger,"CONSUMIR - MUTEX_BLOCKS - BLOCKED");
+	else{
+		log_info(logger,"El tripulante %d quiso consumir: %s pero no habia recursos", id_trip,archivo->clave);
+		log_debug(logger,"consumir_arch(): NO HAY RECURSOS PARA CONSUMIR");
+	}
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
 
-void descartar_basura(_archivo * archivo){
+void descartar_basura(_archivo * archivo,uint32_t id_trip){
 	pthread_mutex_lock(&(archivo->mutex_file));
 
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
@@ -619,27 +668,31 @@ void descartar_basura(_archivo * archivo){
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
 
 	void * contenidoBloque = NULL;
+	if(size!=0){
+		int indice = atoi(bloque);
 
-	int indice = atoi(bloque);
+		pthread_mutex_lock(&_blocks.mutex_blocks);
+		log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+		log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
+		contenidoBloque = obtener_contenido_bloque(indice);
 
-	pthread_mutex_lock(&_blocks.mutex_blocks);
-	log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
-	pthread_mutex_lock(&superblock.mutex_superbloque);
-	log_trace(logger,"consumir_arch() - MUTEX_SUPERBLOQUE - BLOCKED");
-	contenidoBloque = obtener_contenido_bloque(indice);
+		while((cantidad_bloques>=0)){
 
-	while((cantidad_bloques>=0)){
+				bloque = bloques[cantidad_bloques];
+				indice = atoi(bloque);
+				remover_bloque(indice,archivo,sizeUltimoBloque);
+				cantidad_bloques--;
 
-			bloque = bloques[cantidad_bloques];
-			indice = atoi(bloque);
-			remover_bloque(indice,archivo,sizeUltimoBloque);
-			cantidad_bloques--;
-
+		}
+		log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
+		pthread_mutex_unlock(&(superblock.mutex_superbloque));
+		pthread_mutex_unlock(&(_blocks.mutex_blocks));
+		log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
+		log_info(logger,"El tripulante %d descarto la basura!", id_trip);
+	}else{
+		log_info(logger,"Se quiso descartar la basura, pero estaba todo limpio!");
 	}
-	log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
-	pthread_mutex_unlock(&(superblock.mutex_superbloque));
-	pthread_mutex_unlock(&(_blocks.mutex_blocks));
-	log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
 	pthread_mutex_unlock(&(archivo->mutex_file));
 }
 
@@ -661,12 +714,13 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 		free(bloques_ocupados[i]);
 
 	}
-	log_info(logger,"Tamanio real del archivo de recursos %d",size_archivo);
+	log_debug(logger,"obtener_tamanio_archivo_de_recurso(): Tamanio real del archivo de recursos %d",size_archivo);
 
 	int metadata_size = config_get_int_value(archivo->metadata,"SIZE");
 
 	if(metadata_size!=size_archivo){
-		log_info(logger,"El tamanio del archivo fue saboteado, por lo que tuvo que ser restaurado");
+		log_debug(logger,"obtener_tamanio_archivo_de_recurso(): El tamanio del archivo fue saboteado, por lo que tuvo que ser restaurado");
+		log_info(logger,"%s fue saboteado, se restauro el tamaño de %d -> %d ",name_file,metadata_size, size_archivo);
 		config_set_value(archivo->metadata,"SIZE",string_itoa(size_archivo));
 		config_save(archivo->metadata);
 	}
@@ -676,4 +730,103 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 	return size_archivo;
 }
 
+void obtener_todos_los_bloques_de_recursos_metedata(t_list* lista_bloques) {
+	bloques_ocupados_file(archivo_oxigeno, lista_bloques);
+	bloques_ocupados_file(archivo_comida, lista_bloques);
+	bloques_ocupados_file(archivo_basura, lista_bloques);
+
+}
+
+void obtener_todos_los_bloques_de_recursos_y_bitacora(){
+	t_list * lista_bloques = list_create();
+
+
+	obtener_todos_los_bloques_desde_metedata(lista_bloques);
+	mostrar_bloques_ocupados(lista_bloques);
+
+
+}
+
+void mostrar_bloques_ocupados(t_list * bloques_ocupados){
+
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	char * string_bloques_ocupados = string_new();
+	int ocupados = 0;
+	//TODO EL -2 QUE ONDA
+	for(int i=0; i<cantidadDePosiciones-2;i++){
+		if(encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
+			ocupados++;
+			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+		}
+	}
+	log_debug(logger," Hay %d bloques ocupados son:",ocupados);
+	log_debug(logger,"%s",string_bloques_ocupados);
+	free(string_bloques_ocupados);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+}
+
+void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
+
+	int cantidadDePosiciones = superblock.cantidad_bloques;
+	pthread_mutex_lock(&superblock.mutex_superbloque);
+	pthread_mutex_lock(&_blocks.mutex_blocks);
+	char * string_bloques_ocupados = string_new();
+	int ocupados = 0;
+	//TODO EL -2 QUE ONDA
+	for(int i=0; i<cantidadDePosiciones-2;i++){
+		if(!encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
+			bitarray_clean_bit(superblock.bitmap,i);
+			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
+		}else{
+			ocupados++;
+			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+		}
+
+	}
+	log_debug(logger,"Se liberaron los bloques de bitacora -> Hay %d bloques de recursos ocupados son:",ocupados);
+	log_debug(logger,"%s",string_bloques_ocupados);
+	free(string_bloques_ocupados);
+	pthread_mutex_unlock(&_blocks.mutex_blocks);
+	pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+}
+
+bool encontrar_bloque_para_iniciar_fs(t_list * lista_bloques, int i){
+	bool condicion_bloque(void *bloque){
+		int * bloque_n = (int*)bloque;
+		return  *bloque_n == i;
+	}
+	return list_any_satisfy(lista_bloques,condicion_bloque);
+}
+
+
+
+void liberar_bloques_bitacora_al_iniciar_fs(){
+	t_list * lista_bloques = list_create();
+
+
+	obtener_todos_los_bloques_de_recursos_metedata(lista_bloques);
+
+
+	igualar_bitmap_contra_bloques_al_iniciar_fs(lista_bloques);
+
+}
+
+void calcular_md5(char * cadena){
+
+    char * command = string_from_format("echo -n %s | md5sum | cut -d' ' -f1 > md5.txt",cadena);
+    log_info(logger,"%s",command);
+    system(command);
+
+    char buff[1024];
+    FILE *f = fopen("md5.txt", "r");
+    fgets(buff, 1024, f);
+    log_info(logger,"%s",buff);
+    fclose(f);
+
+}
 

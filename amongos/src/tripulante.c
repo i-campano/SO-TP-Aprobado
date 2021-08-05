@@ -79,13 +79,12 @@ void *labor_tripulante_new(void * trip){
 
 	log_info(logger,"Hilo tripulante CREADO: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
 
-
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
 	sem_init(&tripulante->exec,0,0);
 	sem_init(&tripulante->bloq,0,0);
-
-//	tripulante->instrucciones_ejecutadas = 0;
+	tripulante->block_io_rafaga = 0;
+	tripulante->elegido = false;
 
 	int firstMove = 0;
 	int moveUp = 0;
@@ -106,8 +105,8 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	list_add(conexiones,socketMongo);
-	list_add(conexiones,socketRam);
+	list_add(conexiones,&socketMongo);
+	list_add(conexiones,&socketRam);
 
 	log_info(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
@@ -120,23 +119,7 @@ void *labor_tripulante_new(void * trip){
 	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
 	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
 	log_info(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
-//	sendDeNotificacion(socketRam,tripulante->patota_id);
-//
-//
-//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[0]));
-//	sendDeNotificacion(socketRam,atoi(coordenadas_posicion_inicial[1]));
-//	free(coordenadas_posicion_inicial);
-//
-//
-//
-//	if(creado==TRIPULANTE_CREADO){
-//
-//		log_debug(logger,"T%d - P%d : TRIPULANTE CREADO OK", tripulante->id,tripulante->patota_id);
-//	}
 
-
-
-//	actualizar_estado(socketRam,tripulante,NEW);
 	sem_wait(&tripulante->ready);
 
 	log_info(logger,"Pido la proxima tarea");
@@ -159,31 +142,133 @@ void *labor_tripulante_new(void * trip){
 	tripulante->instrucciones_ejecutadas = 0;
 	//int tareas_pedidas = 0;
 	int rafaga = 0;
-
 	string_append(&claveNueva,tarea);
-
+//	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
+	if (sabotaje){
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
+	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
-		enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
-
-
-
-
-		log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
-		
 		moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
 		while(tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea){
+			if(!sabotaje){
+				sem_wait(&detenerReaunudarEjecucion);
+				sem_post(&detenerReaunudarEjecucion);
 
-			sem_wait(&detenerReaunudarEjecucion);
-			sem_post(&detenerReaunudarEjecucion);
+			}
+
+			if (sabotaje && !tripulante->elegido){
+				sem_wait(&detenerReaunudarEjecucion);
+				sem_post(&detenerReaunudarEjecucion);
+				log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
+			}
+			if(sabotaje && tripulante->elegido){
+				int movXS = ubic_sab_x;
+				int movYS = ubic_sab_y;
+				int firstMoveS = 0;
+				int moveRightS = 0;
+				int moveUpS = 0;
+				int moveBoundS = abs(movXS-tripulante->ubi_x) +abs(movYS-tripulante->ubi_y);
+				log_debug(logger,"T%d - P%d: Comienza a resolver sabotaje", tripulante->id,tripulante->patota_id);
+				while(moveBoundS>0){
+					sleep(1);
+					if( firstMoveS == 0){
+						firstMoveS = 1;
+						moveRightS = movXS -tripulante->ubi_x;;
+						moveUpS =  movYS -tripulante->ubi_y;
+					}
+					if(moveRightS!=0){
+						if(movXS>tripulante->ubi_x){
+							tripulante->ubi_x++;
+							moveRightS--;
+						}else if(movXS<tripulante->ubi_x ){
+							tripulante->ubi_x--;
+							moveRightS++;
+						}
+					}else if(moveUpS!=0){
+						 if ((movYS>tripulante->ubi_y)  ){
+							tripulante->ubi_y++;
+							moveUpS--;
+						}else if (movYS<tripulante->ubi_y  ){
+							tripulante->ubi_y--;
+							moveUpS++;
+						}
+					}
+					char * evento_ubicacion = string_new();
+					string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
+					log_debug(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
+					enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
+					free(evento_ubicacion);
+					actualizar_ubicacion(socketRam,tripulante);
+					moveBoundS--;
+
+				}
+				char * evento_sabotaje = string_new();
+				string_append_with_format(&evento_sabotaje,"Resolvio sabotaje en x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
+				enviar_evento_bitacora(socketMongo,tripulante->id,evento_sabotaje);
+				free(evento_sabotaje);
+				log_info(logger,"T%d - P%d: Resolviendo sabotaje", tripulante->id,tripulante->patota_id);
+				sendDeNotificacion(socketMongo,FSCK);
+				uint32_t fin = recvDeNotificacion(socketMongo);
+				if(fin == SABOTAJE_RESUELTO){
+					log_debug(logger,"T%d - P%d: Resolvio el sabotaje", tripulante->id,tripulante->patota_id);
+				}else{
+					log_debug(logger,"T%d - P%d: Error al resolver el sabotaje", tripulante->id,tripulante->patota_id);
+				}
+				tripulante->elegido = true;
+				sabotaje = 0;
+
+				tripulante->instrucciones_ejecutadas = 0; // TODO: VER
+				firstMove = 0;
+				moveUp = 0;
+				moveRight = 0;
+
+				int tiempo_tarea2 = 0;
+				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea2);
+
+				moveBound = abs(movX-tripulante->ubi_x) +abs(movY-tripulante->ubi_y);
+
+
+				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
+				tripulante->estado = 'B';
+				tripulante->block_io_rafaga = 0;
+				pthread_mutex_lock(&mutex_cola_ejecutados);
+				queue_push(cola_ejecutados,tripulante);
+				pthread_mutex_unlock(&mutex_cola_ejecutados);
+				sem_post(&colaEjecutados);
+				sem_post(&exec);
+
+				//ACA INVERTIDO PARA QUE ME DIGA EFECTIVAMENTE CUANDO ESTA EN BLOCK
+				actualizar_estado(socketRam,tripulante,BLOCK);
+
+				tripulante->elegido = false;
+				sem_post(&detenerReaunudarEjecucion);
+
+
+				sem_wait(&tripulante->bloq);
+
+
+
+
+				sem_wait(&tripulante->ready);
+				actualizar_estado(socketRam,tripulante,READY);
+
+				sem_wait(&tripulante->exec);
+				actualizar_estado(socketRam,tripulante,EXEC);
+
+
+
+			}
+
+
 
 			tripulante->instrucciones_ejecutadas++;
 
 			sleep(CICLO_CPU);
 
-			//La 'tarea 3' es de entrada salida
 			if(esIo && tripulante->instrucciones_ejecutadas>moveBound){
 
 				log_debug(logger,"T%d - P%d    ******   IO BOUND    *****", tripulante->id,tripulante->patota_id);
@@ -223,15 +308,20 @@ void *labor_tripulante_new(void * trip){
 				actualizar_estado(socketRam,tripulante,READY);
 
 				pthread_mutex_lock(&mutex_cola_ejecutados);
+				if(!sabotaje){
 				queue_push(cola_ejecutados,tripulante);
+				}
 				pthread_mutex_unlock(&mutex_cola_ejecutados);
-				sem_post(&colaEjecutados);
-				sem_post(&exec);
-				sem_wait(&tripulante->exec);
-				actualizar_estado(socketRam,tripulante,EXEC);
+				if(!sabotaje){
+					sem_post(&colaEjecutados);
+					sem_post(&exec);
+					sem_wait(&tripulante->exec);
+					actualizar_estado(socketRam,tripulante,EXEC);
 
 
-				rafaga = 0;
+					rafaga = 0;
+				}
+
 			}
 
 
@@ -273,10 +363,9 @@ void *labor_tripulante_new(void * trip){
 				enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
 				free(evento_ubicacion);
 			}else if(!esIo && tripulante->instrucciones_ejecutadas>moveBound){
+//				log_info(logger,"T%d - P%d : COMIENZA A EJECUTAR: %s", tripulante->id,tripulante->patota_id, tarea);
 				log_info(logger,"T%d - P%d  															++++++++   	T%d - P%d :	CPU BOUND  [TASK]   +++++++", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			}
-
-
 
 
 			log_trace(logger,"T%d - P%d : CICLO TERMINADO", tripulante->id,tripulante->patota_id);
@@ -285,8 +374,10 @@ void *labor_tripulante_new(void * trip){
 
 		}
 		//Fin tarea
+			log_info(logger,"T%d - P%d : TERMINO TAREA: %s", tripulante->id,tripulante->patota_id, tarea);
+			enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
 			tarea = pedir_tarea(socketRam, tripulante);
-			log_trace(logger,"Tarea Recibida %s",tarea);
+			log_info(logger,"T%d - P%d : Tarea Recibida: %s", tripulante->id,tripulante->patota_id, tarea);
 			if(strcmp(tarea,"FIN\0")!=0){
 				parsear_tarea(tarea,&movX,&movY,&esIo,&tiempo_tarea);
 				tripulante->instrucciones_ejecutadas = 0;

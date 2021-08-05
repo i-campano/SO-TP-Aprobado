@@ -2,6 +2,7 @@
 #define UTILS_H_
 
 #include<stdio.h>
+#include<math.h>
 #include<stdlib.h>
 #include<signal.h>
 #include<unistd.h>
@@ -17,7 +18,6 @@
 #include <semaphore.h>
 #include "tripulante.h"
 #include "protocolo.h"
-
 
 char* IP_MONGO;
 char* IP_MIRAM;
@@ -87,7 +87,7 @@ pthread_mutex_t mutexHilos;
 
 sem_t iniciar_planificacion;
 sem_t detenerReaunudarEjecucion;
-
+sem_t sabotajeEnCurso;
 
 //sem de tipo cola, N = grado multiprogramacion
 sem_t exec;
@@ -122,7 +122,8 @@ typedef struct
 	void* stream;
 } t_buffer;
 
-
+int ubic_sab_x;
+int ubic_sab_y;
 
 void iniciar_configuracion();
 
