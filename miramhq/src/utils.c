@@ -6,7 +6,6 @@
 void iniciarEstructurasAdministrativas(){
 	//lista_pcb = list_create();
 	lista_tcb = list_create();
-
 	pthread_mutex_init(&pthread_mutex_tcb_list,NULL);
 
 	//pthread_mutex_init(&pthread_mutex_pcb_list,NULL);
@@ -175,6 +174,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			int dy = y - tcb->y;
 			item_desplazar(nivel,tcb->id, dx,dy);
 			}
+			sem_post(&actualizarMapa);
 			tcb->x = x;
 			tcb->y = y;
 
@@ -202,7 +202,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger,"\n");
 			log_info(logger,"--------------   Fin tripulante -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
-			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
+			eliminar_tripulante(tabla,direccionLogica);
 			//eliminarTabla(tabla,confDatos.esquema);
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			pthread_mutex_unlock(&accesoListaTablas);
@@ -241,7 +241,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			log_info(logger,"\n");
 			log_info(logger,"--------------   Expulsar tripulante -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
-			uint32_t liberado = eliminar_tripulante(tabla,direccionLogica);
+			eliminar_tripulante(tabla,direccionLogica);
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			if(mapaActivo){
 				item_borrar(nivel,id_trip);

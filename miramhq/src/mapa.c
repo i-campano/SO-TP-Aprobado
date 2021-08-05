@@ -17,10 +17,10 @@ void* mapa(void* arg) {
 
 	nivel = nivel_crear("Nave_AFIRM");
 
-
+	sem_init(&actualizarMapa,0,0);
 	while ( 1 ) {
 		nivel_gui_dibujar(nivel);
-
+		sem_wait(&actualizarMapa);
 		if(err) {
 			printf("WARN: %s\n", nivel_gui_string_error(err));
 		}

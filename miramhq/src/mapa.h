@@ -6,12 +6,13 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
-
+#include "utils.h"
 
 int err;
 NIVEL* nivel;
 int cols, rows;
 pthread_t mapaHilo;
+sem_t actualizarMapa;
 int iniciar_mapa(void);
 void* mapa(void* arg);
 int crear_tareas(char* tareas);
