@@ -73,6 +73,8 @@ void consumirComida(uint32_t cantidad);
 void descartarBasura();
 char *devolverTarea(char* tarea);
 void ejecutarTarea(char* tarea, uint32_t cantidad);
+void tipoTarea(char* tarea,uint32_t id_trip);
+void ejecutar_tarea(char * tarea,char caracter_tarea,_archivo * archivo,uint32_t id_trip);
 ////////FUNCIONES DE TAREAS/////////
 
 /* Bitacora */

@@ -22,15 +22,15 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
 	path_files = string_duplicate(conf_PATH_BITACORA);
 	string_append_with_format(&aux, "%s%s", path_files,resto_path);
-	log_info(logger,aux);
+	log_trace(logger,"iniciar_archivo_bitacora(): Ruta archivo bitacora -> %s",aux);
 
 	if( access( aux, F_OK ) == 0 ) {
-		log_debug(logger,"YA EXISTE ARCHIVO BITACORA para: %s", tripulante);
+		log_debug(logger,"iniciar_archivo_bitacora(): YA EXISTE ARCHIVO BITACORA : %s", tripulante);
 		//Si tengo acceso al archivo, creo el config
 		archivo->metadata = config_create(aux);
 	}else
 	{
-		log_debug(logger,"CREO NUEVO ARCHIVO BITACORA para: %s", tripulante);
+		log_debug(logger,"iniciar_archivo_bitacora(): CREO NUEVO ARCHIVO BITACORA : %s", tripulante);
 		FILE * metadata = fopen(aux,"a+");
 		close(metadata);
 		archivo->metadata = config_create(aux);
@@ -47,7 +47,7 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	int c = fgetc(metadata);
 	if (c == EOF) {
 
-		log_debug(logger,"ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
+		log_debug(logger,"iniciar_archivo_bitacora(): ESTA VACIO EL ARCHIVO BITACORA DE: %s", tripulante);
 		config_set_value(archivo->metadata,"SIZE","0");
 		config_set_value(archivo->metadata,"BLOCKS","[]");
 		config_save_in_file(archivo->metadata,aux);
@@ -56,13 +56,10 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	} else {
 	    ungetc(c, metadata);
 	}
-
-
-
-
+	free(path_files);
+	free(aux);
 
 	pthread_mutex_init(&((archivo)->mutex_file), NULL);
-
 
 	return archivo;
 
@@ -264,7 +261,7 @@ char * obtener_bitacora(int n_tripulante){
 	aux = string_duplicate(conf_PUNTO_MONTAJE);
 	path_files = string_duplicate(conf_PATH_BITACORA);
 	string_append_with_format(&aux, "%s%s", path_files,path);
-	log_info(logger,aux);
+	log_trace(logger,"Ruta de bitacora pedida: %s",aux);
 
 	pthread_mutex_lock(&mutex_archivos_bitacora);
 	_archivo_bitacora * archivo_bit = find_bitacora(archivos_bitacora,clave);
@@ -272,8 +269,8 @@ char * obtener_bitacora(int n_tripulante){
 
 	pthread_mutex_lock(&(archivo_bit->mutex_file));
 	t_config * config = config_create(aux);
-	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
-	char * cadena = string_new();
+	char ** bloques_ocupados = config_get_array_value(config,"BLOCKS"); // TODO: LIBERAR EL DOBLE PUNTERO CON FUNCION DE MARTIN
+	char * cadena = string_new();//TODO : ESTE FREE SE HACE¿ COMO ¿
 	//TODO: sacar este mutex ¿
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
@@ -286,10 +283,11 @@ char * obtener_bitacora(int n_tripulante){
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 //	free(cadena);
 	free(aux);
+	free(path_files);
 	config_destroy(config);
 
 	pthread_mutex_unlock(&(archivo_bit->mutex_file));
-	log_info(logger,"BITACORA: %s",cadena);
+	log_debug(logger,"obtener_bitacora(): Contenido de Bitacora pedida: %s",cadena);
 	return cadena;
 }
 
