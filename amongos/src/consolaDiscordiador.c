@@ -40,9 +40,8 @@ void leer_consola() {
 			log_info(logger,"REANUDAR");
 			log_info(logger,"DETENER");
 			log_info(logger,"REANUDAR");
-			log_info(logger,"PËDIR_BITACORA N");
+			log_info(logger,"PEDIR_BITACORA N");
 			log_info(logger,"AYUDA");
-			sem_post(&iniciar_planificacion);
 		}
 		else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
 				log_info(logger,"PEDIR_BITACORA! ");

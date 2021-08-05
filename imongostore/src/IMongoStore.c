@@ -97,19 +97,7 @@ void remove_files(){
 	log_info(logger,"Finished deleted files");
 }
 
-void prueba_func_core_ejecucion2(){
-	int libres = calcular_bloques_libres();
-	log_info(logger,"libres = %d",libres);
 
-	write_archivo("1244",archivo_oxigeno);
-
-	consumir_arch(archivo_oxigeno,3);
-
-
-
-	libres = calcular_bloques_libres();
-	log_info(logger,"libres = %d",libres);
-}
 
 
 void prueba_func_core_ejecucion(){

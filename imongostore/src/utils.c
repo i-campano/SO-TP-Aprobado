@@ -110,7 +110,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			case EJECUTAR_TAREA:{
 				char * tarea = recibirString(socket);
 				uint32_t id_trip = recvDeNotificacion(socket);
-				log_info(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
+				log_debug(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				tipoTarea(tarea,id_trip);
 				sendDeNotificacion(socket,TAREA_EJECUTADA);
 

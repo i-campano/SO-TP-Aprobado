@@ -586,6 +586,33 @@ void remover_bloque(int indice,_archivo * archivo, int cantidadAConsumir){
 
 }
 
+void actualizar_metadata_elimina_bloque_para_descartar(_archivo * archivo,int cantidadABorrar){
+
+	char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
+	int block_count = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
+	int size = config_get_int_value(archivo->metadata,"SIZE");
+	blocks[block_count-1]=NULL;
+
+	char * bloques_str = array_to_string(blocks);
+
+	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
+	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
+
+	config_save(archivo->metadata);
+}
+
+
+void remover_bloque_descartar(int indice,_archivo * archivo, int cantidadAConsumir){
+
+	bitarray_clean_bit(superblock.bitmap,indice);
+
+	clean_block(indice);
+
+	actualizar_metadata_elimina_bloque_para_descartar(archivo,cantidadAConsumir);
+
+}
+
+
 void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 	int cantidadOriginalAConsumir = cantidadAConsumir;
 	pthread_mutex_lock(&(archivo->mutex_file));
@@ -593,6 +620,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 	char ** bloques = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	int size = config_get_int_value(archivo->metadata,"SIZE");
+	int excedenteAConsumir = cantidadOriginalAConsumir - size;
 	cantidad_bloques--;
 	char * bloque = bloques[cantidad_bloques];
 
@@ -601,6 +629,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 	log_trace(logger,"consumir_arch(): sizeUltimoBloque: %d",sizeUltimoBloque);
 	log_trace(logger,"consumir_arch(): Size: %d",size);
 	void * contenidoBloque = NULL;
+	log_info(logger,"El tripulante %d quiere consumir %d recursos de %s. ",id_trip,cantidadAConsumir,archivo->clave);
 	if(size>0){
 
 		int indice = atoi(bloque);
@@ -613,12 +642,18 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 
 		log_debug(logger,"Size: %d",sizeUltimoBloque);
 		log_debug(logger,"Size: %d",size);
-		while((cantidadAConsumir>0)){
+		while((cantidadAConsumir>0 && cantidad_bloques >= 0)){
 
 			if(cantidadAConsumir>sizeUltimoBloque){
+
 				cantidadAConsumir-=sizeUltimoBloque;
 				remover_bloque(indice,archivo,sizeUltimoBloque);
 				cantidad_bloques--;
+				if(cantidad_bloques < 0 ){
+					log_debug(logger,"El tripulante %d quiso consumir %d %s mas de los que habia disponibles",id_trip,excedenteAConsumir,archivo->clave);
+					log_info(logger,"Habia %d %s. El tripulante %d consumio la totalidad de los recursos de %s disponibles.",size,archivo->clave,id_trip,archivo->clave);
+					break;
+				}
 				bloque = bloques[cantidad_bloques];
 				indice = atoi(bloque);
 				contenidoBloque = obtener_contenido_bloque(indice);
@@ -641,7 +676,10 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 			}
 
 		}
-		log_info(logger,"El tripulante %d consumio %d recursos de %s", id_trip,cantidadOriginalAConsumir,archivo->clave);
+		if(excedenteAConsumir<=0){
+			log_info(logger,"El tripulante %d consumio %d recursos de %s", id_trip,cantidadOriginalAConsumir,archivo->clave);
+		}
+
 		log_trace(logger,"consumir_arch()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 		pthread_mutex_unlock(&(superblock.mutex_superbloque));
 		pthread_mutex_unlock(&(_blocks.mutex_blocks));
@@ -663,14 +701,13 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	cantidad_bloques--;
 	char * bloque = bloques[cantidad_bloques];
-
+	log_trace(logger,"Cantidad de basura: %d",size);
 	int sizeUltimoBloque = size;
 	while(sizeUltimoBloque>superblock.tamanio_bloque) sizeUltimoBloque-=superblock.tamanio_bloque;
-
+	log_trace(logger,"Cantidad de basura del ultimo bloque: %d",sizeUltimoBloque);
 	void * contenidoBloque = NULL;
 	if(size!=0){
 		int indice = atoi(bloque);
-
 		pthread_mutex_lock(&_blocks.mutex_blocks);
 		log_trace(logger,"consumir_arch() - MUTEX_BLOCKS - BLOCKED");
 		pthread_mutex_lock(&superblock.mutex_superbloque);
@@ -681,17 +718,19 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 
 				bloque = bloques[cantidad_bloques];
 				indice = atoi(bloque);
-				remover_bloque(indice,archivo,sizeUltimoBloque);
+				remover_bloque_descartar(indice,archivo,sizeUltimoBloque);
 				cantidad_bloques--;
 
 		}
+		config_set_value(archivo->metadata,"SIZE",string_itoa(0));
+		config_save(archivo->metadata);
 		log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 		pthread_mutex_unlock(&(superblock.mutex_superbloque));
 		pthread_mutex_unlock(&(_blocks.mutex_blocks));
 		log_trace(logger,"DESCARTAR - MUTEX_BLOCKS - BLOCKED");
 		log_info(logger,"El tripulante %d descarto la basura!", id_trip);
 	}else{
-		log_info(logger,"Se quiso descartar la basura, pero estaba todo limpio!");
+		log_info(logger,"El tripulante %d quiso descartar la basura, pero estaba todo limpio!",id_trip);
 	}
 	pthread_mutex_unlock(&(archivo->mutex_file));
 }
