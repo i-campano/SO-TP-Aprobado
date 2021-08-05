@@ -11,39 +11,45 @@ void leer_consola() {
 	log_info(logger,"INGRESE UN COMANDO: ");
 
 	char* leido = readline(">");
-	while(strncmp(leido, "TERM", 4) != 0) {
+	while(strncmp(leido, "TERMINAR", 7) != 0) {
 		log_info(logger, leido);
 
 		if(strncmp(leido, "DETENER", 2) == 0){
-			log_info(logger,"PLANIFICACION DETENIDA !!!: ");
+			log_info(logger,"leer_consola(): PLANIFICACION DETENIDA !!!: ");
 			sem_wait(&detenerReaunudarEjecucion);
 		}
-		else if(strncmp(leido, "ACTUALIZACIONES_MONGO", 1) == 0){
-			log_info(logger,"actualizaciones mongo activado !!!: ");
-			sem_post(&activar_actualizaciones_mongo);
-		}
-		else if(strncmp(leido, "MONGO_DETENER", 5) == 0){
-			log_info(logger,"actualizaciones mongo detenido!!!: ");
-			sem_wait(&activar_actualizaciones_mongo);
-		}
-		else if(strncmp(leido, "REANUDAR", 1) == 0){
-			log_info(logger,"PLANIFICACION REANUDADA !!!: ");
+		else if(strncmp(leido, "REANUDAR", 2) == 0){
+			log_debug(logger,"leer_consola(): PLANIFICACION REANUDADA !!!: ");
+			log_info(logger,"PLANIFICACION REANUDADA!: ");
 			sem_post(&detenerReaunudarEjecucion);
 		}
-		else if(strncmp(leido, "LISTAR_TRIP", 1) == 0){
-			log_info(logger,"LISTA TRIPULANTES----------------------: ");
+		else if(strncmp(leido, "LISTAR_TRIP", 7) == 0){
+			log_debug(logger,"leer_consola(): LISTAR TRIPULANTES");
+			log_info(logger,"------LISTA TRIPULANTES----------------------: ");
 			hilo_mostrar_tripulantes();
 		}
-		else if(strncmp(leido, "PLANIFICACION", 5) == 0){
-			log_info(logger,"PLANIFICACION INICIADA !!!: ");
+		else if(strncmp(leido, "PLANIFICAR", 9) == 0){
+			log_debug(logger,"PLANIFICACION INICIADA !!!: ");
+			log_info(logger,"PLANIFICACION INICIADA! ");
 			sem_post(&iniciar_planificacion);
-
+		}
+		else if(strncmp(leido, "AYUDA", 5) == 0){
+			log_info(logger,"INICIAR_PATOTA -> Ej : INICIAR_PATOTA plantas.txt 2 12 1|2");
+			log_info(logger,"PLANIFICAR");
+			log_info(logger,"LISTAR_TRIP");
+			log_info(logger,"REANUDAR");
+			log_info(logger,"DETENER");
+			log_info(logger,"REANUDAR");
+			log_info(logger,"PËDIR_BITACORA N");
+			log_info(logger,"AYUDA");
+			sem_post(&iniciar_planificacion);
 		}
 		else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
-				log_info(logger,"PEDIR_BITACORA !!!: ");
+				log_info(logger,"PEDIR_BITACORA! ");
 				char ** parametros = string_n_split(leido,2," ");
 				sendDeNotificacion(socketServerIMongoStore,PEDIR_BITACORA);
 				sendDeNotificacion(socketServerIMongoStore,atoi(parametros[1]));
+				//TODO FREE
 
 		}else if(strncmp(leido, "INICIAR_PATOTA", 14) == 0){
 			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 12 1|2
@@ -93,6 +99,13 @@ void leer_consola() {
 	free(leido);
 }
 
+int longitud_array(char ** array){
+	int i=0;
+	while(array[i]!=NULL){
+		i++;
+	}
+	return i;
+}
 
 void escuchoIMongo() {
 	log_info(logger,"escuchoIMongo(): Escuchando OK");
@@ -125,7 +138,17 @@ void escuchoIMongo() {
 		else if(nroNotificacion==ENVIAR_BITACORA){
 			//Recibe informacion de bitacora
 			char * bitacora = recibirString(socketServerIMongoStore);
-			log_info(logger,"%s",bitacora);
+			char ** bitacora_logs = string_split(bitacora,"."); //TODO : liberar
+			char * bitacora_salto_de_linea = string_new();
+			log_info(logger,"BITACORA PEDIDA:");
+			for(int i = 0;i<longitud_array(bitacora_logs);i++){
+				string_append(&bitacora_salto_de_linea,bitacora_logs[i]);
+				string_append(&bitacora_salto_de_linea,"\n");
+			}
+			printf(bitacora_salto_de_linea);
+			free(bitacora_salto_de_linea);
+			free(bitacora);
+
 		}
 		else{
 			//Notificacion desconocida -> IMongo caido
@@ -148,6 +171,9 @@ void escuchoIMongo() {
 	}
 
 }
+
+
+
 
 void hilo_mostrar_tripulantes(){
 	pthread_attr_t attr1;
