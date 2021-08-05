@@ -739,17 +739,27 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 
 int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 	pthread_mutex_lock(&(archivo->mutex_file));
-	archivo->metadata = config_create(name_file);
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_FILES);
+	string_append_with_format(&aux, "%s%s", path_files,name_file);
+	log_trace(logger,"aux : %s",aux);
+	archivo->metadata = config_create(aux);
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
 	int size_archivo = 0;
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
-		int * valor = malloc(sizeof(int));
-		*valor =atoi(bloques_ocupados[i]);
+		int valor;
+		valor =atoi(bloques_ocupados[i]);
 		for(int j = 0; j<superblock.tamanio_bloque; j++){
-
-			if(!string_equals_ignore_case(_blocks.fs_bloques + (superblock.tamanio_bloque*(*valor))+j,"/0")){
+			char * caracter = string_new();
+			memcpy(caracter,_blocks.original_blocks + (valor*superblock.tamanio_bloque)+j, 1);
+			memcpy(caracter+1,"\0",1);
+			log_info(logger,"caracter %s",caracter);
+			if(string_equals_ignore_case(caracter,"O")){
 				size_archivo++;
 			}
+			free(caracter);
 		}
 		free(bloques_ocupados[i]);
 
@@ -766,7 +776,10 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 	}
 
 
+
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	free(aux);
+	free(path_files);
 	return size_archivo;
 }
 

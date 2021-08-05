@@ -35,6 +35,8 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 	for(int i=0; i<cantidadDePosiciones;i++){
 		bitarray_clean_bit(superblock.bitmap,i);
 
+		//HAGO EL CLEAN DEL BITARRAY
+
 	}
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 
@@ -44,21 +46,26 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 
 	pthread_mutex_lock(&mutex_archivos_bitacora);
+	//TODO: ver si hacer esto mismo sin limpiar todos los bits al principio
 	bool saboteado = false;
 	for(int i=0; i<list_size(bloques_ocupados);i++){
 		int* bloque_ocupado = (int*)list_get(bloques_ocupados,i);
 		if(!bitarray_test_bit(superblock.bitmap,*bloque_ocupado)){
 			bitarray_set_bit(superblock.bitmap,*bloque_ocupado);
-			log_info(logger,"igualar_bitmap_contra_bloques: el bit %d estaba distinto",*bloque_ocupado);
+			log_trace(logger,"igualar_bitmap_contra_bloques: el bit %d estaba distinto",*bloque_ocupado);
 			saboteado = true;
 		}
+	}
 
-	}
-	if(saboteado){
-		log_info(logger,"Habia diferencias entre el bitmap y la metadata");
-	}else{
-		log_info(logger,"TODO OK: No habia diferencias entre el bitmap y la metadata");
-	}
+	memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
+	msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
+
+//	if(saboteado){
+//		log_info(logger,"Habia diferencias entre el bitmap y la metadata");
+//
+//	}else{
+//		log_info(logger,"TODO OK: No habia diferencias entre el bitmap y la metadata");
+//	}
 
 	pthread_mutex_unlock(&mutex_archivos_bitacora);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
@@ -152,7 +159,13 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 
 void corregir_block_count_file(_archivo * archivo,char * name_file){
 	pthread_mutex_lock(&(archivo->mutex_file));
-	archivo->metadata = config_create(name_file);
+	char *aux = NULL;
+	char *path_files = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	path_files = string_duplicate(conf_PATH_FILES);
+	string_append_with_format(&aux, "%s%s", path_files,name_file);
+	log_trace(logger,"aux : %s",aux);
+	archivo->metadata = config_create(aux);
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
 	if(cantidad_bloques!=longitud_array(bloques_ocupados)){
@@ -168,12 +181,20 @@ void contrastar_cantidad_bloques(){
 	struct stat info;
 	bzero(&info, sizeof(struct stat));
 	FILE *fptr;
-	if (stat("block.ims", &info) != 0) {
+
+	char *aux = NULL;
+	aux = string_duplicate(conf_PUNTO_MONTAJE);
+	string_append_with_format(&aux, "%s", "blocks.ims");
+	log_info(logger,"aux : %s",aux);
+
+	if (stat(aux, &info) != 0) {
 		log_error(logger, "No se puede hacer stat en el bitmap file");
 		exit_failure();
 	}
 	if (info.st_size > 0) {
 		uint32_t cantidad_bloques_blocks = info.st_size / superblock.tamanio_bloque;
+		log_info(logger,"Cantidad de blocks (desde stat) %d",cantidad_bloques_blocks);
+		log_info(logger,"Cantidad de blocks (desde config) %d",superblock.cantidad_bloques);
 		if(cantidad_bloques_blocks!=superblock.cantidad_bloques){
 			log_info(logger,"La cantidad de bloques fue saboteada, pero ya fue reparada");
 			superblock.cantidad_bloques = cantidad_bloques_blocks;
@@ -203,11 +224,14 @@ void contrastar_tamanio_archivos_de_recurso(){
 
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");
-	sabotaje_bitmap_superbloque(); // Revisado
 
-	contrastar_tamanio_archivos_de_recurso();
-//	contrastar_cantidad_bloques();
-//	contrastar_size_vs_bloques_files();
+
+	sabotaje_bitmap_superbloque(); // Revisado -> posible mejora TODO
+	contrastar_tamanio_archivos_de_recurso(); // Revisado
+	contrastar_cantidad_bloques(); // Revisado -> comportamiento: Truncando el archivo por linea de comandos -> actualiza la cantidad de bloques dentro del archivo de superblocks
+	contrastar_size_vs_bloques_files(); // Revisado
+
+
 	log_info(logger,"Ejecutando FSCK -> FIN");
 	sleep(conf_TIEMPO_SABOTAJE);
 }
