@@ -48,8 +48,8 @@ t_list * archivos_bitacora;
 
 typedef struct blocks{
 	FILE * file_blocks;
-	char * fs_bloques;
-	char * original_blocks;
+	void * fs_bloques; // TODO : SI HAY ALGUN PROBLEMA INESPERADO VOLVER A CHAR *
+	void * original_blocks; // TODO : SI HAY ALGUN PROBLEMA INESPERADO VOLVER A CHAR *
 	pthread_mutex_t mutex_blocks;
 } blocks;
 

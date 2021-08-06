@@ -14,7 +14,7 @@ int main(void)
 	signal(SIGUSR1,informarSabotaje);
 
 	signal(SIGUSR2,fsck);
-//	signal(SIGTSTP,ctrlZ);
+	signal(SIGTSTP,ctrlZ);
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
@@ -60,8 +60,13 @@ void informarSabotaje(int signal){
 //	fsck();
 }
 void ctrlZ(int signal){
-	list_destroy_and_destroy_elements(lista_hilos,free);
+	//list_destroy_and_destroy_elements(lista_hilos,free);
+	munmap(_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
 
+	free(_blocks.fs_bloques);
+//	free(_blocks.fs_bloques);
+	log_destroy(logger);
+	exit(-1);
 
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
 //		_informar_sabotaje_a_discordiador();
@@ -172,6 +177,7 @@ void check_files_access(char *basedir, char *ask) {
 		exit(EXIT_FAILURE);
 	}
 	free(aux);
+	free(path_files);
 }
 
 void check_directory(char *basedir, char *ask) {

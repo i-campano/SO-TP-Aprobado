@@ -76,9 +76,7 @@ void iniciar_blocks(){
 		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT , mode);
 		log_info(logger,"iniciar_blocks(): Usando Blocks de FILE SYSTEM EXISTENTE");
 		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
 		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 		memcpy(_blocks.fs_bloques,_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
 	}else
@@ -88,10 +86,8 @@ void iniciar_blocks(){
 		ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 
 		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
 
 		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 	}
@@ -452,7 +448,7 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	}
 	free(nuevo[i]);
 	free(nuevo);
-	free(md5);
+	//free(md5);
 	free(bytesString);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
@@ -571,9 +567,13 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo,uint32_t id_trip)
 
 			actualizar_metadata_sin_crear_bloque(archivo,rellenoDeUltimoBloque);
 
+
 			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
 			llenar_nuevo_bloque(contenidoProximoBloque, archivo);
+
+			free(rellenoDeUltimoBloque);
+			free(contenidoProximoBloque);
 
 		}
 	}
@@ -845,10 +845,13 @@ void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
 			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
 		}else{
 			ocupados++;
-			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+			char * indice =string_itoa(i);
+			string_append_with_format(&string_bloques_ocupados,"%s,",indice);
+			free(indice);
 		}
 
 	}
+
 	log_debug(logger,"Se liberaron los bloques de bitacora -> Hay %d bloques de recursos ocupados son:",ocupados);
 	log_debug(logger,"%s",string_bloques_ocupados);
 	free(string_bloques_ocupados);
@@ -876,6 +879,7 @@ void liberar_bloques_bitacora_al_iniciar_fs(){
 
 	igualar_bitmap_contra_bloques_al_iniciar_fs(lista_bloques);
 
+	list_destroy_and_destroy_elements(lista_bloques,free);
 }
 
 void calcular_md5(char * cadena){

@@ -32,6 +32,7 @@ char * array_to_string(char ** array){
 	int i = 0;
 	while(array[i]!=NULL){
 		string_append_with_format(&cadena,"%s,",array[i]);
+
 		i++;
 	}
 	if(i>0){

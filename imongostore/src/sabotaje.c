@@ -152,6 +152,7 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 		//TODO :Free
 	}
 	free(cadena);
+	free(bloques_ocupados);
 
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
