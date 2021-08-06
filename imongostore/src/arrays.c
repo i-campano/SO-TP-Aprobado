@@ -31,7 +31,7 @@ char * array_to_string(char ** array){
 	string_append(&cadena,"[");
 	int i = 0;
 	while(array[i]!=NULL){
-		string_append_with_format(&cadena,"%s,",array[i]);
+		string_append_with_format(&cadena,"%s,",array[i]); // TODO VER ESTE LEAK
 
 		i++;
 	}

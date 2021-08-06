@@ -60,9 +60,15 @@ void informarSabotaje(int signal){
 //	fsck();
 }
 void ctrlZ(int signal){
-	//list_destroy_and_destroy_elements(lista_hilos,free);
-	munmap(_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
+	log_info(logger,"Terminando imongo1");
+	exitSincro = -1;
+	log_info(logger,"Terminando imongo2");
+	sleep(5);
+	log_info(logger,"Exit sincro");
 
+
+	list_destroy_and_destroy_elements(lista_hilos,free);
+	munmap(_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
 	free(_blocks.fs_bloques);
 //	free(_blocks.fs_bloques);
 	log_destroy(logger);

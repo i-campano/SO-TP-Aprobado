@@ -56,7 +56,7 @@ t_config* config;
 
 int sabotajes_realizados;
 
-
+int exitSincro;
 //-------------------------------------------------
 void iniciar_configuracion();
 t_config* leer_config();
@@ -64,6 +64,7 @@ t_config* leer_config();
 void init_server();
 void manejadorDeHilos();
 void *atenderNotificacion(void * paqueteSocket);
+void *sincronizar_blocks();
 
 
 ////////FUNCIONES DE TAREAS/////////

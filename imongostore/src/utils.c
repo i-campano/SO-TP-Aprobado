@@ -6,7 +6,7 @@
 
 
 void iniciar_configuracion(){
-
+	exitSincro = 0;
 	lista_hilos = list_create();
 	config = leer_config();
 	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");

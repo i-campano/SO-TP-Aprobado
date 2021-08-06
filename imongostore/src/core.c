@@ -185,7 +185,7 @@ void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source){
 }
 
 
-void sincronizar_blocks(){
+void *sincronizar_blocks(){
 	while(1){
 
 		log_debug(logger,"SINCRONIZANDO DISCO");
@@ -204,20 +204,28 @@ void sincronizar_blocks(){
 		log_trace(logger,"SINCRO  bitmap - unBLOCKED");
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
+		if(exitSincro==-1){
+
+			log_info(logger,"Termino la sincro DESDE SINCRO");
+			break;
+		}
 
 		sleep(conf_TIEMPO_SINCRONIZACION);
+
 
 	}
 }
 
 void hilo_sincronizar_blocks(){
+	pthread_t * hilo = malloc(sizeof(pthread_t));
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_t * hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(hilo , &attr1,(void*) sincronizar_blocks,NULL);
+	pthread_create( hilo , &attr1,(void*) sincronizar_blocks,NULL);
 
 	list_add(lista_hilos,hilo);
+
+
 
 }
 
@@ -384,7 +392,7 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * caracter_llenado){
 	*archivo = (_archivo*)malloc(sizeof(_archivo));
-	(*archivo)->metadata = malloc(sizeof(t_config));//TODO BORRAR¿
+
 	(*archivo)->clave = string_new();
 	string_append(&((*archivo)->clave),key_file);
 
