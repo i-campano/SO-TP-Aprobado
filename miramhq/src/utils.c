@@ -153,6 +153,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
 			log_info(logger, "Estado actualizado tripulante: %d, estado: %c",id_trip,estadoV[estado]);
+			sem_post(&actualizarMapa);
 			break;
 
 		}
@@ -213,6 +214,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			sendDeNotificacion(socket,1);
 			close(socket);
 			//liberarMemoriaHilos();
+			sem_post(&actualizarMapa);
 			return 0;
 			break;
 		}
@@ -250,6 +252,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
 			close(socket);
+			sem_post(&actualizarMapa);
 			return 0;
 			break;
 		}
