@@ -1221,10 +1221,12 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 			frame = list_find(framesMemoria,condicionFrameLibre);
 		}
 		else{
+			log_info(logger,"--------------------SWAP------------------");
 			uint32_t frameLiberado;
 			pagina_t* victima = paginaSegun(confDatos.algoritmo);
 			llevarPaginaASwap(victima,&frameLiberado);
 			frame = list_get(framesMemoria,frameLiberado);
+			log_info(logger,"Pagina %i de la patota %i llevada a swap",victima->Npagina,victima->tabla->idPatota);
 		}
 		uint32_t frameSwap = frameLibreSwap();
 		frame->estado = false;
@@ -1365,13 +1367,16 @@ int realizarSwap(pagina_t* paginaSwap){
 	if(!swapFile){
 		inicializarAreaSwap();
 	}
+	log_info(logger,"\n");
+	log_info(logger,"--------------------SWAP------------------");
 	if(!calcularFramesLibres()){
 		log_debug(logger,"No existen frames libres en memoria, procediendo a intercambiar 2 paginas");
 		pagina_t* paginaEncontrada = paginaSegun(confDatos.algoritmo);
 		uint32_t frameLiberado;
 		llevarPaginaASwap(paginaEncontrada,&frameLiberado);
-
 		traerPaginaMemoria(paginaSwap,frameLiberado*tamanioPagina);
+		log_info(logger,"Pagina %i de la patota %i llevada a swap",paginaEncontrada->Npagina,paginaEncontrada->tabla->idPatota);
+		log_info(logger,"Pagina %i de la patota %i llevada a MP",paginaSwap->Npagina,paginaSwap->tabla->idPatota);
 	}
 	else{
 		frame_t* frame = list_find(framesMemoria,condicionFrameLibre);
@@ -1395,6 +1400,7 @@ int actualizarPagina(pagina_t* paginaBuscada){
 	if(!strcmp(confDatos.algoritmo,"CLOCK")){
 		paginaBuscada->uso = true;
 	}
+	log_info(logger,"Pagina %i de la patota %i fue usada",paginaBuscada->Npagina,paginaBuscada->tabla->idPatota);
 	return 0;
 }
 bool aumentarPunteroClock(void){
