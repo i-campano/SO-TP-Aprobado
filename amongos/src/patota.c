@@ -19,6 +19,12 @@ void crear_patota(char * comando){
 
 	char ** parametros = string_n_split(comando,4," ");
 
+	if (access(parametros[1], R_OK | W_OK) != 0) {
+
+		log_error(logger, "La tarea no existe, verifique la ruta de la misma: %s", parametros[1]);
+		return;
+	}
+
 	char * tareasX = string_new();
     FILE *archivo = fopen(parametros[1], "r"); // Modo lectura
     char bufer[1000];         // Aquí vamos a ir almacenando cada línea
