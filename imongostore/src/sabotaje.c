@@ -140,7 +140,7 @@ void sabotaje_bitmap_superbloque(){
 void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 	pthread_mutex_lock(&(archivo->mutex_file));
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
-	char * cadena = string_new();
+	char * cadena = NULL;
 	cadena = array_to_string(bloques_ocupados);
 	log_trace(logger,"Bloques ocupados por archivo: %s",cadena);
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){

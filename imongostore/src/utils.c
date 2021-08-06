@@ -7,6 +7,7 @@
 
 void iniciar_configuracion(){
 
+	lista_hilos = list_create();
 	config = leer_config();
 	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");
 	t_log_level log_level = log_level_from_string(conf_LOG_LEVEL);
@@ -62,10 +63,11 @@ void manejadorDeHilos(){
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
     	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    	int * pcclient = malloc(sizeof(int));
+    	int * pcclient = malloc(sizeof(int)); // TODO : ESTO SI LO SACABA DEJABA DE FUNCIONAR. PROBAR
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
 		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
+		list_add(lista_hilos,thread_id);
 
 	}
 

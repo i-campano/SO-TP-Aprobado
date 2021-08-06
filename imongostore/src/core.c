@@ -218,8 +218,10 @@ void hilo_sincronizar_blocks(){
 	pthread_attr_t attr1;
 	pthread_attr_init(&attr1);
 	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) sincronizar_blocks,NULL);
+	pthread_t * hilo = (pthread_t)malloc(sizeof(pthread_t));
+	pthread_create(hilo , &attr1,(void*) sincronizar_blocks,NULL);
+
+	list_add(lista_hilos,hilo);
 
 }
 
@@ -386,7 +388,7 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * caracter_llenado){
 	*archivo = (_archivo*)malloc(sizeof(_archivo));
-	(*archivo)->metadata = malloc(sizeof(t_config));
+	(*archivo)->metadata = malloc(sizeof(t_config));//TODO BORRAR¿
 	(*archivo)->clave = string_new();
 	string_append(&((*archivo)->clave),key_file);
 
@@ -417,7 +419,8 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
-
+	free(aux);
+	free(path_files);
 
 }
 
@@ -430,7 +433,9 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
+	char * bytesString = string_itoa(size);
+	config_set_value(archivo->metadata,"SIZE",bytesString);
 
 
 	char ** array;
@@ -447,6 +452,8 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	}
 	free(nuevo[i]);
 	free(nuevo);
+	free(md5);
+	free(bytesString);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
 }
@@ -459,11 +466,12 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	int bytes = string_length(valorAux);
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
+	char * bytesString =string_itoa(size);
 
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	config_set_value(archivo->metadata,"SIZE",bytesString);
 
 	config_save(archivo->metadata);
-
+	free(bytesString);
 }
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
@@ -574,6 +582,7 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo,uint32_t id_trip)
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	free(cadenaAGuardar);
 	return 1;
 }
 

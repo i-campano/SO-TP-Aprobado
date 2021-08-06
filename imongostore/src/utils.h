@@ -26,6 +26,8 @@
 #include "bitacora.h"
 #include "sabotaje.h"
 
+t_list * lista_hilos;
+
 int fs_server;
 
 int socketDiscordiador;

@@ -60,13 +60,16 @@ void informarSabotaje(int signal){
 //	fsck();
 }
 void ctrlZ(int signal){
+	list_destroy_and_destroy_elements(lista_hilos,free);
+
+
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
 //		_informar_sabotaje_a_discordiador();
 //	calcular_md5("nacho");
-	obtener_todos_los_bloques_de_recursos_y_bitacora();
-	log_info(logger,"atrapando el ctrl z");
-	int libres = calcular_bloques_libres_ONLY();
-	log_info(logger,"Libres %s",string_itoa(libres));
+//	obtener_todos_los_bloques_de_recursos_y_bitacora();
+//	log_info(logger,"atrapando el ctrl z");
+//	int libres = calcular_bloques_libres_ONLY();
+//	log_info(logger,"Libres %s",string_itoa(libres));
 }
 
 void _informar_sabotaje_a_discordiador(){
