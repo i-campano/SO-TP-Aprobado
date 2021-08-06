@@ -34,14 +34,14 @@ void leer_consola() {
 			sem_post(&iniciar_planificacion);
 		}
 		else if(strncmp(leido, "AYUDA", 5) == 0){
-			log_info(logger,"INICIAR_PATOTA -> Ej : INICIAR_PATOTA plantas.txt 2 12 1|2");
-			log_info(logger,"PLANIFICAR");
-			log_info(logger,"LISTAR_TRIP");
-			log_info(logger,"REANUDAR");
-			log_info(logger,"DETENER");
-			log_info(logger,"REANUDAR");
-			log_info(logger,"PEDIR_BITACORA N");
-			log_info(logger,"AYUDA");
+			log_info(logger,"1) INICIAR_PATOTA -> Ej : INICIAR_PATOTA plantas.txt 2 1|2 5|5");
+			log_info(logger,"2) PLANIFICAR");
+			log_info(logger,"3) LISTAR_TRIP");
+			log_info(logger,"4) REANUDAR");
+			log_info(logger,"5) DETENER");
+			log_info(logger,"6) REANUDAR");
+			log_info(logger,"7) PEDIR_BITACORA N");
+			log_info(logger,"8) AYUDA");
 		}
 		else if(strncmp(leido, "PEDIR_BITACORA", 7) == 0){
 				log_info(logger,"PEDIR_BITACORA! ");
@@ -51,25 +51,25 @@ void leer_consola() {
 				//TODO FREE
 
 		}else if(strncmp(leido, "INICIAR_PATOTA", 14) == 0){
-			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 12 1|2
-			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 1 1 6|2
-			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 13 6|2 3|5
-			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 14 1|2 4|5
-			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 15 5|2 3|6
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 1|2
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 1 6|2
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 6|2 3|5
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 1|2 4|5
+			//EJEMPLO COMANDO: INICIAR_PATOTA oxigeno.txt 2 5|2 3|6
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_a.txt 1 1 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_b.txt 1 2 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_c.txt 1 3 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_b.txt 1 2 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA pag_c.txt 1 3 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_a.txt 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_b.txt 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareas/pag_c.txt 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA pag_b.txt 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA pag_c.txt 1 0|0
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA tareasLargas.txt 1 1 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA tareasLargas.txt 1 0|0
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA segA.txt 4 1 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA segB.txt 2 2 0|0
-			//EJEMPLO COMANDO: INICIAR_PATOTA segC.txt 1 3 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA segA.txt 4 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA segB.txt 2 0|0
+			//EJEMPLO COMANDO: INICIAR_PATOTA segC.txt 1 0|0
 
-			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 15 5|2 3|6
+			//EJEMPLO COMANDO: INICIAR_PATOTA plantas.txt 2 5|2 3|6
 
 			crear_patota(leido);
 		}

@@ -17,7 +17,7 @@ void crear_patota(char * comando){
 
 	t_list * list_trip_aux = list_create();
 
-	char ** parametros = string_n_split(comando,5," ");
+	char ** parametros = string_n_split(comando,4," ");
 
 	char * tareasX = string_new();
     FILE *archivo = fopen(parametros[1], "r"); // Modo lectura
@@ -39,11 +39,10 @@ void crear_patota(char * comando){
 
 	uint32_t cantidad_tripulantes = (uint32_t)atoi(parametros[2]);
 
-	uint32_t patotaId = (uint32_t)atoi(parametros[3]);
 
 	char * posiciones = string_new();
 
-	string_append(&posiciones,parametros[4]);
+	string_append(&posiciones,parametros[3]);
 
 	int longitud_posiciones = string_length(posiciones);
 
@@ -52,9 +51,9 @@ void crear_patota(char * comando){
 	string_append(&claveGet,posiciones);
 
 	int tamanioGet = 0;
-
+	patotas_creadas++;
 	void* buffer_patota = crear_buffer_patota(longitud_tareas,
-			longitud_posiciones, patotaId, cantidad_tripulantes,
+			longitud_posiciones, patotas_creadas, cantidad_tripulantes,
 			&tamanioGet, tareasOk, posiciones);
 
 	sendRemasterizado(socketServerMiRam, CREAR_PATOTA,tamanioGet,buffer_patota);
@@ -73,14 +72,14 @@ void crear_patota(char * comando){
 		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
 		_tripulante->id = tripulantes_creados;
-		_tripulante->patota_id = patotaId;
+		_tripulante->patota_id = patotas_creadas;
 		_tripulante->direccionLogica = recvDeNotificacion(socketServerMiRam);
 		recvDeNotificacion(socketServerMiRam);
 		sem_init(&_tripulante->creacion,0,0);
 
 		list_add(list_trip_aux,_tripulante);
 
-		log_debug(logger,"Creando tripulante: %d de la patota id: %d ",*id,patotaId);
+		log_debug(logger,"Creando tripulante: %d de la patota id: %d ",*id,patotas_creadas);
 		crearHiloTripulante(_tripulante);
 		free(id); //malloc linea 79 dentro de este while
 	}

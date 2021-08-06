@@ -11,6 +11,7 @@
 void iniciar_configuracion(){
 
 	tripulantes_creados = 0;
+	patotas_creadas = 0;
 	sabotaje = false;
 	t_config* config = leer_config();
 

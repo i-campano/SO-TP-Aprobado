@@ -12,6 +12,7 @@
 #include "socket.h"
 
 int tripulantes_creados;
+uint32_t patotas_creadas;
 
 #define NEW 0
 #define READY 1
