@@ -22,7 +22,9 @@ void planificar_cola_ready(){
 
 		//Esperamos que haya algo en new
 		sem_wait(&cola_new);
-
+		sleep(1); //TODO CAMBIAR
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 		pthread_mutex_lock(&planificacion_mutex_new);
 		t_tripulante * tripulante = queue_pop(planificacion_cola_new);
 		//log_info(logger,"T%d - P%d : SALIENDO DE NEW", tripulante->id,tripulante->patota_id);
@@ -47,11 +49,10 @@ void planificar_cola_ready(){
 void planificar_cola_bloq(){
 	t_tripulante * tripulante;
 	while(1){
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
 
 		sem_wait(&cola_bloq);
-
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 
 
 		pthread_mutex_lock(&planificacion_mutex_bloq);
@@ -101,11 +102,10 @@ void planificar_cola_bloq(){
 
 void planificar_cola_exec(){
 	while(1){
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
 		sem_wait(&cola_ready);
 		sem_wait(&exec);
-
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 		pthread_mutex_lock(&planificacion_mutex_ready);
 		t_tripulante * tripulante = NULL;
 			if(list_size(planificacion_cola_ready->elements)){
@@ -140,7 +140,6 @@ void replanificar(){
 	while(1){
 
 		sem_wait(&colaEjecutados);
-
 
 		pthread_mutex_lock(&mutex_cola_ejecutados);
 		if(list_size(cola_ejecutados->elements)){
@@ -190,8 +189,6 @@ void replanificar(){
 
 			}
 		}
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
 	}
 }
 

@@ -112,15 +112,23 @@ void *labor_tripulante_new(void * trip){
 
 	//obtener data tripulante - desde tcb
 
+	/*
 	sendDeNotificacion(socketRam,PEDIR_UBICACION);
 	sendDeNotificacion(socketRam,tripulante->id);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->patota_id);
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	tripulante->ubi_x = (uint32_t)recvDeNotificacion(socketRam);
-	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);
+	tripulante->ubi_y = (uint32_t)recvDeNotificacion(socketRam);*/
 	log_trace(logger,"Hilo tripulante: %d de patota: %d --- x: %d --- y: %d ", tripulante->id,tripulante->patota_id,tripulante->ubi_x,tripulante->ubi_y);
 
 	sem_wait(&tripulante->ready);
+	sendDeNotificacion(socketRam,CREAR_TRIPULANTE);
+	sendDeNotificacion(socketRam,tripulante->id);
+	sendDeNotificacion(socketRam,tripulante->patota_id);
+	sendDeNotificacion(socketRam,tripulante->ubi_x);
+	sendDeNotificacion(socketRam,tripulante->ubi_y);
+	tripulante->direccionLogica = recvDeNotificacion(socketRam);
+	recvDeNotificacion(socketRam);
 	log_trace(logger,"labor_tripulante_new(): T%d - P%d : READY", tripulante->id,tripulante->patota_id);
 	log_trace(logger,"labor_tripulante_new(): Pido la proxima tarea");
 	//para simular la cantidad;

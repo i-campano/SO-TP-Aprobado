@@ -21,6 +21,8 @@
 #define DUMP 20
 #define COMPACTACION 21
 #define EXPULSAR_TRIPULANTE 22
+
+#define CREAR_TRIPULANTE 23
 //-----------------------------SABOTAJE---------------------------------------
 
 #define FSCK 100

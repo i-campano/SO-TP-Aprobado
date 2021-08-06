@@ -256,6 +256,30 @@ void *atenderNotificacion(void * paqueteSocket){
 			return 0;
 			break;
 		}
+		case CREAR_TRIPULANTE:{
+			uint32_t id_trip = recvDeNotificacion(socket);
+			uint32_t id_patota = recvDeNotificacion(socket);
+			uint32_t x = recvDeNotificacion(socket);
+			uint32_t y = recvDeNotificacion(socket);
+			tcb_t tcb;
+			tcb.x = x;
+			tcb.y = y;
+			tcb.id = id_trip;
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			tabla_t* tabla = buscarTablaId(id_patota);
+			crear_tripulante_(tcb,id_patota,tabla);
+			if(!strcmp(confDatos.esquema,"PAGINACION")){
+				sendDeNotificacion(socket,tabla->ocupado - sizeof(tcb_t));
+			}
+			if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+				sendDeNotificacion(socket,tabla->ocupado - 1);
+			}
+			sendDeNotificacion(socket,1);
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+			break;
+		}
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
 			close(socket);
@@ -288,16 +312,16 @@ int crear_pcb(int socket) {
 		return ERROR;
 	}
 	sendDeNotificacion(socket,PATOTA_CREADA);
-	for(int i = 0 ; i<cantidad_patota; i++){
+	/*for(int i = 0 ; i<cantidad_patota; i++){
 		int * id = malloc(sizeof(int));
 		*id = (int)recibirUint(socket);
 		log_info(logger,"Trip Creado OK");
-		/*t_tripulante * trip = malloc(sizeof(t_tripulante));
+		t_tripulante * trip = malloc(sizeof(t_tripulante));
 		trip->id =*id;
 		trip->socket = socket;
 		pthread_mutex_lock(&pthread_mutex_tcb_list);
 		list_add(lista_tcb,trip);
-		pthread_mutex_unlock(&pthread_mutex_tcb_list);*/
+		pthread_mutex_unlock(&pthread_mutex_tcb_list);
 		char * coordenadas = string_new();
 		asignar_posicion(&coordenadas,id_posiciones,i);
 		char ** coordenadas_posicion_inicial = string_split(coordenadas,"|");
@@ -328,7 +352,7 @@ int crear_pcb(int socket) {
 	}
 	if(mapaActivo && tareasActivas){
 		crear_tareas(tareaRam); //EN MAPA!!
-	}
+	}*/
 	free(tareaRam);
 	free(id_posiciones);
 	return PATOTA_CREADA;

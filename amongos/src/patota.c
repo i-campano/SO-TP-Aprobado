@@ -72,15 +72,15 @@ void crear_patota(char * comando){
 	if (state == PATOTA_CREADA) {
 	for(int i = 0 ; i<cantidad_tripulantes; i++){
 		tripulantes_creados++;
-		sendDeNotificacion(socketServerMiRam,tripulantes_creados);
+		/*sendDeNotificacion(socketServerMiRam,tripulantes_creados);*/
 
 		int * id = malloc(sizeof(int));
 		t_tripulante * _tripulante = (t_tripulante*)malloc(sizeof(t_tripulante));
 		*id = tripulantes_creados;
 		_tripulante->id = tripulantes_creados;
 		_tripulante->patota_id = patotas_creadas;
-		_tripulante->direccionLogica = recvDeNotificacion(socketServerMiRam);
-		recvDeNotificacion(socketServerMiRam);
+		/*_tripulante->direccionLogica = recvDeNotificacion(socketServerMiRam);*/
+		/*recvDeNotificacion(socketServerMiRam);*/
 		sem_init(&_tripulante->creacion,0,0);
 
 		list_add(list_trip_aux,_tripulante);
