@@ -319,7 +319,7 @@ void *labor_tripulante_new(void * trip){
 				rafaga = 0;
 			}
 
-			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
+			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM && tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea-1){
 				tripulante->estado = 'R';
 				actualizar_estado(socketRam,tripulante,READY);
 
@@ -410,14 +410,15 @@ void *labor_tripulante_new(void * trip){
 	pthread_mutex_lock(&mutex_cola_ejecutados);
 	queue_push(cola_ejecutados,tripulante);
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
-	sem_post(&colaEjecutados);
-	sem_post(&exec);
+
 	actualizar_estado(socketRam,tripulante,FIN);
 	sendDeNotificacion(socketRam,FIN_TAREAS);
 	sendDeNotificacion(socketRam,tripulante->id);
 	sendDeNotificacion(socketRam,tripulante->patota_id);
 	sendDeNotificacion(socketRam,tripulante->direccionLogica);
 	recvDeNotificacion(socketRam);
+	sem_post(&colaEjecutados);
+	sem_post(&exec);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
 	free(tarea);

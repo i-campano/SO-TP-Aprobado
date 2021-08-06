@@ -140,19 +140,19 @@ void *atenderNotificacion(void * paqueteSocket){
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
 			log_info(logger,"\n");
-			//log_info(logger,"--------------   Actualizar Estado -------------------");
+			log_info(logger,"--------------   Actualizar Estado -------------------");
 			char estadoV[5] = {'N','R','B','E','F'};
 			tabla_t* tabla = buscarTablaId(id_patota);
 			uint32_t estado = recvDeNotificacion(socket);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
-			//log_info(logger, "Actualizando estado anterior %c -> actual ->%c",tcb->estado,estadoV[estado]);
+			log_info(logger, "Actualizando estado anterior %c -> actual ->%c",tcb->estado,estadoV[estado]);
 			tcb->estado = estadoV[estado];
 			actualizarDato(tabla,tcb,sizeof(tcb_t),direccionLogica);
 			pthread_mutex_unlock(&accesoMemoria);
 			pthread_mutex_unlock(&accesoListaTablas);
 			free(tcb);
 			sendDeNotificacion(socket, ESTADO_ACTUALIZADO_MIRAM);
-			//log_info(logger, "Estado actualizado tripulante: %d, estado: %c",id_trip,estadoV[estado]);
+			log_info(logger, "Estado actualizado tripulante: %d, estado: %c",id_trip,estadoV[estado]);
 			sem_post(&actualizarMapa);
 			break;
 
@@ -166,8 +166,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			uint32_t y = recvDeNotificacion(socket);
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
-			//log_info(logger,"\n");
-			//log_info(logger,"--------------   Actualizar Ubicacion -------------------");
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Actualizar Ubicacion -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
 			tcb_t* tcb = getDato(id_patota,sizeof(tcb_t),direccionLogica);
 			if(mapaActivo){
@@ -188,7 +188,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			sendDeNotificacion(socket, UBICACION_ACTUALIZADA);
 			free(tcb);
 
-			//log_info(logger, "Ubicacion actualizada tripulante: %d, ubicacion-> X: %d ; Y: %d",id_trip,x,y);
+			log_info(logger, "Ubicacion actualizada tripulante: %d, ubicacion-> X: %d ; Y: %d",id_trip,x,y);
 
 			break;
 
@@ -276,6 +276,9 @@ void *atenderNotificacion(void * paqueteSocket){
 			}
 			if(!strcmp(confDatos.esquema,"SEGMENTACION")){
 				sendDeNotificacion(socket,tabla->ocupado - 1);
+			}
+			if(mapaActivo){
+			err = personaje_crear(nivel,tcb.id,tcb.x, tcb.y);
 			}
 			sendDeNotificacion(socket,1);
 			pthread_mutex_unlock(&accesoListaTablas);

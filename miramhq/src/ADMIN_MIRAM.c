@@ -526,8 +526,13 @@ int eliminar_patota(tabla_t* tabla){
 		while(paginas >= 0){
 			pagina_t* paginaAsignada = list_remove(tabla->listaAsignados,paginas);
 			frame_t* frame = list_get(framesMemoria,paginaAsignada->Nframe);
-			frame->estado = true;
-			free(paginaAsignada);
+			if(paginaAsignada->valida){
+				free(paginaAsignada);
+				frame->estado = true;
+			}
+			else{
+				bitarray_set_bit(swapFrames,paginaAsignada->NframeVirtual);
+			}
 			paginas--;
 		}
 	}
@@ -582,7 +587,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 					bitarray_set_bit(swapFrames,pag->NframeVirtual);
 				}
 			}
-			else{
+			if(pag->valida){
 			pag->bytesOcupado -= tamanio;
 			if(pag->bytesOcupado == 0){
 				frame_t* fr = list_get(framesMemoria,pag->Nframe);
@@ -602,7 +607,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 					bitarray_set_bit(swapFrames,pagina->NframeVirtual);
 				}
 			}
-			else{
+			if(pagina->valida){
 			pagina->bytesOcupado -= tamanioPagina-offset;
 			liberado += tamanioPagina-offset;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanioPagina-offset,pagina->bytesOcupado);
@@ -624,7 +629,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 				log_debug(logger,"Liberando %i bytes, paginaVIRTUAL Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
 				liberado += tamanio - liberado;
 			}
-			else{
+			if(pagina->valida){
 			pagina->bytesOcupado -= tamanio-liberado;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
 			if(pagina->bytesOcupado == 0){
@@ -709,7 +714,7 @@ void mostrarFrames(void* frame){
 	if(fr->estado){
 		log_info(logger,"Frame: %i Estado: Libre \n",fr->numeroFrame);
 	}
-	else log_info(logger,"Frame: %i Estado: Ocupado \n",fr->numeroFrame);
+	else log_info(logger,"Frame: %i Estado: Ocupado Proceso: %i \n",fr->numeroFrame,fr->pagina->tabla->idPatota);
 }
 
 // CON DIRECCION LOGICA >
@@ -1384,6 +1389,7 @@ int realizarSwap(pagina_t* paginaSwap){
 		traerPaginaMemoria(paginaSwap,frame->numeroFrame * tamanioPagina);
 
 	}
+	list_iterate(framesMemoria,mostrarFrames);
 	return 0;
 }
 //PARA LRU
@@ -1595,10 +1601,10 @@ void dumpMemoria(int signal){
 			while(cantidad > i){
 				segmento_t* segmento = list_get(listaSegmentos,i);
 				if(segmento->tipoDato == VACIO){
-					fprintf(archivoDump,"Proceso: Libre \t Segmento: %i \t Inicio: %i \t Tam: %i \n",i,segmento->inicio,segmento->fin - segmento->inicio);
+					fprintf(archivoDump,"Proceso: Libre \t Segmento: %i \t Inicio: 0x%X \t Tam: %i \n",i,segmento->inicio,segmento->fin - segmento->inicio);
 				}
 				else{
-					fprintf(archivoDump,"Proceso: %i \t Segmento: %i \t Inicio: %X \t Tam: %i \n",segmento->id,i,segmento->inicio,segmento->fin - segmento->inicio);
+					fprintf(archivoDump,"Proceso: %i \t Segmento: %i \t Inicio: 0x%X \t Tam: %i \n",segmento->id,i,segmento->inicio,segmento->fin - segmento->inicio);
 				}
 				i++;
 			}
