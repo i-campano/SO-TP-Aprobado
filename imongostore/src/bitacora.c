@@ -99,7 +99,7 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 
 		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
 
-			log_info(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
+			log_debug(logger,"indice de BLOQUE :%d con espacio para archivo: %s, ",atoi(last_block),archivo->clave);
 
 			write_blocks_with_offset_bitacora(cadenaAGuardar,atoi(last_block),bytesArchivo);
 

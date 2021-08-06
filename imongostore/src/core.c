@@ -755,7 +755,7 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 			char * caracter = string_new();
 			memcpy(caracter,_blocks.original_blocks + (valor*superblock.tamanio_bloque)+j, 1);
 			memcpy(caracter+1,"\0",1);
-			log_info(logger,"caracter %s",caracter);
+			log_trace(logger,"caracter %s",caracter);
 			if(string_equals_ignore_case(caracter,"O")){
 				size_archivo++;
 			}

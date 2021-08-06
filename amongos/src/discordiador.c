@@ -16,7 +16,7 @@ int main(void) {
 
 	log_info(logger, "Planificador se conecto a MIRAM");
 
-	socketServerIMongoStore = conectarAServer("127.0.0.1", 5003);
+	socketServerIMongoStore = conectarAServer(IP_MONGO, 5003);
 
 	list_add(conexiones,(void*)socketServerIMongoStore);
 	list_add(conexiones,(void*)socketServerMiRam);
