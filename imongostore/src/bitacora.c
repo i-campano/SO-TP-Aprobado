@@ -58,6 +58,8 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	}
 	free(path_files);
 	free(aux);
+	free(resto_path);//+
+	//	config_destroy(archivo->metadata); TODO: ESTO SE DESTRUYE CON LA LISTA¿¿¿
 
 	pthread_mutex_init(&((archivo)->mutex_file), NULL);
 
@@ -93,7 +95,7 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 		char ** blocks = config_get_array_value(archivo->metadata,"BLOCKS");
 
 		int longitud_blocks = longitud_array(blocks);
-		char * last_block = blocks[longitud_blocks-1];
+		char * last_block = blocks[longitud_blocks-1]; // TODO ESTO FUNCIONA ASI, PERO ESTA BIEN ¿¿¿
 
 		if(string_length(cadenaAGuardar)<=espacioLibreUltimoBloque){
 
@@ -115,6 +117,10 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
 			llenar_nuevo_bloque_bitacora(contenidoProximoBloque, archivo);
+
+			free(contenidoProximoBloque);//+
+
+
 
 		}
 	}
@@ -234,6 +240,9 @@ int write_blocks_with_offset_bitacora(char * cadena_caracteres,int indice,int of
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, cad, string_length(cad));
+
+	free(cad);//+
+	free(cadena);//+
 	return 1;
 }
 
