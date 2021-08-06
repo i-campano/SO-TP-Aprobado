@@ -251,9 +251,9 @@ void *atenderNotificacion(void * paqueteSocket){
 			//eliminarTabla(tabla,confDatos.esquema);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
-			close(socket);
+			//close(socket);
 			sem_post(&actualizarMapa);
-			return 0;
+			//return 0;
 			break;
 		}
 		case CREAR_TRIPULANTE:{

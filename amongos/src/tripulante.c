@@ -115,7 +115,7 @@ void *labor_tripulante_new(void * trip){
 
 	list_add(conexiones,&socketMongo);
 	list_add(conexiones,&socketRam);
-
+	sem_post(&tripulante->new);
 	log_trace(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	//obtener data tripulante - desde tcb
@@ -165,6 +165,7 @@ void *labor_tripulante_new(void * trip){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 	}
+
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
@@ -173,7 +174,8 @@ void *labor_tripulante_new(void * trip){
 			if(!sabotaje){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
-
+				sem_wait(&tripulante->new);
+				sem_post(&tripulante->new);
 			}
 
 			if (sabotaje && !tripulante->elegido){
