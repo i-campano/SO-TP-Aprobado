@@ -169,6 +169,13 @@ t_config* leer_config() {
 	}
 	return config;
 }
-
+void liberarCadenaDoble(char** cadena){
+	uint32_t i = 0;
+	while(cadena[i] != NULL){
+		free(cadena[i]);
+		i++;
+	}
+	free(cadena);
+}
 
 

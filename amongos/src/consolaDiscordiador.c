@@ -94,6 +94,7 @@ void leer_consola() {
 		else{
 			log_info(logger,"COMANDO INVALIDO");
 		}
+		free(leido);
 		leido = readline(">");
 	}
 	sem_post(&terminarPrograma);

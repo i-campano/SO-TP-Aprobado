@@ -9,7 +9,7 @@ char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", OPERACION);
-	char* tarea = string_new();
+	char* tarea;
 	if (OPERACION == ENVIAR_TAREA) {
 		tarea = recibirString(socketRam);
 		if (tarea != NULL) {
@@ -67,8 +67,16 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea)
 	}
 
 	log_trace(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
-	free(tarea_parametro);//stringsplit
-	return tarea_separada[0];
+
+	char* tareaN = string_new();
+	string_append(&tareaN,tarea_separada[0]);
+	free(*tarea_parametro);
+	free(tarea_parametro);
+	liberarCadenaDoble(tarea_separada);
+	free(tareaN);
+	/*liberarCadenaDoble(tarea_parametro);
+	liberarCadenaDoble(tarea_separada);*/
+	return NULL;
 }
 
 void *labor_tripulante_new(void * trip){
@@ -384,6 +392,7 @@ void *labor_tripulante_new(void * trip){
 		//Fin tarea
 			log_info(logger,"T%d - P%d : TERMINO TAREA: %s", tripulante->id,tripulante->patota_id, tarea);
 			enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
+			free(tarea);
 			tarea = pedir_tarea(socketRam, tripulante);
 			log_info(logger,"T%d - P%d : Tarea Recibida: %s", tripulante->id,tripulante->patota_id, tarea);
 			if(strcmp(tarea,"FIN\0")!=0){
@@ -411,6 +420,7 @@ void *labor_tripulante_new(void * trip){
 	recvDeNotificacion(socketRam);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
+	free(tarea);
 	free(claveNueva);
 
 	return 0; //Para que no moleste el warning

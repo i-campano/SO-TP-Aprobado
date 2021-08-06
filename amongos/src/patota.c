@@ -134,13 +134,8 @@ void crear_patota(char * comando){
 	free(claveGet); //malloc linea 60
 	free(posiciones); //stringNew linea 52
 	free(tareasX);//stringNew linea 18
-	free(tareasOk); // linea 31
-	free(parametros[0]);
-	free(parametros[1]);
-	free(parametros[2]);
-	free(parametros[3]);
-	free(parametros);
-
+	free(tareasOk); // linea 31INICIAR_PATOTA plantas.txt 2 1|2 5|5
+	liberarCadenaDoble(parametros);
 	}
 }
 //Mallocs Revisados
@@ -183,12 +178,3 @@ void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t
 }
 //Mallocs Revisados
 
-void liberarCadenaDoble(char** cadena){
-	uint32_t i = 0;
-	while(cadena[i] != NULL){
-		free(cadena[i]);
-		i++;
-	}
-	free(cadena[i]);
-	free(cadena);
-}

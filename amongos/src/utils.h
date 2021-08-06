@@ -139,4 +139,6 @@ int eliminar_cola(t_queue* cola, pthread_mutex_t mutex_cola,t_log* logger);
 int eliminar_list(t_list* lista,pthread_mutex_t mutex_lista,t_log* logger);
 
 int terminar_discordiador(int signal);
+
+void liberarCadenaDoble(char** cadena);
 #endif /* UTILS_H_ */
