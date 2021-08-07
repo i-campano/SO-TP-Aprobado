@@ -128,7 +128,7 @@ char* recibirString(int socket){ //EL TAMAÑO DEL STRING SE RECIBE ADENTRO DE ES
 		perror("Error al recibir un string.");
 		exit(-1);
 	}
-	char* stringRecibido = string_substring_until(string, tamanio);
+	char* stringRecibido = string_substring_until(string, tamanio); // TODO : FREE
 	free(string);
 	return stringRecibido;
 }

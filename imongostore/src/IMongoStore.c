@@ -14,7 +14,7 @@ int main(void)
 	signal(SIGUSR1,informarSabotaje);
 
 	signal(SIGUSR2,fsck);
-//	signal(SIGTSTP,ctrlZ);
+	signal(SIGTSTP,ctrlZ);
 //	signal(SIGSEGV,adulterar_bitmap);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
@@ -59,14 +59,57 @@ void informarSabotaje(int signal){
 		_informar_sabotaje_a_discordiador();
 //	fsck();
 }
+
+void destruirConfigArchivo(_archivo_bitacora* archivo) {
+	config_destroy(archivo->metadata);
+}
+
+void liberarHilo(infoHilos * data){
+	if(data != NULL){
+		close(data->socket);
+		pthread_cancel(data->hiloAtendedor);
+		free(data);
+	}
+}
+
 void ctrlZ(int signal){
+	log_info(logger,"Terminando imongo1");
+	exitSincro = -1;
+	log_info(logger,"Terminando imongo2");
+	sleep(5);
+	log_info(logger,"Exit sincro");
+
+
+	log_info(logger,"Terminando imongo3");
+//
+	log_info(logger,"Terminando imongo4");
+	for(int i=0;i<list_size(archivos_bitacora);i++){
+		_archivo_bitacora * archivo = (_archivo_bitacora*)list_get(archivos_bitacora,i);
+		config_destroy(archivo->metadata);
+		free(archivo->clave);
+	}
+	log_info(logger,"Terminando imongo5");
+	list_destroy_and_destroy_elements(archivos_bitacora,free);
+	log_info(logger,"Terminando imongo6");
+	//list_destroy_and_destroy_elements(archivos_bitacora, (void*) destruirConfigArchivo);
+	list_destroy_and_destroy_elements(hilosParaConexiones, (void*) liberarHilo);
+	log_info(logger,"Terminando imongo7");
+	munmap(_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
+	log_info(logger,"Terminando imongo8");
+	free(_blocks.fs_bloques);
+	log_info(logger,"Terminando imongo9");
+//	free(_blocks.fs_bloques);
+	log_info(logger,"Terminando imongo10");
+	log_destroy(logger);
+	exit(-1);
+
 	//TODO: DESCOMENTAR FUNCION Y SACAR FSCK
 //		_informar_sabotaje_a_discordiador();
 //	calcular_md5("nacho");
-	obtener_todos_los_bloques_de_recursos_y_bitacora();
-	log_info(logger,"atrapando el ctrl z");
-	int libres = calcular_bloques_libres_ONLY();
-	log_info(logger,"Libres %s",string_itoa(libres));
+//	obtener_todos_los_bloques_de_recursos_y_bitacora();
+//	log_info(logger,"atrapando el ctrl z");
+//	int libres = calcular_bloques_libres_ONLY();
+//	log_info(logger,"Libres %s",string_itoa(libres));
 }
 
 void _informar_sabotaje_a_discordiador(){
@@ -169,6 +212,7 @@ void check_files_access(char *basedir, char *ask) {
 		exit(EXIT_FAILURE);
 	}
 	free(aux);
+	free(path_files);
 }
 
 void check_directory(char *basedir, char *ask) {

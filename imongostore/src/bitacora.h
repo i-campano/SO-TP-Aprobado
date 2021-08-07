@@ -11,7 +11,7 @@
 #include "core.h"
 
 
-
+_archivo_bitacora* find_bitacora(t_list * bitacoras, char * clave);
 
 uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo);
 

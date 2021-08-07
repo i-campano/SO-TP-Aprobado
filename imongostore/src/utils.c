@@ -7,6 +7,9 @@
 
 void iniciar_configuracion(){
 
+	pthread_mutex_init(&mutexHilos,NULL);
+	hilosParaConexiones = list_create();
+	exitSincro = 0;
 	config = leer_config();
 	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");
 	t_log_level log_level = log_level_from_string(conf_LOG_LEVEL);
@@ -53,22 +56,34 @@ void init_server(){
 	log_info(logger, "FS_SERVER OK");
 }
 
+void chequeoSocket(int socket){
+	if(socket < 0){
+		log_error(logger, "Fallo accept de Coordinador");
+		perror("Fallo accept");
+		exit(-1);
+	}
+}
+
 void manejadorDeHilos(){
 	int socketCliente;
 
 	// Funcion principal
 	while((socketCliente = aceptarConexionDeCliente(fs_server))) { 	// hago el accept
-		pthread_t * thread_id = malloc(sizeof(pthread_t));
+		pthread_t thread_id;
     	pthread_attr_t attr;
     	pthread_attr_init(&attr);
     	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    	int * pcclient = malloc(sizeof(int));
+    	int * pcclient = malloc(sizeof(int)); // TODO : ESTO SI LO SACABA DEJABA DE FUNCIONAR. PROBAR ->> HACER FREE
     	*pcclient = socketCliente;
 		//Creo hilo atendedor
-		pthread_create( thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
+		pthread_create( &thread_id , &attr, (void*) atenderNotificacion , (void*) pcclient);
+
+
+
 
 	}
 
+	chequeoSocket(socketCliente);
 
 	//Chequeo que no falle el accept
 }
@@ -84,6 +99,28 @@ void enviar_bitacora(int socket, char * tarea) {
 	memcpy(buffer + tamanio, claveNueva, string_length(claveNueva));
 	tamanio += largoClave;
 	sendRemasterizado(socket, ENVIAR_BITACORA, tamanio, (void*) buffer);
+	free(buffer);
+}
+
+void eliminarHiloDeConexion(int socketId){
+
+	bool encontrarSocket(infoHilos * info){
+		return info->socket == socketId;
+	}
+
+	pthread_mutex_lock(&mutexHilos);
+	infoHilos * data = (infoHilos*) list_remove_by_condition(hilosParaConexiones,(void*) encontrarSocket);
+	pthread_mutex_unlock(&mutexHilos);
+
+	if(data == NULL){
+		log_error(logger, "No se encontro el hilo de conexion que atendia al socket %d", socketId);
+	} else{
+		log_warning(logger, "Eliminando hilo con conexion en socket = %d", socketId);
+		log_warning(logger, "Socket cerro la conexion!");
+
+		pthread_cancel(data->hiloAtendedor);
+		free(data);
+	}
 }
 
 void *atenderNotificacion(void * paqueteSocket){
@@ -107,17 +144,32 @@ void *atenderNotificacion(void * paqueteSocket){
 				break;
 			}
 
+			case AGREGAR_TRIPULANTE:{
+				log_info(logger,"Nuevo tripulante ");
+				infoHilos * datosHilo = (infoHilos*) malloc(sizeof(infoHilos));
+				datosHilo->socket = socket;
+				datosHilo->hiloAtendedor = pthread_self();
+
+				pthread_mutex_lock(&mutexHilos);
+				list_add(hilosParaConexiones, datosHilo);
+				pthread_mutex_unlock(&mutexHilos);
+				break;
+			}
+
 			case EJECUTAR_TAREA:{
+
+
 				char * tarea = recibirString(socket);
 				uint32_t id_trip = recvDeNotificacion(socket);
 				log_debug(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				tipoTarea(tarea,id_trip);
 				sendDeNotificacion(socket,TAREA_EJECUTADA);
-
+				free(tarea);
 
 				break;
 			}
 			case LOGUEAR_BITACORA:{
+
 				char * tarea = recibirString(socket);
 				uint32_t id_trip = recvDeNotificacion(socket);
 				log_debug(logger,"atenderNotificacion(): Id tripulante %d escribe en bitacora %s",id_trip,tarea);
@@ -125,7 +177,6 @@ void *atenderNotificacion(void * paqueteSocket){
 				char * nombre_archivo = string_from_format("tripulante_%d",id_trip);
 				_archivo_bitacora * archivo = iniciar_archivo_bitacora(nombre_archivo,"tarea1");
 				write_archivo_bitacora(tarea,archivo);
-
 				break;
 			}
 			case FSCK:{
@@ -142,14 +193,29 @@ void *atenderNotificacion(void * paqueteSocket){
 				log_debug(logger,"atenderNotificacion(): Pedido bitacora tripulante %d", num_trip);
 				char * bitacora = obtener_bitacora(num_trip);
 				enviar_bitacora(socket,bitacora);
+				free(bitacora);
+				break;
+			}
+			case FIN_TRIP: {
+				//eliminarHiloDeConexion(socket);
+				close(socket);
+
+				return 0;
 				break;
 			}
 
 			default:
 				log_warning(logger, "atenderNotificacion(): La conexion recibida es erronea");
 				close(socket);
+
 				return 0;
 				break;
+		}
+
+		if(exitSincro==-1){
+			pthread_cancel(pthread_self());
+			log_info(logger,"Termino el manejador de hilos ");
+			break;
 		}
 	}
 	return 0;
@@ -170,8 +236,8 @@ void ejecutar_tarea_consumir(char * tarea,char caracter_tarea,_archivo * archivo
 
 
 int parsear_tarea(char* tarea,int cantidad_caracteres) {
-	char** tarea_separada = string_split(tarea,";");
-	char** tarea_parametro = string_split(tarea_separada[0]," ");
+	char** tarea_separada = string_split(tarea,";");// TODO: LIBERAR CADENA DOBLE
+	char** tarea_parametro = string_split(tarea_separada[0]," "); // TODO: LIBERAR CADENA DOBLE
 
 	if(tarea_parametro[1] == NULL) {
 		cantidad_caracteres = 0;
@@ -180,7 +246,20 @@ int parsear_tarea(char* tarea,int cantidad_caracteres) {
 	}
 	log_debug(logger,"parsear_tarea(): cantidad de caracteres %d",cantidad_caracteres);
 
+	for(int i = 0 ; i<longitud_array(tarea_parametro); i++){
+
+		free(tarea_parametro[i]);
+	}
+
 	free(tarea_parametro);//stringsplit
+
+
+	for(int i = 0 ; i<longitud_array(tarea_separada); i++){
+
+		free(tarea_separada[i]);
+	}
+
+	free(tarea_separada);//stringsplit
 	return cantidad_caracteres;
 }
 

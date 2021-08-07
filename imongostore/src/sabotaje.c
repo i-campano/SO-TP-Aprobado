@@ -94,6 +94,7 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 			list_add(lista_bloques,valor);
 			free(bloques_ocupados[i]);
 		}
+		free(bloques_ocupados);
 		free(cadena);
 		free(resto_path);
 		config_destroy(config);
@@ -140,18 +141,27 @@ void sabotaje_bitmap_superbloque(){
 void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 	pthread_mutex_lock(&(archivo->mutex_file));
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
-	char * cadena = string_new();
+	char * cadena = NULL;
 	cadena = array_to_string(bloques_ocupados);
 	log_trace(logger,"Bloques ocupados por archivo: %s",cadena);
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
 		int * valor = malloc(sizeof(int));
 		*valor =atoi(bloques_ocupados[i]);
 		list_add(lista_bloques,valor);
-		free(bloques_ocupados[i]);
 
 		//TODO :Free
 	}
 	free(cadena);
+
+
+	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+
+		free(bloques_ocupados[i]);
+	}
+
+	free(bloques_ocupados);//stringsplit
+
+
 
 	pthread_mutex_unlock(&(archivo->mutex_file));
 

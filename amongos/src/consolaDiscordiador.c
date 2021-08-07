@@ -133,7 +133,7 @@ void escuchoIMongo() {
 				sabotaje = 0;
 			}
 
-
+			free(posicion);
 
 		}
 		else if(nroNotificacion==ENVIAR_BITACORA){

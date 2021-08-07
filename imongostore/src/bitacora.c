@@ -9,10 +9,9 @@
 
 _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 
-	_archivo_bitacora *archivo = (_archivo_bitacora*)malloc(sizeof(_archivo_bitacora));
+	_archivo_bitacora *archivo;
 
-	archivo->clave = string_new();
-	string_append(&(archivo->clave),tripulante);
+
 	char *resto_path = string_new();
 	string_append_with_format(&resto_path,"%s.ims",tripulante);
 
@@ -27,18 +26,23 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	if( access( aux, F_OK ) == 0 ) {
 		log_debug(logger,"iniciar_archivo_bitacora(): YA EXISTE ARCHIVO BITACORA : %s", tripulante);
 		//Si tengo acceso al archivo, creo el config
-		archivo->metadata = config_create(aux);
+		archivo = find_bitacora(archivos_bitacora,tripulante);
 	}else
 	{
+		archivo = (_archivo_bitacora*)malloc(sizeof(_archivo_bitacora));
+		archivo->clave = string_new();
+		string_append(&(archivo->clave),tripulante);
 		log_debug(logger,"iniciar_archivo_bitacora(): CREO NUEVO ARCHIVO BITACORA : %s", tripulante);
 		FILE * metadata = fopen(aux,"a+");
 		close(metadata);
-		archivo->metadata = config_create(aux);
 
+
+		(archivo->metadata) = config_create(aux);
 		pthread_mutex_lock(&mutex_archivos_bitacora);
 		list_add(archivos_bitacora,archivo);
 		pthread_mutex_unlock(&mutex_archivos_bitacora);
 	}
+
 
 
 
@@ -59,10 +63,11 @@ _archivo_bitacora * iniciar_archivo_bitacora(char * tripulante,char * key_file){
 	free(path_files);
 	free(aux);
 	free(resto_path);//+
-	//	config_destroy(archivo->metadata); TODO: ESTO SE DESTRUYE CON LA LISTA¿¿¿
+	free(tripulante);
 
+
+	//config_destroy(archivo->metadata);
 	pthread_mutex_init(&((archivo)->mutex_file), NULL);
-
 	return archivo;
 
 }
@@ -120,14 +125,22 @@ uint32_t write_archivo_bitacora(char* cadenaAGuardar,_archivo_bitacora * archivo
 
 			free(contenidoProximoBloque);//+
 
+			free(rellenoDeUltimoBloque);
+
 
 
 		}
+		for(int i = 0 ; i<longitud_blocks; i++){
+
+			free(blocks[i]);
+		}
+		free(blocks);
 	}
 	log_trace(logger,"%s: ----------- COPIA blocks.ims:",_blocks.fs_bloques);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	free(cadenaAGuardar);
 	return 1;
 }
 
@@ -139,10 +152,12 @@ void actualizar_metadata_sin_crear_bloque_bitacora(_archivo_bitacora * archivo,c
 	int bytes = string_length(valorAux);
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
-
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	char * bytesString = string_itoa(size);
+	config_set_value(archivo->metadata,"SIZE",bytesString);
 
 	config_save(archivo->metadata);
+
+	free(bytesString);
 
 }
 
@@ -155,12 +170,16 @@ void actualizar_metadata_bitacora(_archivo_bitacora * archivo,int indice_bloque,
 
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	char * bytesString = string_itoa(size);
+	config_set_value(archivo->metadata,"SIZE",bytesString);
+	free(bytesString);
 
 
 	char ** array;
 	array = config_get_array_value(archivo->metadata,"BLOCKS");
-	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
+	char * indice_bloque_string = string_itoa(indice_bloque);
+	char ** nuevo  = agregar_en_array(array,indice_bloque_string);
+	free(indice_bloque_string);
 
 	char * cadena = array_to_string(nuevo);
 	int i = 0;
@@ -168,10 +187,11 @@ void actualizar_metadata_bitacora(_archivo_bitacora * archivo,int indice_bloque,
 		free(nuevo[i]);
 		i++;
 	}
-	free(nuevo[i]);
-	free(nuevo);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	
+	free(nuevo);
+	free(cadena);
 }
 
 
@@ -192,6 +212,7 @@ void llenar_nuevo_bloque_bitacora(char* cadenaAGuardar, _archivo_bitacora* archi
 		actualizar_metadata_bitacora(archivo, indice_bloque, valorAux);
 		bitarray_set_bit_monitor(indice_bloque);
 		offsetBytesAlmacenados += superblock.tamanio_bloque;
+		free(valorAux);
 	}
 }
 
@@ -283,10 +304,11 @@ char * obtener_bitacora(int n_tripulante){
 	//TODO: sacar este mutex ¿
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
-		int * valor = malloc(sizeof(int));
-		*valor =atoi(bloques_ocupados[i]);
-
-		string_append(&cadena,string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(*valor),superblock.tamanio_bloque));
+		int valor;
+		valor =atoi(bloques_ocupados[i]);
+		char * substring = string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(valor),superblock.tamanio_bloque);
+		string_append(&cadena,substring);
+		free(substring);
 		free(bloques_ocupados[i]);
 	}
 	pthread_mutex_unlock(&_blocks.mutex_blocks);

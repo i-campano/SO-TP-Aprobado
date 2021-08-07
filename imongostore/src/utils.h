@@ -48,13 +48,25 @@ char* conf_CANTIDAD_BLOQUES;
 int conf_TIEMPO_SINCRONIZACION;
 char* conf_LOG_LEVEL;
 
+
+typedef struct _infoHilos{
+	int socket;
+	pthread_t hiloAtendedor;
+} infoHilos;
+
+t_list * hilosParaConexiones;
+pthread_mutex_t mutexHilos;
+
+pthread_t thread_manejador;
+pthread_t thread_sincronizador;
+
 t_log* logger;
 
 t_config* config;
 
 int sabotajes_realizados;
 
-
+int exitSincro;
 //-------------------------------------------------
 void iniciar_configuracion();
 t_config* leer_config();
@@ -62,6 +74,7 @@ t_config* leer_config();
 void init_server();
 void manejadorDeHilos();
 void *atenderNotificacion(void * paqueteSocket);
+void *sincronizar_blocks();
 
 
 ////////FUNCIONES DE TAREAS/////////

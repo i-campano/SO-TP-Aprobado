@@ -76,9 +76,7 @@ void iniciar_blocks(){
 		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT , mode);
 		log_info(logger,"iniciar_blocks(): Usando Blocks de FILE SYSTEM EXISTENTE");
 		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
 		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 		memcpy(_blocks.fs_bloques,_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
 	}else
@@ -88,10 +86,8 @@ void iniciar_blocks(){
 		ftruncate(_blocks.file_blocks,superblock.cantidad_bloques*superblock.tamanio_bloque);
 
 		_blocks.fs_bloques = malloc(superblock.cantidad_bloques*superblock.tamanio_bloque);
-		_blocks.original_blocks = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
 
 		bzero(_blocks.fs_bloques,superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(_blocks.original_blocks,superblock.cantidad_bloques * superblock.tamanio_bloque);
 
 		_blocks.original_blocks = mmap ( NULL, superblock.tamanio_bloque * superblock.cantidad_bloques, PROT_READ | PROT_WRITE, MAP_SHARED , _blocks.file_blocks, 0 );
 	}
@@ -113,6 +109,9 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cad, superblock.tamanio_bloque);
 
+	free(cad);
+	free(cadena);
+
 	return 1;
 }
 
@@ -122,6 +121,8 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, (void*)cadena, string_length(cadena));
+
+	free(cadena);
 	return 1;
 }
 
@@ -189,7 +190,7 @@ void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source){
 }
 
 
-void sincronizar_blocks(){
+void *sincronizar_blocks(){
 	while(1){
 
 		log_debug(logger,"SINCRONIZANDO DISCO");
@@ -208,18 +209,23 @@ void sincronizar_blocks(){
 		log_trace(logger,"SINCRO  bitmap - unBLOCKED");
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
+		if(exitSincro==-1){
+			log_info(logger,"Termino la sincro DESDE SINCRO");
+			pthread_cancel(pthread_self());
+			break;
+		}
 
 		sleep(conf_TIEMPO_SINCRONIZACION);
+
 
 	}
 }
 
 void hilo_sincronizar_blocks(){
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_t hilo = (pthread_t)malloc(sizeof(pthread_t));
-	pthread_create(&hilo , &attr1,(void*) sincronizar_blocks,NULL);
+	pthread_create( &thread_sincronizador , NULL,(void*) sincronizar_blocks,NULL);
+
+
+
 
 }
 
@@ -274,8 +280,8 @@ void iniciar_super_block(){
 		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
 		ftruncate(superblock.file_superblock,1);
 
-		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(superblock.bitmapstr,tamanioFs);
+//		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque); // TODO : CAMBIAR TAMAÑO
+//		bzero(superblock.bitmapstr,tamanioFs);
 
 
 		close(superblock.file_superblock);
@@ -386,7 +392,7 @@ int obtener_indice_para_guardar_en_bloque(char * valor){
 
 void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * caracter_llenado){
 	*archivo = (_archivo*)malloc(sizeof(_archivo));
-	(*archivo)->metadata = malloc(sizeof(t_config));
+
 	(*archivo)->clave = string_new();
 	string_append(&((*archivo)->clave),key_file);
 
@@ -417,7 +423,8 @@ void iniciar_archivo(char * name_file,_archivo **archivo,char * key_file,char * 
 
 
 	pthread_mutex_init(&((*archivo)->mutex_file), NULL);
-
+	free(aux);
+	free(path_files);
 
 }
 
@@ -430,14 +437,20 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+
+	char * bytesString = string_itoa(size);
+	config_set_value(archivo->metadata,"SIZE",bytesString);
 
 
 	char ** array;
 	array = config_get_array_value(archivo->metadata,"BLOCKS");
-	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
+	char * indice_bloque_string = string_itoa(indice_bloque);
+	char ** nuevo  = agregar_en_array(array,indice_bloque_string); // FREE
 
-	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(longitud_array(nuevo)));
+	free(indice_bloque_string);
+	char * longitud_nuevo_string = string_itoa(longitud_array(nuevo));
+	config_set_value(archivo->metadata,"BLOCK_COUNT",longitud_nuevo_string); // FREE
+	free(longitud_nuevo_string);
 
 	char * cadena = array_to_string(nuevo);
 	int i = 0;
@@ -445,10 +458,11 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 		free(nuevo[i]);
 		i++;
 	}
-	free(nuevo[i]);
-	free(nuevo);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	free(nuevo);
+	free(bytesString);
+	
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
@@ -459,11 +473,12 @@ void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
 	int bytes = string_length(valorAux);
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 	size+=bytes;
+	char * bytesString =string_itoa(size);
 
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
+	config_set_value(archivo->metadata,"SIZE",bytesString);
 
 	config_save(archivo->metadata);
-
+	free(bytesString);
 }
 
 void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
@@ -485,10 +500,18 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 
 	char * bloques_str = array_to_string(blocks);
 
+
 	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
+
+	int i = 0;
+	while(blocks[i]!=NULL){
+		free(blocks[i]);
+		i++;
+	}
+	free(blocks);
 }
 
 void bitarray_set_bit_monitor(int indice_bloque) {
@@ -512,6 +535,7 @@ void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
 		actualizar_metadata(archivo, indice_bloque, valorAux);
 		bitarray_set_bit_monitor(indice_bloque);
 		offsetBytesAlmacenados += superblock.tamanio_bloque;
+		free(valorAux);
 	}
 }
 
@@ -563,17 +587,30 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo,uint32_t id_trip)
 
 			actualizar_metadata_sin_crear_bloque(archivo,rellenoDeUltimoBloque);
 
+
 			char * contenidoProximoBloque = string_substring_from(cadenaAGuardar,espacioLibreUltimoBloque);
 
 			llenar_nuevo_bloque(contenidoProximoBloque, archivo);
 
+			free(rellenoDeUltimoBloque);
+			free(contenidoProximoBloque);
+
 		}
+
+
+		for(int i = 0 ; i<longitud_array(blocks); i++){
+
+			free(blocks[i]);
+		}
+
+		free(blocks);//stringsplit
 	}
 	log_info(logger,"El tripulante %d genero %d recursos de %s",id_trip,tamanioCadenaAGuardar,archivo->clave);
 	log_trace(logger,"write_archivo()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 	pthread_mutex_unlock(&(superblock.mutex_superbloque));
 	pthread_mutex_unlock(&(_blocks.mutex_blocks));
 	pthread_mutex_unlock(&(archivo->mutex_file));
+	free(cadenaAGuardar);
 	return 1;
 }
 
@@ -600,6 +637,12 @@ void actualizar_metadata_elimina_bloque_para_descartar(_archivo * archivo,int ca
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 
 	config_save(archivo->metadata);
+	int i = 0;
+	while(blocks[i]!=NULL){
+		free(blocks[i]);
+		i++;
+	}
+	free(blocks);
 }
 
 
@@ -836,10 +879,13 @@ void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
 			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
 		}else{
 			ocupados++;
-			string_append_with_format(&string_bloques_ocupados,"%s,",string_itoa(i));
+			char * indice =string_itoa(i);
+			string_append_with_format(&string_bloques_ocupados,"%s,",indice);
+			free(indice);
 		}
 
 	}
+
 	log_debug(logger,"Se liberaron los bloques de bitacora -> Hay %d bloques de recursos ocupados son:",ocupados);
 	log_debug(logger,"%s",string_bloques_ocupados);
 	free(string_bloques_ocupados);
@@ -867,6 +913,7 @@ void liberar_bloques_bitacora_al_iniciar_fs(){
 
 	igualar_bitmap_contra_bloques_al_iniciar_fs(lista_bloques);
 
+	list_destroy_and_destroy_elements(lista_bloques,free);
 }
 
 void calcular_md5(char * cadena){
