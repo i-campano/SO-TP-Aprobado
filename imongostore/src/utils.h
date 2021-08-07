@@ -26,8 +26,6 @@
 #include "bitacora.h"
 #include "sabotaje.h"
 
-t_list * lista_hilos;
-
 int fs_server;
 
 int socketDiscordiador;
@@ -49,6 +47,18 @@ char* conf_BYTES_BLOQUE;
 char* conf_CANTIDAD_BLOQUES;
 int conf_TIEMPO_SINCRONIZACION;
 char* conf_LOG_LEVEL;
+
+
+typedef struct _infoHilos{
+	int socket;
+	pthread_t hiloAtendedor;
+} infoHilos;
+
+t_list * hilosParaConexiones;
+pthread_mutex_t mutexHilos;
+
+pthread_t thread_manejador;
+pthread_t thread_sincronizador;
 
 t_log* logger;
 

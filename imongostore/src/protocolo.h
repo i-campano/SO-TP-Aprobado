@@ -14,6 +14,9 @@
 //------------------------COMANDOS----------------------------
 #define EJECUTAR_TAREA 8
 #define LOGUEAR_BITACORA 9
+#define AGREGAR_TRIPULANTE 24
+
+#define FIN_TRIP 23
 
 
 //------------------------SABOTAJE---------------------------

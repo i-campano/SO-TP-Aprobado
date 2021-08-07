@@ -109,6 +109,9 @@ int write_blocks(char * cadena_caracteres,int indice) {
 
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque), cad, superblock.tamanio_bloque);
 
+	free(cad);
+	free(cadena);
+
 	return 1;
 }
 
@@ -118,6 +121,8 @@ int write_blocks_with_offset(char * cadena_caracteres,int indice,int offset) {
 
 //	TODO : meter la validacion de bitarray aca  ¿
 	memcpy(_blocks.fs_bloques + (indice*superblock.tamanio_bloque)+offset, (void*)cadena, string_length(cadena));
+
+	free(cadena);
 	return 1;
 }
 
@@ -205,8 +210,8 @@ void *sincronizar_blocks(){
 		pthread_mutex_unlock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO  - MUTEX_BLOCKS - UNBLOCKED");
 		if(exitSincro==-1){
-
 			log_info(logger,"Termino la sincro DESDE SINCRO");
+			pthread_cancel(pthread_self());
 			break;
 		}
 
@@ -217,13 +222,8 @@ void *sincronizar_blocks(){
 }
 
 void hilo_sincronizar_blocks(){
-	pthread_t * hilo = malloc(sizeof(pthread_t));
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
-	pthread_create( hilo , &attr1,(void*) sincronizar_blocks,NULL);
+	pthread_create( &thread_sincronizador , NULL,(void*) sincronizar_blocks,NULL);
 
-	list_add(lista_hilos,hilo);
 
 
 
@@ -280,8 +280,8 @@ void iniciar_super_block(){
 		superblock.file_superblock = open(aux, O_RDWR | O_CREAT , mode);
 		ftruncate(superblock.file_superblock,1);
 
-		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque);
-		bzero(superblock.bitmapstr,tamanioFs);
+//		superblock.bitmapstr = malloc(superblock.cantidad_bloques * superblock.tamanio_bloque); // TODO : CAMBIAR TAMAÑO
+//		bzero(superblock.bitmapstr,tamanioFs);
 
 
 		close(superblock.file_superblock);
@@ -444,9 +444,13 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 
 	char ** array;
 	array = config_get_array_value(archivo->metadata,"BLOCKS");
-	char ** nuevo  = agregar_en_array(array,string_itoa(indice_bloque));
+	char * indice_bloque_string = string_itoa(indice_bloque);
+	char ** nuevo  = agregar_en_array(array,indice_bloque_string); // FREE
 
-	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(longitud_array(nuevo)));
+	free(indice_bloque_string);
+	char * longitud_nuevo_string = string_itoa(longitud_array(nuevo));
+	config_set_value(archivo->metadata,"BLOCK_COUNT",longitud_nuevo_string); // FREE
+	free(longitud_nuevo_string);
 
 	char * cadena = array_to_string(nuevo);
 	int i = 0;
@@ -454,12 +458,11 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 		free(nuevo[i]);
 		i++;
 	}
-	free(nuevo[i]);
-	free(nuevo);
-	//free(md5);
-	free(bytesString);
 	config_set_value(archivo->metadata,"BLOCKS",cadena);
 	config_save(archivo->metadata);
+	free(nuevo);
+	free(bytesString);
+	
 }
 
 void actualizar_metadata_sin_crear_bloque(_archivo * archivo,char * valorAux){
@@ -497,10 +500,18 @@ void actualizar_metadata_elimina_bloque(_archivo * archivo,int cantidadABorrar){
 
 	char * bloques_str = array_to_string(blocks);
 
+
 	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 	config_set_value(archivo->metadata,"SIZE",string_itoa(size-cantidadABorrar));
 	config_save(archivo->metadata);
+
+	int i = 0;
+	while(blocks[i]!=NULL){
+		free(blocks[i]);
+		i++;
+	}
+	free(blocks);
 }
 
 void bitarray_set_bit_monitor(int indice_bloque) {
@@ -524,6 +535,7 @@ void llenar_nuevo_bloque(char* cadenaAGuardar, _archivo* archivo) {
 		actualizar_metadata(archivo, indice_bloque, valorAux);
 		bitarray_set_bit_monitor(indice_bloque);
 		offsetBytesAlmacenados += superblock.tamanio_bloque;
+		free(valorAux);
 	}
 }
 
@@ -584,6 +596,14 @@ uint32_t write_archivo(char* cadenaAGuardar,_archivo * archivo,uint32_t id_trip)
 			free(contenidoProximoBloque);
 
 		}
+
+
+		for(int i = 0 ; i<longitud_array(blocks); i++){
+
+			free(blocks[i]);
+		}
+
+		free(blocks);//stringsplit
 	}
 	log_info(logger,"El tripulante %d genero %d recursos de %s",id_trip,tamanioCadenaAGuardar,archivo->clave);
 	log_trace(logger,"write_archivo()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
@@ -617,6 +637,12 @@ void actualizar_metadata_elimina_bloque_para_descartar(_archivo * archivo,int ca
 	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
 
 	config_save(archivo->metadata);
+	int i = 0;
+	while(blocks[i]!=NULL){
+		free(blocks[i]);
+		i++;
+	}
+	free(blocks);
 }
 
 

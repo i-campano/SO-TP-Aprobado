@@ -32,12 +32,14 @@ char * array_to_string(char ** array){
 	int i = 0;
 	while(array[i]!=NULL){
 		string_append_with_format(&cadena,"%s,",array[i]); // TODO VER ESTE LEAK
-
 		i++;
 	}
 	if(i>0){
 		cadena = string_substring_until(cadena,string_length(cadena)-1);
 	}
 	string_append(&cadena,"]");
+
+
+
 	return cadena;
 }

@@ -6,7 +6,7 @@
 
 #include "core.h"
 
-
+void destruirConfigArchivo(_archivo_bitacora* archivo);
 
 void informarSabotaje(int signal);
 void _informar_sabotaje_a_discordiador();

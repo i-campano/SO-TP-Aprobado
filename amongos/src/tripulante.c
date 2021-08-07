@@ -105,8 +105,10 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	list_add(conexiones,&socketMongo);
-	list_add(conexiones,&socketRam);
+	list_add(conexiones,&socketMongo);// VER
+	list_add(conexiones,&socketRam);//VER
+
+//	sendDeNotificacion(socketMongo,AGREGAR_TRIPULANTE);
 
 	log_trace(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
@@ -199,7 +201,7 @@ void *labor_tripulante_new(void * trip){
 					}
 					char * evento_ubicacion = string_new();
 					string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
-					log_debug(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
+					log_info(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
 					enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
 					free(evento_ubicacion);
 					actualizar_ubicacion(socketRam,tripulante);
@@ -401,8 +403,10 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam,tripulante->patota_id);
 	sendDeNotificacion(socketRam,tripulante->direccionLogica);
 	recvDeNotificacion(socketRam);
+	sendDeNotificacion(socketMongo,FIN_TRIP);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
+	free(tarea);
 	free(claveNueva);
 
 	return 0; //Para que no moleste el warning

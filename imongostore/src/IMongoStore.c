@@ -59,6 +59,19 @@ void informarSabotaje(int signal){
 		_informar_sabotaje_a_discordiador();
 //	fsck();
 }
+
+void destruirConfigArchivo(_archivo_bitacora* archivo) {
+	config_destroy(archivo->metadata);
+}
+
+void liberarHilo(infoHilos * data){
+	if(data != NULL){
+		close(data->socket);
+		pthread_cancel(data->hiloAtendedor);
+		free(data);
+	}
+}
+
 void ctrlZ(int signal){
 	log_info(logger,"Terminando imongo1");
 	exitSincro = -1;
@@ -67,10 +80,26 @@ void ctrlZ(int signal){
 	log_info(logger,"Exit sincro");
 
 
-	list_destroy_and_destroy_elements(lista_hilos,free);
+	log_info(logger,"Terminando imongo3");
+//
+	log_info(logger,"Terminando imongo4");
+	for(int i=0;i<list_size(archivos_bitacora);i++){
+		_archivo_bitacora * archivo = (_archivo_bitacora*)list_get(archivos_bitacora,i);
+		config_destroy(archivo->metadata);
+		free(archivo->clave);
+	}
+	log_info(logger,"Terminando imongo5");
+	list_destroy_and_destroy_elements(archivos_bitacora,free);
+	log_info(logger,"Terminando imongo6");
+	//list_destroy_and_destroy_elements(archivos_bitacora, (void*) destruirConfigArchivo);
+	list_destroy_and_destroy_elements(hilosParaConexiones, (void*) liberarHilo);
+	log_info(logger,"Terminando imongo7");
 	munmap(_blocks.original_blocks,superblock.tamanio_bloque * superblock.cantidad_bloques);
+	log_info(logger,"Terminando imongo8");
 	free(_blocks.fs_bloques);
+	log_info(logger,"Terminando imongo9");
 //	free(_blocks.fs_bloques);
+	log_info(logger,"Terminando imongo10");
 	log_destroy(logger);
 	exit(-1);
 

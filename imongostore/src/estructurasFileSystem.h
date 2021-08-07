@@ -31,7 +31,6 @@ typedef struct _archivo{
 
 typedef struct _archivo_bitacora{
 	char* clave;
-	t_list * blocks;
 	FILE * file;
 	t_config * metadata;
 	pthread_mutex_t mutex_file;

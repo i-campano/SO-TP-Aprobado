@@ -94,6 +94,7 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 			list_add(lista_bloques,valor);
 			free(bloques_ocupados[i]);
 		}
+		free(bloques_ocupados);
 		free(cadena);
 		free(resto_path);
 		config_destroy(config);
@@ -147,12 +148,20 @@ void bloques_ocupados_file(_archivo * archivo,t_list * lista_bloques){
 		int * valor = malloc(sizeof(int));
 		*valor =atoi(bloques_ocupados[i]);
 		list_add(lista_bloques,valor);
-		free(bloques_ocupados[i]);
 
 		//TODO :Free
 	}
 	free(cadena);
-	free(bloques_ocupados);
+
+
+	for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
+
+		free(bloques_ocupados[i]);
+	}
+
+	free(bloques_ocupados);//stringsplit
+
+
 
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
