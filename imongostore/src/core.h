@@ -19,7 +19,7 @@
 #include "protocolo.h"
 #include "arrays.h"
 
-
+int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file,char * caracter);
 int write_blocks(char * cadena_caracteres,int indice);
 uint32_t write_archivo(char* valor,_archivo * archivo,uint32_t id_trip);
 t_bitarray * crear_bit_array(uint32_t cantBloques);

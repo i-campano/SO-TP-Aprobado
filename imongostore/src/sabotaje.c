@@ -147,12 +147,9 @@ void sabotaje_bitmap_superbloque(){
 	igualar_bitmap_contra_bloques(lista_bloques);
 
 	log_info(logger,"FSCK: Chequeando BITMAP -> FIN");
-	long int i = list_size(lista_bloques);
-	while(i > 0){
-		free(list_remove(lista_bloques,0));
-		i--;
-	}
-	list_destroy(lista_bloques);
+
+	list_destroy_and_destroy_elements(lista_bloques,(void*)free);
+
 }
 
 
@@ -267,9 +264,9 @@ void contrastar_size_vs_bloques_files(){
 }
 
 void contrastar_tamanio_archivos_de_recurso(){
-	obtener_tamanio_archivo_de_recurso(archivo_comida,conf_ARCHIVO_COMIDA_NOMBRE);
-	obtener_tamanio_archivo_de_recurso(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE);
-	obtener_tamanio_archivo_de_recurso(archivo_basura,conf_ARCHIVO_BASURA_NOMBRE);
+	obtener_tamanio_archivo_de_recurso(archivo_comida,conf_ARCHIVO_COMIDA_NOMBRE,"C");
+	obtener_tamanio_archivo_de_recurso(archivo_oxigeno,conf_ARCHIVO_OXIGENO_NOMBRE,"O");
+	obtener_tamanio_archivo_de_recurso(archivo_basura,conf_ARCHIVO_BASURA_NOMBRE,"B");
 }
 
 

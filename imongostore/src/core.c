@@ -801,7 +801,7 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 }
 
 
-int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
+int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file,char * caracterP){
 	pthread_mutex_lock(&(archivo->mutex_file));
 	char *aux = NULL;
 	char *path_files = NULL;
@@ -821,7 +821,7 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 			memcpy(caracter,_blocks.original_blocks + (valor*superblock.tamanio_bloque)+j, 1);
 			memcpy(caracter+1,"\0",1);
 			log_trace(logger,"caracter %s",caracter);
-			if(string_equals_ignore_case(caracter,"O")){
+			if(string_equals_ignore_case(caracter,caracterP)){
 				size_archivo++;
 			}
 			free(caracter);
