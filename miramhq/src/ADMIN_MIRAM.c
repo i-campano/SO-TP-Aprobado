@@ -1263,10 +1263,8 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		pcb.id = id;
 		segmento_t* seg = buscar_segmento(pcb);
 		list_add(tablaPatota->listaAsignados,seg);
-		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		//seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas);
 		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas); //MODIFICAR BNUSCAR
-		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		list_add(tablaPatota->listaAsignados,seg);
 		while ((framesNecesarios - 2) > 0 ){
 			tcb_t tcb;
@@ -1463,12 +1461,15 @@ pagina_t* paginaSegun(char* algoritmoRemplazo){
 }
 int liberar_memoria(void){
 	free(mem_ppal);
-	log_destroy(logger);
 	eliminarListaTablas();
 	liberarBloquesMemoria(confDatos.esquema);
-	liberarMemoriaHilos();
+	//liberarMemoriaHilos();
+	log_destroy(logger);
 	//LIBERAR CONEXIONES
 	return 0;
+}
+void terminar_memoria(int signal){
+	liberar_memoria();
 }
 int eliminarListaTablas(void){
 	uint32_t cantidad = list_size(tablasPatotaPaginacion);

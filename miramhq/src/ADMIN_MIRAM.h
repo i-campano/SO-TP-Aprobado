@@ -187,4 +187,5 @@ void limpiarSwap(void);
 void liberarMemoriaHilos(void);
 void manejarSignal(int signal);
 void dumpMemoria(int signal);
+void terminar_memoria(int signal);
 #endif /* ADMIN_MIRAM_H_ */
