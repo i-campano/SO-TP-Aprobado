@@ -11,6 +11,8 @@
 
 #include "utils.h"
 
+void adulterar_bitmap2(int signal);
+
 void mostrar_bloques(t_list * lista_bloques);
 
 void igualar_bitmap_contra_bloques(t_list * bloques_ocupados);

@@ -20,59 +20,55 @@ void mostrar_bloques(t_list * lista_bloques){
 int buscar_bloque(t_list * bloques_ocupados,int i){
 	bool por_indice(void* indice){
 		int* bloque = (int*) indice;
-		return bloque==i? true : false;
+		return *bloque==i? true : false;
 	}
 	int* indice_bloque= list_find(bloques_ocupados, por_indice);
 	return *indice_bloque;
 }
 
 void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
-	log_trace(logger,"igualar_bitmap_contra_bloques: antes de igualar");
-	calcular_bloques_libres();
 
-	int cantidadDePosiciones = superblock.cantidad_bloques;
-	pthread_mutex_lock(&superblock.mutex_superbloque);
-	for(int i=0; i<cantidadDePosiciones;i++){
-		bitarray_clean_bit(superblock.bitmap,i);
-
-		//HAGO EL CLEAN DEL BITARRAY
-
+	int tamanioBitarray=superblock.cantidad_bloques/8;
+	if(superblock.cantidad_bloques % 8 != 0){
+	  tamanioBitarray++;
 	}
-	pthread_mutex_unlock(&superblock.mutex_superbloque);
-
-	log_trace(logger,"igualar_bitmap_contra_bloques: luego de limpiar");
-	calcular_bloques_libres_ONLY();
-
 	pthread_mutex_lock(&superblock.mutex_superbloque);
+	memcpy(superblock.bitmap->bitarray,superblock.bitmapstr+(sizeof(uint32_t))*2, tamanioBitarray);
 
-	pthread_mutex_lock(&mutex_archivos_bitacora);
-
-
-	//TODO: ver si hacer esto mismo sin limpiar todos los bits al principio
 	bool saboteado = false;
-	for(int i=0; i<list_size(bloques_ocupados);i++){
-		int* bloque_ocupado = (int*)list_get(bloques_ocupados,i);
-		if(!bitarray_test_bit(superblock.bitmap,*bloque_ocupado)){
-			bitarray_set_bit(superblock.bitmap,*bloque_ocupado);
-			log_trace(logger,"igualar_bitmap_contra_bloques: el bit %d estaba distinto",*bloque_ocupado);
-			saboteado = true;
+	for(int i=0; i<tamanioBitarray; i++){
+		int bloque = buscar_bloque_para_sabotaje(bloques_ocupados,i);
+//		if(bitarray_test_bit(superblock.bitmap,i)){
+//			log_info(logger,"%d",i);
+//		}
+		if(bloque!=-1){
+			log_info(logger,"%d",bloque);
+			if(!bitarray_test_bit(superblock.bitmap,i)){
+				bitarray_set_bit(superblock.bitmap,i);
+				saboteado = true;
+				log_info(logger,"%d",i);
+			}
+		}else{
+			if(bitarray_test_bit(superblock.bitmap,i)){
+				bitarray_clean_bit(superblock.bitmap,i);
+				saboteado = true;
+			}
 		}
 	}
+	if(saboteado){
+		log_info(logger,"Fue saboteado el bitmap, pero ya fue reparado");
+	}else{
+		log_info(logger,"El bitmap estaba Ok");
+	}
 
-	memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
+
+
+	memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), superblock.bitmap, (superblock.cantidad_bloques/8));
 	msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
 
-//	if(saboteado){
-//		log_info(logger,"Habia diferencias entre el bitmap y la metadata");
-//
-//	}else{
-//		log_info(logger,"TODO OK: No habia diferencias entre el bitmap y la metadata");
-//	}
-
-	pthread_mutex_unlock(&mutex_archivos_bitacora);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
+
 	log_trace(logger,"igualar_bitmap_contra_bloques: luego de igualar");
-	calcular_bloques_libres_ONLY();
 }
 
 void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
@@ -122,6 +118,22 @@ void sabotaje_cantidad_bloques_superbloque(){
 
 }
 
+
+
+int buscar_bloque_para_sabotaje(t_list * bloques_ocupados,int i){
+	bool por_indice(void* indice){
+		int* bloque = (int*) indice;
+		return *bloque==i? true : false;
+	}
+	int* indice_bloque= (int*)list_find(bloques_ocupados, por_indice);
+
+	if(indice_bloque!=NULL){
+		return *indice_bloque;
+	}else
+	{
+		return -1;
+	}
+}
 
 void sabotaje_bitmap_superbloque(){
 	t_list * lista_bloques = list_create();
@@ -204,21 +216,25 @@ void contrastar_cantidad_bloques(){
 		exit_failure();
 	}
 	if (info.st_size > 0) {
-		uint32_t cantidad_bloques_blocks = info.st_size / superblock.tamanio_bloque;
-		log_info(logger,"Cantidad de blocks (desde stat) %d",cantidad_bloques_blocks);
-		log_info(logger,"Cantidad de blocks (desde config) %d",superblock.cantidad_bloques);
 
 		pthread_mutex_lock(&superblock.mutex_superbloque);
 		void * cantidad_superblock = malloc(sizeof(uint32_t));
 		memcpy(cantidad_superblock, superblock.bitmapstr, sizeof(uint32_t));
 		pthread_mutex_unlock(&superblock.mutex_superbloque);
 
+		uint32_t cantidad_bloques_super_block = *(uint32_t*)cantidad_superblock;
 
-		if(cantidad_bloques_blocks!=*(uint32_t*)cantidad_superblock){
+		uint32_t cantidad_bloques_blocks = info.st_size / superblock.tamanio_bloque;
+
+		log_info(logger,"Cantidad de blocks (desde block) %d",cantidad_bloques_blocks);
+		log_info(logger,"Cantidad de blocks (desde desde superblock) %d",cantidad_bloques_super_block);
+
+
+		if(cantidad_bloques_blocks!=cantidad_bloques_super_block){
 
 			log_info(logger,"La cantidad de bloques fue saboteada, pero ya fue reparada");
-			superblock.cantidad_bloques = cantidad_bloques_blocks;
-			memcpy(superblock.bitmapstr, &(cantidad_bloques_blocks), sizeof(uint32_t));
+
+			memcpy(superblock.bitmapstr, &(cantidad_bloques_super_block), sizeof(uint32_t));
 
 			msync(superblock.bitmapstr, (sizeof(uint32_t)), MS_SYNC);
 		}
@@ -288,12 +304,12 @@ void adulterar_bitmap(int signal){
 
 void adulterar_bitmap2(int signal){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
-	bitarray_clean_bit(superblock.bitmap,13);
+	bitarray_set_bit(superblock.bitmap,13);
 
-	bitarray_clean_bit(superblock.bitmap,14);
+	bitarray_set_bit(superblock.bitmap,14);
 
-	bitarray_clean_bit(superblock.bitmap,15);
+	bitarray_set_bit(superblock.bitmap,15);
 
-	bitarray_clean_bit(superblock.bitmap,30);
+	bitarray_set_bit(superblock.bitmap,300);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
 }

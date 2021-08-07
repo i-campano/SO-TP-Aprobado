@@ -15,7 +15,7 @@ int main(void)
 
 	signal(SIGUSR2,fsck);
 	signal(SIGTSTP,ctrlZ);
-//	signal(SIGSEGV,adulterar_bitmap);
+	signal(SIGSEGV,adulterar_bitmap2);
 //	signal(SIGSEGV,terminar_imongo);
 	iniciar_configuracion();
 //	remove_files();
