@@ -7,6 +7,8 @@
 
 void iniciar_configuracion(){
 
+
+	sem_init(&detener_sincro,0,1);
 	pthread_mutex_init(&mutexHilos,NULL);
 	hilosParaConexiones = list_create();
 	exitSincro = 0;

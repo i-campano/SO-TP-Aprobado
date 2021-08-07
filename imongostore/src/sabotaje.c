@@ -33,7 +33,7 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 	  tamanioBitarray++;
 	}
 	pthread_mutex_lock(&superblock.mutex_superbloque);
-	memcpy(superblock.bitmap->bitarray,superblock.bitmapstr+(sizeof(uint32_t))*2, tamanioBitarray);
+	//memcpy(superblock.bitmap->bitarray,superblock.bitmapstr+(sizeof(uint32_t))*2, tamanioBitarray);
 
 	bool saboteado = false;
 	for(int i=0; i<tamanioBitarray; i++){
@@ -272,6 +272,8 @@ void contrastar_tamanio_archivos_de_recurso(){
 
 
 void fsck(){
+
+	sem_wait(&detener_sincro);
 	log_info(logger,"Ejecutando FSCK -> INICIO");
 
 	contrastar_cantidad_bloques(); // Revisado
@@ -285,6 +287,8 @@ void fsck(){
 
 	log_info(logger,"Ejecutando FSCK -> FIN");
 	sleep(conf_TIEMPO_SABOTAJE);
+
+	sem_post(&detener_sincro);
 }
 
 

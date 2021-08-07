@@ -30,6 +30,8 @@ int fs_server;
 
 int socketDiscordiador;
 
+sem_t detener_sincro;
+
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
 int salidaEstandar;
 char* conf_PUNTO_MONTAJE;
