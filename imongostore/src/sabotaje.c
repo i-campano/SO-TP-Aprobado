@@ -46,6 +46,8 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 
 	pthread_mutex_lock(&mutex_archivos_bitacora);
+
+
 	//TODO: ver si hacer esto mismo sin limpiar todos los bits al principio
 	bool saboteado = false;
 	for(int i=0; i<list_size(bloques_ocupados);i++){
@@ -128,7 +130,7 @@ void sabotaje_bitmap_superbloque(){
 
 	obtener_todos_los_bloques_desde_metedata(lista_bloques);
 
-//	mostrar_bloques(lista_bloques);
+	//mostrar_bloques(lista_bloques);
 
 	igualar_bitmap_contra_bloques(lista_bloques);
 
@@ -205,16 +207,25 @@ void contrastar_cantidad_bloques(){
 		uint32_t cantidad_bloques_blocks = info.st_size / superblock.tamanio_bloque;
 		log_info(logger,"Cantidad de blocks (desde stat) %d",cantidad_bloques_blocks);
 		log_info(logger,"Cantidad de blocks (desde config) %d",superblock.cantidad_bloques);
-		if(cantidad_bloques_blocks!=superblock.cantidad_bloques){
+
+		pthread_mutex_lock(&superblock.mutex_superbloque);
+		void * cantidad_superblock = malloc(sizeof(uint32_t));
+		memcpy(cantidad_superblock, superblock.bitmapstr, sizeof(uint32_t));
+		pthread_mutex_unlock(&superblock.mutex_superbloque);
+
+
+		if(cantidad_bloques_blocks!=*(uint32_t*)cantidad_superblock){
+
 			log_info(logger,"La cantidad de bloques fue saboteada, pero ya fue reparada");
 			superblock.cantidad_bloques = cantidad_bloques_blocks;
-			memcpy(superblock.bitmapstr, &(superblock.cantidad_bloques), sizeof(uint32_t));
+			memcpy(superblock.bitmapstr, &(cantidad_bloques_blocks), sizeof(uint32_t));
 
 			msync(superblock.bitmapstr, (sizeof(uint32_t)), MS_SYNC);
 		}
 		else{
 			log_info(logger,"La cantidad de bloques no fue saboteada");
 		}
+		free(cantidad_superblock);
 	}
 }
 
@@ -235,10 +246,12 @@ void contrastar_tamanio_archivos_de_recurso(){
 void fsck(){
 	log_info(logger,"Ejecutando FSCK -> INICIO");
 
+	contrastar_cantidad_bloques(); // Revisado
 
 	sabotaje_bitmap_superbloque(); // Revisado -> posible mejora TODO
+
 	contrastar_tamanio_archivos_de_recurso(); // Revisado
-	contrastar_cantidad_bloques(); // Revisado -> comportamiento: Truncando el archivo por linea de comandos -> actualiza la cantidad de bloques dentro del archivo de superblocks
+
 	contrastar_size_vs_bloques_files(); // Revisado
 
 

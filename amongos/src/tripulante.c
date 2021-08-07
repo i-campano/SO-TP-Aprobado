@@ -191,7 +191,7 @@ void *labor_tripulante_new(void * trip){
 			if (sabotaje && !tripulante->elegido){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
-				log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
+				//log_debug(logger,"T%d - P%d    Sale de bloqueados por emergencia", tripulante->id,tripulante->patota_id);
 			}
 			if(sabotaje && tripulante->elegido){
 				int movXS = ubic_sab_x;
@@ -200,7 +200,7 @@ void *labor_tripulante_new(void * trip){
 				int moveRightS = 0;
 				int moveUpS = 0;
 				int moveBoundS = abs(movXS-tripulante->ubi_x) +abs(movYS-tripulante->ubi_y);
-				log_debug(logger,"T%d - P%d: Comienza a resolver sabotaje", tripulante->id,tripulante->patota_id);
+				log_info(logger,"T%d - P%d: Comienza a resolver sabotaje", tripulante->id,tripulante->patota_id);
 				while(moveBoundS>0){
 					sleep(1);
 					if( firstMoveS == 0){
@@ -226,7 +226,7 @@ void *labor_tripulante_new(void * trip){
 						}
 					}
 					char * evento_ubicacion = string_new();
-					string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
+					string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d ---- (Sabotaje)",tripulante->ubi_x,tripulante->ubi_y);
 					log_info(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
 					enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
 					free(evento_ubicacion);
@@ -359,7 +359,7 @@ void *labor_tripulante_new(void * trip){
 
 
 			if(/*!esIo &&*/ tripulante->instrucciones_ejecutadas<=moveBound){
-				log_info(logger,"T%d - P%d  -> CPU BOUND [MOVE]  ", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+				log_trace(logger,"T%d - P%d  -> CPU BOUND [MOVE]  ", tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 
 				if( firstMove == 0){
 					firstMove = 1;
@@ -391,7 +391,7 @@ void *labor_tripulante_new(void * trip){
 				actualizar_ubicacion(socketRam,tripulante);
 				char * evento_ubicacion = string_new();
 				string_append_with_format(&evento_ubicacion,"Se movio a x: %d  y: %d",tripulante->ubi_x,tripulante->ubi_y);
-				log_info(logger,"T%d - P%d: %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
+				log_info(logger,"T%d - P%d: CPU BOUND [MOVE] - %s", tripulante->id,tripulante->patota_id, evento_ubicacion);
 				enviar_evento_bitacora(socketMongo,tripulante->id,evento_ubicacion);
 				free(evento_ubicacion);
 			}else if(!esIo && tripulante->instrucciones_ejecutadas>moveBound){
