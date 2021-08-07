@@ -81,6 +81,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			else {
 			sendDeNotificacion(socket,ERROR);
 			}
+			close(socket);
+			return 0;
 			break;
 		}
 		case PEDIR_TAREA:{
