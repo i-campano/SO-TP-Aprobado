@@ -129,6 +129,7 @@ void _informar_sabotaje_a_discordiador(){
 		sendRemasterizado(socketDiscordiador, INFORMAR_SABOTAJE, tamanio, (void*) buffer);
 		free(posicion);
 		sabotajes_realizados++;
+		free(buffer);
 }
 
 

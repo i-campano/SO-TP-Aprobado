@@ -42,7 +42,6 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 //			log_info(logger,"%d",i);
 //		}
 		if(bloque!=-1){
-			log_info(logger,"%d",bloque);
 			if(!bitarray_test_bit(superblock.bitmap,i)){
 				bitarray_set_bit(superblock.bitmap,i);
 				saboteado = true;
@@ -149,6 +148,12 @@ void sabotaje_bitmap_superbloque(){
 	igualar_bitmap_contra_bloques(lista_bloques);
 
 	log_info(logger,"FSCK: Chequeando BITMAP -> FIN");
+	long int i = list_size(lista_bloques);
+	while(i > 0){
+		free(list_remove(lista_bloques,0));
+		i--;
+	}
+	list_destroy(lista_bloques);
 }
 
 
@@ -191,6 +196,7 @@ void corregir_block_count_file(_archivo * archivo,char * name_file){
 	path_files = string_duplicate(conf_PATH_FILES);
 	string_append_with_format(&aux, "%s%s", path_files,name_file);
 	log_trace(logger,"aux : %s",aux);
+	config_destroy(archivo->metadata); //FREE
 	archivo->metadata = config_create(aux);
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
 	int cantidad_bloques = config_get_int_value(archivo->metadata,"BLOCK_COUNT");
@@ -200,7 +206,14 @@ void corregir_block_count_file(_archivo * archivo,char * name_file){
 		config_save(archivo->metadata);
 	}
 	pthread_mutex_unlock(&(archivo->mutex_file));
-
+	free(path_files);
+	free(aux);//Free
+	uint32_t i = 0;
+	while(bloques_ocupados[i] != NULL){
+		free(bloques_ocupados[i]);
+		i++;
+	}
+	free(bloques_ocupados);
 }
 
 void contrastar_cantidad_bloques(){
@@ -245,6 +258,7 @@ void contrastar_cantidad_bloques(){
 		}
 		free(cantidad_superblock);
 	}
+	free(aux); //FREE
 }
 
 void contrastar_size_vs_bloques_files(){
