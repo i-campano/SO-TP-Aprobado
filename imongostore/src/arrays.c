@@ -31,15 +31,19 @@ char * array_to_string(char ** array){
 	string_append(&cadena,"[");
 	int i = 0;
 	while(array[i]!=NULL){
-		string_append_with_format(&cadena,"%s,",array[i]); // TODO VER ESTE LEAK
+		string_append(&cadena,array[i]);
+		string_append(&cadena,",");
+		//string_append_with_format(&cadena,"%s,",array[i]); // TODO VER ESTE LEAK
 		i++;
 	}
 	if(i>0){
-		cadena = string_substring_until(cadena,string_length(cadena)-1);
+		char * substring = string_substring_until(cadena,string_length(cadena)-1);
+		free(cadena);
+		cadena = string_new();
+		string_append(&cadena,substring);
+		free(substring);
 	}
 	string_append(&cadena,"]");
-
-
 
 	return cadena;
 }

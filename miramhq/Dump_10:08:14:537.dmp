@@ -1,0 +1,27 @@
+Dump: 10:08:14:537  
+Proceso: 1 	 Segmento: 0 	 Inicio: 0x0 	 Tam: 8 
+Proceso: 1 	 Segmento: 1 	 Inicio: 0x8 	 Tam: 237 
+Proceso: 2 	 Segmento: 2 	 Inicio: 0xF5 	 Tam: 8 
+Proceso: 2 	 Segmento: 3 	 Inicio: 0xFD 	 Tam: 131 
+Proceso: Libre 	 Segmento: 4 	 Inicio: 0x180 	 Tam: 8 
+Proceso: Libre 	 Segmento: 5 	 Inicio: 0x188 	 Tam: 337 
+Proceso: 4 	 Segmento: 6 	 Inicio: 0x2D9 	 Tam: 8 
+Proceso: 4 	 Segmento: 7 	 Inicio: 0x2E1 	 Tam: 359 
+Proceso: 5 	 Segmento: 8 	 Inicio: 0x448 	 Tam: 8 
+Proceso: 5 	 Segmento: 9 	 Inicio: 0x450 	 Tam: 145 
+Proceso: 1 	 Segmento: 10 	 Inicio: 0x4E1 	 Tam: 24 
+Proceso: 1 	 Segmento: 11 	 Inicio: 0x4F9 	 Tam: 24 
+Proceso: 1 	 Segmento: 12 	 Inicio: 0x511 	 Tam: 24 
+Proceso: 2 	 Segmento: 13 	 Inicio: 0x529 	 Tam: 24 
+Proceso: 2 	 Segmento: 14 	 Inicio: 0x541 	 Tam: 24 
+Proceso: 2 	 Segmento: 15 	 Inicio: 0x559 	 Tam: 24 
+Proceso: Libre 	 Segmento: 16 	 Inicio: 0x571 	 Tam: 24 
+Proceso: Libre 	 Segmento: 17 	 Inicio: 0x589 	 Tam: 24 
+Proceso: Libre 	 Segmento: 18 	 Inicio: 0x5A1 	 Tam: 24 
+Proceso: 4 	 Segmento: 19 	 Inicio: 0x5B9 	 Tam: 24 
+Proceso: 4 	 Segmento: 20 	 Inicio: 0x5D1 	 Tam: 24 
+Proceso: 4 	 Segmento: 21 	 Inicio: 0x5E9 	 Tam: 24 
+Proceso: 5 	 Segmento: 22 	 Inicio: 0x601 	 Tam: 24 
+Proceso: 5 	 Segmento: 23 	 Inicio: 0x619 	 Tam: 24 
+Proceso: 5 	 Segmento: 24 	 Inicio: 0x631 	 Tam: 24 
+Proceso: Libre 	 Segmento: 25 	 Inicio: 0x649 	 Tam: 14775 

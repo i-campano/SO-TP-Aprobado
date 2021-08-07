@@ -116,7 +116,7 @@ int cerrar_conexiones_hilos(t_log* logger){
 	queue_destroy(planificacion_cola_ready);
 	list_destroy(lista_exec);
 	queue_destroy(cola_ejecutados);*/
-	config_destroy(config);
+	//config_destroy(config);
 	log_info(logger,"Cerrando hilos");
 	return 0;
 }

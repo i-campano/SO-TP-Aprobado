@@ -284,7 +284,8 @@ char * obtener_bitacora(int n_tripulante){
 	char *clave = string_from_format("tripulante_%s", n_trip);
 	char * path = string_new();
 	string_append_with_format(&path,"%s.ims",clave);
-
+	//string_append(&path,clave);
+	//string_append(&path,".ims");
 
 	char *aux = NULL;
 	char *path_files = NULL;
@@ -309,16 +310,24 @@ char * obtener_bitacora(int n_tripulante){
 		char * substring = string_substring_until(_blocks.fs_bloques + superblock.tamanio_bloque*(valor),superblock.tamanio_bloque);
 		string_append(&cadena,substring);
 		free(substring);
-		free(bloques_ocupados[i]);
+		//free(bloques_ocupados[i]);
 	}
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 //	free(cadena);
 	free(aux);
 	free(path_files);
 	config_destroy(config);
-
+	uint i = 0;
+	while(bloques_ocupados[i] != NULL){
+		free(bloques_ocupados[i]);
+		i++;
+	}
+	free(bloques_ocupados);
 	pthread_mutex_unlock(&(archivo_bit->mutex_file));
 	log_debug(logger,"obtener_bitacora(): Contenido de Bitacora pedida: %s",cadena);
+	free(n_trip);
+	free(clave);
+	free(path);
 	return cadena;
 }
 

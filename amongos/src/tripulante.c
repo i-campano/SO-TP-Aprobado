@@ -156,7 +156,7 @@ void *labor_tripulante_new(void * trip){
 	actualizar_estado(socketRam,tripulante,READY);
 
 
-	char* claveNueva = string_new();
+
 	tripulante->instrucciones_ejecutadas = 0;
 	//int tareas_pedidas = 0;
 	int rafaga = 0;
