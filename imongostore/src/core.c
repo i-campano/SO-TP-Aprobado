@@ -809,6 +809,7 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 	path_files = string_duplicate(conf_PATH_FILES);
 	string_append_with_format(&aux, "%s%s", path_files,name_file);
 	log_trace(logger,"aux : %s",aux);
+	config_destroy(archivo->metadata);
 	archivo->metadata = config_create(aux);
 	char ** bloques_ocupados = config_get_array_value(archivo->metadata,"BLOCKS");
 	int size_archivo = 0;
@@ -825,9 +826,15 @@ int obtener_tamanio_archivo_de_recurso(_archivo * archivo,char * name_file){
 			}
 			free(caracter);
 		}
-		free(bloques_ocupados[i]);
+
 
 	}
+	uint32_t i = 0; //FREE
+	while(bloques_ocupados[i] != NULL){
+		free(bloques_ocupados[i]);
+		i++;
+	}
+	free(bloques_ocupados);
 	log_debug(logger,"obtener_tamanio_archivo_de_recurso(): Tamanio real del archivo de recursos %d",size_archivo);
 
 	int metadata_size = config_get_int_value(archivo->metadata,"SIZE");
