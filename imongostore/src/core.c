@@ -330,6 +330,7 @@ void iniciar_super_block(){
 
 	free(aux);
 	free(path_files);
+	calcular_bloques_libres_ONLY();
 
 }
 
@@ -866,31 +867,29 @@ void mostrar_bloques_ocupados(t_list * bloques_ocupados){
 }
 
 void igualar_bitmap_contra_bloques_al_iniciar_fs(t_list * bloques_ocupados){
-
+	calcular_bloques_libres_ONLY();
 	int cantidadDePosiciones = superblock.cantidad_bloques;
 	pthread_mutex_lock(&superblock.mutex_superbloque);
 	pthread_mutex_lock(&_blocks.mutex_blocks);
 	char * string_bloques_ocupados = string_new();
 	int ocupados = 0;
 	//TODO EL -2 QUE ONDA
-	for(int i=0; i<cantidadDePosiciones-2;i++){
-		if(!encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
+	for(int i=0; i<(superblock.cantidad_bloques/8);i++){
+		if(encontrar_bloque_para_iniciar_fs(bloques_ocupados,i)){
 			bitarray_clean_bit(superblock.bitmap,i);
 			bzero(_blocks.fs_bloques+i*superblock.tamanio_bloque,superblock.tamanio_bloque);
-		}else{
-			ocupados++;
-			char * indice =string_itoa(i);
-			string_append_with_format(&string_bloques_ocupados,"%s,",indice);
-			free(indice);
 		}
-
 	}
+
+	memcpy(superblock.bitmapstr + 2*sizeof(uint32_t), (superblock.bitmap->bitarray), (superblock.cantidad_bloques/8));
+	msync(superblock.bitmapstr, 2*sizeof(uint32_t)+ (superblock.cantidad_bloques/8), MS_SYNC);
 
 	log_debug(logger,"Se liberaron los bloques de bitacora -> Hay %d bloques de recursos ocupados son:",ocupados);
 	log_debug(logger,"%s",string_bloques_ocupados);
 	free(string_bloques_ocupados);
 	pthread_mutex_unlock(&_blocks.mutex_blocks);
 	pthread_mutex_unlock(&superblock.mutex_superbloque);
+	calcular_bloques_libres_ONLY();
 
 }
 
@@ -908,7 +907,13 @@ void liberar_bloques_bitacora_al_iniciar_fs(){
 	t_list * lista_bloques = list_create();
 
 
-	obtener_todos_los_bloques_de_recursos_metedata(lista_bloques);
+	pthread_mutex_lock(&mutex_archivos_bitacora);
+	for (int i = 0; i < list_size(archivos_bitacora); i++) {
+		_archivo_bitacora* archivo = (_archivo_bitacora*) list_get(
+				archivos_bitacora, i);
+		bloques_file_bitacora(archivo, lista_bloques);
+	}
+	pthread_mutex_unlock(&mutex_archivos_bitacora);
 
 
 	igualar_bitmap_contra_bloques_al_iniciar_fs(lista_bloques);

@@ -32,7 +32,7 @@ int main(void)
 	check_metadata_resources();
 
 	delete_bitacora_files(conf_PUNTO_MONTAJE);
-	liberar_bloques_bitacora_al_iniciar_fs();
+	//liberar_bloques_bitacora_al_iniciar_fs();
 
 
 
@@ -73,6 +73,7 @@ void liberarHilo(infoHilos * data){
 }
 
 void ctrlZ(int signal){
+	liberar_bloques_bitacora_al_iniciar_fs();
 	log_info(logger,"Terminando imongo1");
 	exitSincro = -1;
 	log_info(logger,"Terminando imongo2");
