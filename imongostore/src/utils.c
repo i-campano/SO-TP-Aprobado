@@ -12,9 +12,11 @@ void iniciar_configuracion(){
 	exitSincro = 0;
 	config = leer_config();
 	conf_LOG_LEVEL = config_get_string_value(config, "LOG_LEVEL");
+	salidaEstandar = config_get_int_value(config, "SALIDA_ESTANDAR");
 	t_log_level log_level = log_level_from_string(conf_LOG_LEVEL);
-	logger = log_create("IMongoStore.log", "IMongoStore", 1,log_level);
 
+
+	logger = log_create("IMongoStore.log", "IMongoStore", 1,log_level);
 
 	conf_PUNTO_MONTAJE = config_get_string_value(config, "PUNTO_MONTAJE");
 	conf_PUERTO_IMONGO = config_get_int_value (config, "PUERTO");
@@ -131,10 +133,8 @@ void *atenderNotificacion(void * paqueteSocket){
 
 		log_trace(logger,"espero mas notificaciones....");
 		uint32_t nroNotificacion = recvDeNotificacion(socket);
-
 		switch(nroNotificacion){
 
-			log_info(logger,"en el switch....");
 
 
 			case DISCORDIADOR:{
@@ -164,6 +164,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				log_debug(logger,"atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				tipoTarea(tarea,id_trip);
 				sendDeNotificacion(socket,TAREA_EJECUTADA);
+				log_debug(logger,"2atenderNotificacion(): Tripulante %d ejecuta tarea: %s",id_trip,tarea);
 				free(tarea);
 
 				break;

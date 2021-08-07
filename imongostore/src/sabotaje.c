@@ -46,7 +46,6 @@ void igualar_bitmap_contra_bloques(t_list * bloques_ocupados){
 			if(!bitarray_test_bit(superblock.bitmap,i)){
 				bitarray_set_bit(superblock.bitmap,i);
 				saboteado = true;
-				log_info(logger,"%d",i);
 			}
 		}else{
 			if(bitarray_test_bit(superblock.bitmap,i)){

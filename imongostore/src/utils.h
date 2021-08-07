@@ -31,6 +31,7 @@ int fs_server;
 int socketDiscordiador;
 
 //VARIABLES DEL ARCHIVO DE CONFIGURACION
+int salidaEstandar;
 char* conf_PUNTO_MONTAJE;
 uint32_t conf_PUERTO_IMONGO;
 uint32_t conf_TIEMPO_SICRONIZACION;

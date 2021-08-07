@@ -54,7 +54,7 @@ void iniciar_blocks(){
 		_blocks.file_blocks = open(aux, O_RDWR | O_CREAT | O_TRUNC, mode);
 		ftruncate(_blocks.file_blocks,1);
 		close(_blocks.file_blocks);
-		log_error(logger, "iniciar_blocks(): No se puede acceder al directorio %s", aux);
+		log_warning(logger, "iniciar_blocks(): No se puede acceder al directorio %s", aux);
 	}
 
 	if (_blocks.file_blocks == (-1)) {
@@ -67,7 +67,7 @@ void iniciar_blocks(){
 	bzero(&info, sizeof(struct stat));
 	FILE *fptr;
 	if (stat(aux, &info) != 0) {
-		log_error(logger, "iniciar_blocks(): No se puede hacer stat en el bitmap file");
+		log_warning(logger, "iniciar_blocks(): No se puede hacer stat en el bitmap file");
 		exit_failure();
 	}
 
@@ -285,7 +285,7 @@ void iniciar_super_block(){
 
 
 		close(superblock.file_superblock);
-		log_error(logger, "iniciar_super_block(): No se puede acceder al directorio %s", aux);
+		log_warning(logger, "iniciar_super_block(): No se puede acceder al directorio %s", aux);
 	}
 
 
@@ -293,7 +293,7 @@ void iniciar_super_block(){
 	bzero(&info, sizeof(struct stat));
 	FILE *fptr;
 	if (stat(aux, &info) != 0) {
-		log_error(logger, "iniciar_super_block(): No se puede hacer stat en el bitmap file");
+		log_warning(logger, "iniciar_super_block(): No se puede hacer stat en el bitmap file");
 		exit_failure();
 	}
 
@@ -327,7 +327,7 @@ void iniciar_super_block(){
 
 
 	pthread_mutex_init(&(superblock.mutex_superbloque),NULL);
-
+	calcular_bloques_libres_ONLY();
 	free(aux);
 	free(path_files);
 	calcular_bloques_libres_ONLY();
