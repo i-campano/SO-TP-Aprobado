@@ -24,6 +24,7 @@
 #define FIN_TRIP 23
 #define AGREGAR_TRIPULANTE 24
 
+#define CREAR_TRIPULANTE 25
 //-----------------------------SABOTAJE---------------------------------------
 
 #define FSCK 100

@@ -286,12 +286,30 @@ tabla_t* buscarTablaId(uint32_t id){
 	return list_find(tablasPatotaPaginacion,tablaPatotaPaginacion);
 }
 //ELIMINAR Y RECIBIR TAREAS (Creacion y borrar segmentos)
-
+int calcularFramesTripulante(tabla_t* tabla,int tamanio){
+	int nPagina = tabla->ocupado/tamanioPagina;
+	int libreUltimaPag = (tamanioPagina*(nPagina+1)) - tabla->ocupado;
+	if(libreUltimaPag >= tamanio){
+		log_debug(logger,"Pagina: %i Libre: %i Ocupado:%i",nPagina,libreUltimaPag,tabla->ocupado);
+		return 0;
+	}
+	else{
+		log_debug(logger,"Pagina: %i Libre: %i",nPagina,libreUltimaPag);
+		uint32_t cantidad = 0;
+		tamanio -= libreUltimaPag;
+		while(tamanio > 0){
+			tamanio -= tamanioPagina;
+			cantidad++;
+			log_debug(logger,"Una vez");
+		}
+		return cantidad;
+	}
+}
 int crear_patota_(pcb_t pcb,char* tareas,uint32_t cantidad_tripulantes,tabla_t* tabla) {
 	uint32_t tamanioTotal = sizeof(pcb_t) + sizeof(tcb_t)*cantidad_tripulantes + string_length(tareas);
-	uint32_t framesNecesarios = calcular_frames(tamanioTotal);
+	uint32_t framesNecesarios = calcular_frames(tamanioTotal-((sizeof(tcb_t)*cantidad_tripulantes)));
 	if(!strcmp(confDatos.esquema,"SEGMENTACION")) {
-		framesNecesarios = cantidad_tripulantes + 2;
+		framesNecesarios = 2;
 		pthread_mutex_lock(&accesoListaSegmentos);
 		uint32_t espacioLibreMemoria = memoria_libre();
 		pthread_mutex_unlock(&accesoListaSegmentos);
@@ -330,20 +348,23 @@ int crear_patota_(pcb_t pcb,char* tareas,uint32_t cantidad_tripulantes,tabla_t* 
 int crear_tripulante_(tcb_t tcb,uint32_t idpatota,tabla_t* tablaPatota){
 	uint32_t direccionLogica;
 	tcb.pcb = 0;
-	tcb.estado = 'N';
+	tcb.estado = 'R';
+	tabla_t* tabla = buscarTablaId(idpatota);
 	log_debug(logger,"Ocupado-> %i  Tareas-> %i",tablaPatota->ocupado,tablaPatota->tamanioTareas);
 	if(!strcmp(confDatos.esquema,"PAGINACION")) {
 		tcb.prox_tarea = 8;
 		direccionLogica = tablaPatota->ocupado;
-		log_debug(logger,"Dir Log: %i Trip: %i",direccionLogica,tcb.id);
+		uint32_t framesNecesarios = calcularFramesTripulante(tabla,sizeof(tcb_t));
+		if(framesNecesarios){
+			buscar_frames(idpatota,framesNecesarios,tabla);
+		}
 	}
 	if(!strcmp(confDatos.esquema,"SEGMENTACION")){
 		tcb.prox_tarea = 1;
 		direccionLogica = tablaPatota->ocupado;
+		list_add(tabla->listaAsignados,buscar_segmentoTcb(tcb,idpatota));
 	}
-	log_debug(logger,"Guardando dato TCB DirLog: %i",direccionLogica);
 	uint32_t guardado = guardarDato(tablaPatota,(void*)&tcb,sizeof(tcb_t),direccionLogica);
-	log_debug(logger,"Guarde %i bytes correspondientes al tcb",guardado);
 	if(!strcmp(confDatos.esquema,"PAGINACION")){
 		tablaPatota->ocupado += guardado;
 	}
