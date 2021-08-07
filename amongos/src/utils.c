@@ -96,11 +96,11 @@ void liberar_conexion_e(int* conexion){
 	close(*conexion);
 }
 int cerrar_conexiones_hilos(t_log* logger){
-	list_destroy_and_destroy_elements(conexiones,liberar_conexion_e);
+	//list_destroy_and_destroy_elements(conexiones,liberar_conexion_e);
 	log_info(logger,"Deteniendo planificacion para terminar, por favor espere");
 	sem_wait(&detenerReaunudarEjecucion);
 	sleep(2);
-	log_info(logger,"Planificacion detenida");
+	/*log_info(logger,"Planificacion detenida");
 	log_info(logger,"Cerrando conexiones y liberando memoria");
 	log_info(logger,"Liberando recursos de new");
 	eliminar_cola(planificacion_cola_new,planificacion_mutex_new,logger);
@@ -108,12 +108,14 @@ int cerrar_conexiones_hilos(t_log* logger){
 	eliminar_cola(planificacion_cola_ready,planificacion_mutex_ready,logger);
 	log_info(logger,"Liberando recursos de bloq");
 	eliminar_cola(planificacion_cola_bloq,planificacion_mutex_bloq,logger);
-	log_info(logger,"Liberando recursos de fin");
+	log_info(logger,"Liberando recursos de fin");*/
 	eliminar_cola(planificacion_cola_fin,planificacion_mutex_fin,logger);
 	//Quizas hay problemas con la cola de ejecutados
 	log_info(logger,"Liberando recursos de exec");
-	eliminar_cola(cola_ejecutados,mutex_cola_ejecutados,logger);
-	eliminar_list(lista_exec,planificacion_mutex_exec,logger);
+	queue_destroy(planificacion_cola_new);
+	queue_destroy(planificacion_cola_ready);
+	list_destroy(lista_exec);
+	queue_destroy(cola_ejecutados);
 	log_info(logger,"Cerrando hilos");
 	return 0;
 }
