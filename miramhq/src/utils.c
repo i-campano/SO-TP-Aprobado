@@ -251,9 +251,9 @@ void *atenderNotificacion(void * paqueteSocket){
 			//eliminarTabla(tabla,confDatos.esquema);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
-			close(socket);
+			//close(socket);
 			sem_post(&actualizarMapa);
-			return 0;
+			//return 0;
 			break;
 		}
 		case CREAR_TRIPULANTE:{
@@ -267,6 +267,8 @@ void *atenderNotificacion(void * paqueteSocket){
 			tcb.id = id_trip;
 			pthread_mutex_lock(&accesoListaTablas);
 			pthread_mutex_lock(&accesoMemoria);
+			log_info(logger,"\n");
+			log_info(logger,"--------------   Crear tripulante -------------------");
 			tabla_t* tabla = buscarTablaId(id_patota);
 			crear_tripulante_(tcb,id_patota,tabla);
 			if(!strcmp(confDatos.esquema,"PAGINACION")){
@@ -275,11 +277,17 @@ void *atenderNotificacion(void * paqueteSocket){
 			if(!strcmp(confDatos.esquema,"SEGMENTACION")){
 				sendDeNotificacion(socket,tabla->ocupado - 1);
 			}
+			if(mapaActivo){
+			err = personaje_crear(nivel,tcb.id,tcb.x, tcb.y);
+			}
 			sendDeNotificacion(socket,1);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
 			break;
 		}
+		case CERRAR_CONEXION:
+			close(socket);
+			return 0;
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
 			close(socket);

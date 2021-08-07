@@ -51,7 +51,7 @@ void iniciarEstructurasAdministrativasPlanificador(){
 	sem_init(&cola_fin,0,0);
 
 	sem_init(&colaEjecutados, 0, 0);
-
+	sem_init(&expulsarEnCurso, 0, 1);
 	sem_init(&exec, 0, GRADO_MULTIPROGRAMACION);
 	sem_init(&terminarPrograma,0,0);
 	sem_init(&sabotajeEnCurso,0,1);
@@ -169,6 +169,13 @@ t_config* leer_config() {
 	}
 	return config;
 }
-
+void liberarCadenaDoble(char** cadena){
+	uint32_t i = 0;
+	while(cadena[i] != NULL){
+		free(cadena[i]);
+		i++;
+	}
+	free(cadena);
+}
 
 

@@ -206,11 +206,14 @@ segmento_t* segmentoTareas_segun(bool algoritmoBusaqueda, uint32_t tamanioTareas
 					segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
 				}
 				else{
-					if(algoritmo == FF) {
+					if(algoritmoBusaqueda == FF) {
 						segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
 					}
 					else {
 						segmentoMemoria = list_get_minimum(listaSegmentos,condicionSegmentoLibreTareasBF);
+						if((segmentoMemoria->fin - segmentoMemoria->inicio) < tamanioTareas){
+							return NULL;
+						}
 					}
 				}
 		return segmentoMemoria;
@@ -526,8 +529,13 @@ int eliminar_patota(tabla_t* tabla){
 		while(paginas >= 0){
 			pagina_t* paginaAsignada = list_remove(tabla->listaAsignados,paginas);
 			frame_t* frame = list_get(framesMemoria,paginaAsignada->Nframe);
-			frame->estado = true;
-			free(paginaAsignada);
+			if(paginaAsignada->valida){
+				free(paginaAsignada);
+				frame->estado = true;
+			}
+			else{
+				bitarray_set_bit(swapFrames,paginaAsignada->NframeVirtual);
+			}
 			paginas--;
 		}
 	}
@@ -582,7 +590,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 					bitarray_set_bit(swapFrames,pag->NframeVirtual);
 				}
 			}
-			else{
+			if(pag->valida){
 			pag->bytesOcupado -= tamanio;
 			if(pag->bytesOcupado == 0){
 				frame_t* fr = list_get(framesMemoria,pag->Nframe);
@@ -602,7 +610,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 					bitarray_set_bit(swapFrames,pagina->NframeVirtual);
 				}
 			}
-			else{
+			if(pagina->valida){
 			pagina->bytesOcupado -= tamanioPagina-offset;
 			liberado += tamanioPagina-offset;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanioPagina-offset,pagina->bytesOcupado);
@@ -624,7 +632,7 @@ int liberar_bytes(tabla_t* tabla,uint32_t direccionLogica,uint32_t tamanio) {
 				log_debug(logger,"Liberando %i bytes, paginaVIRTUAL Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
 				liberado += tamanio - liberado;
 			}
-			else{
+			if(pagina->valida){
 			pagina->bytesOcupado -= tamanio-liberado;
 			log_debug(logger,"Liberando %i bytes, pagina Ocupado-> %i",tamanio - liberado,pagina->bytesOcupado);
 			if(pagina->bytesOcupado == 0){
@@ -709,7 +717,7 @@ void mostrarFrames(void* frame){
 	if(fr->estado){
 		log_info(logger,"Frame: %i Estado: Libre \n",fr->numeroFrame);
 	}
-	else log_info(logger,"Frame: %i Estado: Ocupado \n",fr->numeroFrame);
+	else log_info(logger,"Frame: %i Estado: Ocupado Proceso: %i \n",fr->numeroFrame,fr->pagina->tabla->idPatota);
 }
 
 // CON DIRECCION LOGICA >
@@ -1221,10 +1229,12 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 			frame = list_find(framesMemoria,condicionFrameLibre);
 		}
 		else{
+			log_info(logger,"--------------------SWAP------------------");
 			uint32_t frameLiberado;
 			pagina_t* victima = paginaSegun(confDatos.algoritmo);
 			llevarPaginaASwap(victima,&frameLiberado);
 			frame = list_get(framesMemoria,frameLiberado);
+			log_info(logger,"Pagina %i de la patota %i llevada a swap",victima->Npagina,victima->tabla->idPatota);
 		}
 		uint32_t frameSwap = frameLibreSwap();
 		frame->estado = false;
@@ -1254,7 +1264,7 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		segmento_t* seg = buscar_segmento(pcb);
 		list_add(tablaPatota->listaAsignados,seg);
 		//seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas);
-		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas) ; //MODIFICAR BNUSCAR
+		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas); //MODIFICAR BNUSCAR
 		list_add(tablaPatota->listaAsignados,seg);
 		while ((framesNecesarios - 2) > 0 ){
 			tcb_t tcb;
@@ -1365,13 +1375,16 @@ int realizarSwap(pagina_t* paginaSwap){
 	if(!swapFile){
 		inicializarAreaSwap();
 	}
+	log_info(logger,"\n");
+	log_info(logger,"--------------------SWAP------------------");
 	if(!calcularFramesLibres()){
 		log_debug(logger,"No existen frames libres en memoria, procediendo a intercambiar 2 paginas");
 		pagina_t* paginaEncontrada = paginaSegun(confDatos.algoritmo);
 		uint32_t frameLiberado;
 		llevarPaginaASwap(paginaEncontrada,&frameLiberado);
-
 		traerPaginaMemoria(paginaSwap,frameLiberado*tamanioPagina);
+		log_info(logger,"Pagina %i de la patota %i llevada a swap",paginaEncontrada->Npagina,paginaEncontrada->tabla->idPatota);
+		log_info(logger,"Pagina %i de la patota %i llevada a MP",paginaSwap->Npagina,paginaSwap->tabla->idPatota);
 	}
 	else{
 		frame_t* frame = list_find(framesMemoria,condicionFrameLibre);
@@ -1379,6 +1392,7 @@ int realizarSwap(pagina_t* paginaSwap){
 		traerPaginaMemoria(paginaSwap,frame->numeroFrame * tamanioPagina);
 
 	}
+	list_iterate(framesMemoria,mostrarFrames);
 	return 0;
 }
 //PARA LRU
@@ -1395,6 +1409,7 @@ int actualizarPagina(pagina_t* paginaBuscada){
 	if(!strcmp(confDatos.algoritmo,"CLOCK")){
 		paginaBuscada->uso = true;
 	}
+	log_info(logger,"Pagina %i de la patota %i fue usada",paginaBuscada->Npagina,paginaBuscada->tabla->idPatota);
 	return 0;
 }
 bool aumentarPunteroClock(void){
@@ -1446,12 +1461,15 @@ pagina_t* paginaSegun(char* algoritmoRemplazo){
 }
 int liberar_memoria(void){
 	free(mem_ppal);
-	log_destroy(logger);
 	eliminarListaTablas();
 	liberarBloquesMemoria(confDatos.esquema);
-	liberarMemoriaHilos();
+	//liberarMemoriaHilos();
+	log_destroy(logger);
 	//LIBERAR CONEXIONES
 	return 0;
+}
+void terminar_memoria(int signal){
+	liberar_memoria();
 }
 int eliminarListaTablas(void){
 	uint32_t cantidad = list_size(tablasPatotaPaginacion);
@@ -1589,10 +1607,10 @@ void dumpMemoria(int signal){
 			while(cantidad > i){
 				segmento_t* segmento = list_get(listaSegmentos,i);
 				if(segmento->tipoDato == VACIO){
-					fprintf(archivoDump,"Proceso: Libre \t Segmento: %i \t Inicio: %i \t Tam: %i \n",i,segmento->inicio,segmento->fin - segmento->inicio);
+					fprintf(archivoDump,"Proceso: Libre \t Segmento: %i \t Inicio: 0x%X \t Tam: %i \n",i,segmento->inicio,segmento->fin - segmento->inicio);
 				}
 				else{
-					fprintf(archivoDump,"Proceso: %i \t Segmento: %i \t Inicio: %X \t Tam: %i \n",segmento->id,i,segmento->inicio,segmento->fin - segmento->inicio);
+					fprintf(archivoDump,"Proceso: %i \t Segmento: %i \t Inicio: 0x%X \t Tam: %i \n",segmento->id,i,segmento->inicio,segmento->fin - segmento->inicio);
 				}
 				i++;
 			}

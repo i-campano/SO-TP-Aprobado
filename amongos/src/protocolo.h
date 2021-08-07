@@ -25,6 +25,7 @@
 #define AGREGAR_TRIPULANTE 24
 
 #define CREAR_TRIPULANTE 25
+#define CERRAR_CONEXION 26
 //-----------------------------SABOTAJE---------------------------------------
 
 #define FSCK 100

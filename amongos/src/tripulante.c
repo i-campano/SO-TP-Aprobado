@@ -9,7 +9,7 @@ char* pedir_tarea(int socketRam, t_tripulante* tripulante) {
 	sendDeNotificacion(socketRam, (uint32_t) tripulante->direccionLogica);
 	uint32_t OPERACION = recvDeNotificacion(socketRam);
 //	log_info(logger, "OPERACION %d", OPERACION);
-	char* tarea = string_new();
+	char* tarea;
 	if (OPERACION == ENVIAR_TAREA) {
 		tarea = recibirString(socketRam);
 		if (tarea != NULL) {
@@ -67,8 +67,16 @@ char* parsear_tarea(char* tarea,int* movX,int* movY,int* esIo,int* tiempo_tarea)
 	}
 
 	log_trace(logger,"PARSER: tarea: %s - movX: %d - movY: %d - esIo: %d - tiempo_tarea: %d",tarea_separada[0], *movX,*movY,*esIo,*tiempo_tarea);
-	free(tarea_parametro);//stringsplit
-	return tarea_separada[0];
+
+	char* tareaN = string_new();
+	string_append(&tareaN,tarea_separada[0]);
+	free(*tarea_parametro);
+	free(tarea_parametro);
+	liberarCadenaDoble(tarea_separada);
+	free(tareaN);
+	/*liberarCadenaDoble(tarea_parametro);
+	liberarCadenaDoble(tarea_separada);*/
+	return NULL;
 }
 
 void *labor_tripulante_new(void * trip){
@@ -77,7 +85,7 @@ void *labor_tripulante_new(void * trip){
 
 	sem_wait(&tripulante->creacion);
 
-	log_info(logger,"Tripulante: %d de patota: %d DirLog: %i", tripulante->id,tripulante->patota_id,tripulante->direccionLogica);
+	log_info(logger,"Tripulante: %d de patota: %d", tripulante->id,tripulante->patota_id);
 
 	sem_init(&tripulante->new,0,0);
 	sem_init(&tripulante->ready,0,0);
@@ -89,7 +97,7 @@ void *labor_tripulante_new(void * trip){
 	int firstMove = 0;
 	int moveUp = 0;
 	int moveRight = 0;
-
+	tripulante->expulsado = false;
 	//Agregamos a cola de NEW
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
@@ -105,11 +113,11 @@ void *labor_tripulante_new(void * trip){
 	int socketMongo = conectarAServer(IP_MONGO, PUERTO_MONGO);
 	int socketRam = conectarAServer(IP_MIRAM, PUERTO_MIRAM);
 
-	list_add(conexiones,&socketMongo);// VER
-	list_add(conexiones,&socketRam);//VER
 
 //	sendDeNotificacion(socketMongo,AGREGAR_TRIPULANTE);
 
+	list_add(conexiones,&socketMongo);
+	list_add(conexiones,&socketRam);
 	log_trace(logger,"T%d - P%d : CONEXION MIRAM OK", tripulante->id,tripulante->patota_id);
 
 	//obtener data tripulante - desde tcb
@@ -159,6 +167,10 @@ void *labor_tripulante_new(void * trip){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 	}
+	if(tripulante->expulsado){
+		sendDeNotificacion(socketRam,CERRAR_CONEXION);
+		return 0;
+	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
@@ -167,9 +179,13 @@ void *labor_tripulante_new(void * trip){
 			if(!sabotaje){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
-
 			}
-
+			if(tripulante->expulsado){
+				sendDeNotificacion(socketRam,CERRAR_CONEXION);
+				sem_post(&cola_exec);
+				sem_post(&exec);
+				return 0;
+			}
 			if (sabotaje && !tripulante->elegido){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
@@ -313,7 +329,7 @@ void *labor_tripulante_new(void * trip){
 				rafaga = 0;
 			}
 
-			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM){
+			if(strcmp(ALGORITMO,"RR")==0 && rafaga>=QUANTUM && tripulante->instrucciones_ejecutadas<moveBound+tiempo_tarea-1){
 				tripulante->estado = 'R';
 				actualizar_estado(socketRam,tripulante,READY);
 
@@ -326,6 +342,10 @@ void *labor_tripulante_new(void * trip){
 					sem_post(&colaEjecutados);
 					sem_post(&exec);
 					sem_wait(&tripulante->exec);
+					if(tripulante->expulsado){
+						sendDeNotificacion(socketRam,CERRAR_CONEXION);
+						return 0;
+						}
 					actualizar_estado(socketRam,tripulante,EXEC);
 
 
@@ -386,6 +406,7 @@ void *labor_tripulante_new(void * trip){
 		//Fin tarea
 			log_info(logger,"T%d - P%d : TERMINO TAREA: %s", tripulante->id,tripulante->patota_id, tarea);
 			enviar_evento_bitacora(socketMongo,tripulante->id,tarea);
+			free(tarea);
 			tarea = pedir_tarea(socketRam, tripulante);
 			log_info(logger,"T%d - P%d : Tarea Recibida: %s", tripulante->id,tripulante->patota_id, tarea);
 			if(strcmp(tarea,"FIN\0")!=0){
@@ -403,8 +424,7 @@ void *labor_tripulante_new(void * trip){
 	pthread_mutex_lock(&mutex_cola_ejecutados);
 	queue_push(cola_ejecutados,tripulante);
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
-	sem_post(&colaEjecutados);
-	sem_post(&exec);
+
 	actualizar_estado(socketRam,tripulante,FIN);
 	sendDeNotificacion(socketRam,FIN_TAREAS);
 	sendDeNotificacion(socketRam,tripulante->id);
@@ -412,6 +432,8 @@ void *labor_tripulante_new(void * trip){
 	sendDeNotificacion(socketRam,tripulante->direccionLogica);
 	recvDeNotificacion(socketRam);
 	sendDeNotificacion(socketMongo,FIN_TRIP);
+	sem_post(&colaEjecutados);
+	sem_post(&exec);
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
 	free(tarea);

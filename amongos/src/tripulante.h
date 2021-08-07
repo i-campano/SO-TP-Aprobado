@@ -43,6 +43,7 @@ typedef struct {
 	int block_io_rafaga;
 	uint32_t direccionLogica;
 	bool elegido;
+	bool expulsado;
 }t_tripulante;
 
 

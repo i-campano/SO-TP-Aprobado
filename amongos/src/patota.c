@@ -8,6 +8,12 @@
 
 
 //bool
+
+bool sortId(void* dato, void* otroDato){
+	t_tripulante* primero = (t_tripulante*)dato;
+	t_tripulante* segundo = (t_tripulante*)otroDato;
+	return primero->id > segundo->id;
+}
 void crear_patota(char * comando){
 	socketServerMiRam = reConectarAServer(IP_MIRAM, PUERTO_MIRAM);
 	if(socketServerMiRam<0){
@@ -47,11 +53,17 @@ void crear_patota(char * comando){
 
 
 	char * posiciones = string_new();
-
-	string_append(&posiciones,parametros[3]);
-
-	int longitud_posiciones = string_length(posiciones);
-
+	char** posiciones_separadas = NULL;
+	int longitud_posiciones;
+	bool posicionesB = false;
+	if(parametros[3] != NULL){
+		log_info(logger,"Posiciones %s",parametros [3]);
+		posiciones_separadas = string_split(parametros[3]," ");
+		log_info(logger,"Posiciones Separadas: %s",posiciones_separadas[0]);
+		posicionesB = true;
+	}
+	string_append(&posiciones,"aaa");
+	longitud_posiciones = string_length(posiciones);
 	char * claveGet = string_new();
 	string_append(&claveGet,tareasOk);
 	string_append(&claveGet,posiciones);
@@ -79,6 +91,14 @@ void crear_patota(char * comando){
 		*id = tripulantes_creados;
 		_tripulante->id = tripulantes_creados;
 		_tripulante->patota_id = patotas_creadas;
+		if(posicionesB && parametros[3] != NULL && posiciones_separadas[i] != NULL){
+			_tripulante->ubi_x = atoi((&(posiciones_separadas[i])[0]));
+			_tripulante->ubi_y = atoi((&(posiciones_separadas[i])[2]));
+		}
+		else{
+			_tripulante->ubi_x = 0;
+			_tripulante->ubi_y = 0;
+		}
 		/*_tripulante->direccionLogica = recvDeNotificacion(socketServerMiRam);*/
 		/*recvDeNotificacion(socketServerMiRam);*/
 		sem_init(&_tripulante->creacion,0,0);
@@ -91,6 +111,10 @@ void crear_patota(char * comando){
 	}
 	}
 	if(recvDeNotificacion(socketServerMiRam) == PATOTA_CREADA){
+	/*if(list_size(list_trip_aux)>1){
+		list_sort(list_trip_aux,sortId);
+		//Para que lleguen a new por id
+	}*/
 	while(list_size(list_trip_aux)!=0){
 		t_tripulante * trip = list_remove(list_trip_aux,0);
 		sem_post(&trip->creacion);
@@ -100,13 +124,18 @@ void crear_patota(char * comando){
 	else {
 		log_error(logger,"No se pudo crear la patota");
 	}
+	if(posicionesB)
+	{
+		liberarCadenaDoble(posiciones_separadas);
+	}
 	//crear lista de ids y enviar
 	//cuando el tripulante se conecte a miram, atenderlo, buscar su tcb y agregarlo a la lista de sockets conocidos
 	free(buffer_patota); //Se hace el malloc dentro de crear_buffer_patota
 	free(claveGet); //malloc linea 60
 	free(posiciones); //stringNew linea 52
 	free(tareasX);//stringNew linea 18
-	free(tareasOk); // linea 31
+	free(tareasOk); // linea 31INICIAR_PATOTA plantas.txt 2 1|2 5|5
+	liberarCadenaDoble(parametros);
 	}
 }
 //Mallocs Revisados
@@ -148,3 +177,4 @@ void* crear_buffer_patota(int longitud_tareas, int longitud_posiciones, uint32_t
 	return buffer_patota;
 }
 //Mallocs Revisados
+

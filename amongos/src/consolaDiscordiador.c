@@ -85,15 +85,25 @@ void leer_consola() {
 		}
 		else if(strncmp(leido, "EXPULSAR_TRIPULANTE", 9) == 0){
 			char** separado = string_split(leido," ");
-			sendDeNotificacion(socketServerMiRam, EXPULSAR_TRIPULANTE);
-			t_tripulante* trip = buscarTripulante(atoi(separado[1]));
-			sendDeNotificacion(socketServerMiRam,trip->id);
-			sendDeNotificacion(socketServerMiRam,trip->patota_id);
-			sendDeNotificacion(socketServerMiRam,trip->direccionLogica);
+			t_tripulante* tripulante = buscarTripulante(atoi(separado[1]));
+			if(tripulante != NULL) {
+
+			log_info(logger,"El tripulante %i fue expulsado de la nave",tripulante->id);
+			actualizar_estado(socketServerMiRam,tripulante,FIN);
+			sendDeNotificacion(socketServerMiRam,EXPULSAR_TRIPULANTE);
+			sendDeNotificacion(socketServerMiRam,tripulante->id);
+			sendDeNotificacion(socketServerMiRam,tripulante->patota_id);
+			sendDeNotificacion(socketServerMiRam,tripulante->direccionLogica);
+			//recvDeNotificacion(socketServerMiRam);
+			}
+			else{
+				log_error(logger,"No pudo ser encontrado el tripulante");
+			}
 		}
 		else{
 			log_info(logger,"COMANDO INVALIDO");
 		}
+		free(leido);
 		leido = readline(">");
 	}
 	sem_post(&terminarPrograma);
@@ -229,56 +239,47 @@ t_tripulante* buscarTripulante(uint32_t id_trip){
 		return trip->id == id_trip;
 	}
 	pthread_mutex_lock(&planificacion_mutex_new);
-	t_tripulante* trip = list_find(planificacion_cola_new->elements,condicionId);
-	if(trip != NULL){
-		pthread_mutex_lock(&planificacion_mutex_fin);
-		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_new->elements,condicionId));
-		pthread_mutex_unlock(&planificacion_mutex_fin);
-	}
-	pthread_mutex_unlock(&planificacion_mutex_new);
-	if(trip != NULL){
-		return trip;
-	}
+	pthread_mutex_lock(&planificacion_mutex_fin);
 	pthread_mutex_lock(&planificacion_mutex_ready);
-	trip = list_find(planificacion_cola_ready->elements,condicionId);
-	if(trip != NULL){
-		pthread_mutex_lock(&planificacion_mutex_fin);
-		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_ready->elements,condicionId));
-		pthread_mutex_unlock(&planificacion_mutex_fin);
-	}
-	pthread_mutex_unlock(&planificacion_mutex_ready);
-	if(trip != NULL){
-		return trip;
-	}
+	pthread_mutex_lock(&planificacion_mutex_bloq);
 	pthread_mutex_lock(&mutex_cola_ejecutados);
-	trip = list_find(lista_exec,condicionId);
+	t_tripulante* trip = NULL;
+	trip = list_find(planificacion_cola_new->elements,condicionId);
 	if(trip != NULL){
-		pthread_mutex_lock(&planificacion_mutex_fin);
-		queue_push(planificacion_cola_fin,list_remove_by_condition(lista_exec,condicionId));
-		pthread_mutex_unlock(&planificacion_mutex_fin);
+		log_info(logger,"El tripulante se encontraba en new");
+		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_new->elements,condicionId));
+	}
+	else{
+		trip = list_find(planificacion_cola_ready->elements,condicionId);
+		if(trip != NULL){
+			log_info(logger,"El tripulante se encontraba en ready");
+			queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_ready->elements,condicionId));
+			trip->expulsado = true;
+			sem_post(&trip->exec);
+		}
+		else{
+			trip = list_find(lista_exec,condicionId);
+			if(trip != NULL){
+				log_info(logger,"El tripulante se encontraba en exec");
+				queue_push(planificacion_cola_fin,list_remove_by_condition(lista_exec,condicionId));
+				trip->expulsado = true;
+			}
+			else{
+				trip = list_find(planificacion_cola_bloq->elements,condicionId);
+				if(trip != NULL){
+					log_info(logger,"El tripulante se encontraba en bloq");
+					queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_bloq->elements,condicionId));
+				}
+			}
+
+		}
 	}
 	pthread_mutex_unlock(&mutex_cola_ejecutados);
-	if(trip != NULL){
-		return trip;
-	}
-	pthread_mutex_lock(&planificacion_mutex_bloq);
-	trip = list_find(planificacion_cola_bloq->elements,condicionId);
-	if(trip != NULL){
-		pthread_mutex_lock(&planificacion_mutex_fin);
-		queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_bloq->elements,condicionId));
-		pthread_mutex_unlock(&planificacion_mutex_fin);
-	}
 	pthread_mutex_unlock(&planificacion_mutex_bloq);
-	if(trip != NULL){
-		return trip;
-	}
-	pthread_mutex_lock(&planificacion_mutex_fin);
-	trip = list_find(planificacion_cola_fin->elements,condicionId);
 	pthread_mutex_unlock(&planificacion_mutex_fin);
-	if(trip != NULL){
-		return trip;
-	}
-	return NULL;
+	pthread_mutex_unlock(&planificacion_mutex_new);
+	pthread_mutex_unlock(&planificacion_mutex_ready);
+	return trip;
 }
 
 t_tripulante* buscarTripulanteYMover(uint32_t id_trip,t_queue * target){
