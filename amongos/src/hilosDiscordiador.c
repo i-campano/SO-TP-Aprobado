@@ -63,7 +63,7 @@ void planificar_cola_bloq(){
 			sem_post(&detenerReaunudarEjecucion);
 			sem_wait(&sabotajeEnCurso);
 			sem_post(&sabotajeEnCurso);
-			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d                                  ********	T%d - P%d :	IO BOUND    *****", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
+			log_info(logger,"T%d - P%d : [I/O-BLOCK] CICLOS TRANSCURRIDOS=%d - ***IO BOUND***", tripulante->id,tripulante->patota_id,timer, tripulante->id,tripulante->patota_id,tripulante->id,tripulante->patota_id);
 			sleep(CICLO_IO);
 			timer++;
 		}

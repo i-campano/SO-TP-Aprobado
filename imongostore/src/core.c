@@ -193,7 +193,7 @@ void mostrar_blocks_ims(t_list * bloques,char * blocks,char * source){
 void *sincronizar_blocks(){
 	while(1){
 
-		log_debug(logger,"SINCRONIZANDO DISCO");
+		log_info(logger,"SINCRONIZANDO DISCO");
 		pthread_mutex_lock(&_blocks.mutex_blocks);
 		log_trace(logger,"SINCRO - MUTEX_BLOCKS - BLOCKED");
 		pthread_mutex_lock(&superblock.mutex_superbloque);
