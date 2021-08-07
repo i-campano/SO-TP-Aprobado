@@ -206,11 +206,14 @@ segmento_t* segmentoTareas_segun(bool algoritmoBusaqueda, uint32_t tamanioTareas
 					segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
 				}
 				else{
-					if(algoritmo == FF) {
+					if(algoritmoBusaqueda == FF) {
 						segmentoMemoria = list_find(listaSegmentos,condicionSegmentoLibreTareas);
 					}
 					else {
 						segmentoMemoria = list_get_minimum(listaSegmentos,condicionSegmentoLibreTareasBF);
+						if((segmentoMemoria->fin - segmentoMemoria->inicio) < tamanioTareas){
+							return NULL;
+						}
 					}
 				}
 		return segmentoMemoria;
@@ -1260,8 +1263,10 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		pcb.id = id;
 		segmento_t* seg = buscar_segmento(pcb);
 		list_add(tablaPatota->listaAsignados,seg);
+		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		//seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas);
-		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas) ; //MODIFICAR BNUSCAR
+		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas); //MODIFICAR BNUSCAR
+		list_iterate(listaSegmentos,mostrarEstadoMemoria);
 		list_add(tablaPatota->listaAsignados,seg);
 		while ((framesNecesarios - 2) > 0 ){
 			tcb_t tcb;

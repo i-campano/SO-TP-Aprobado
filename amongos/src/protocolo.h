@@ -23,6 +23,7 @@
 #define EXPULSAR_TRIPULANTE 22
 
 #define CREAR_TRIPULANTE 23
+#define CERRAR_CONEXION 24
 //-----------------------------SABOTAJE---------------------------------------
 
 #define FSCK 100

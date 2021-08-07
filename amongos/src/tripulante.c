@@ -97,7 +97,7 @@ void *labor_tripulante_new(void * trip){
 	int firstMove = 0;
 	int moveUp = 0;
 	int moveRight = 0;
-
+	tripulante->expulsado = false;
 	//Agregamos a cola de NEW
 	pthread_mutex_lock(&planificacion_mutex_new);
 	queue_push(planificacion_cola_new,tripulante);
@@ -165,7 +165,10 @@ void *labor_tripulante_new(void * trip){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 	}
-
+	if(tripulante->expulsado){
+		sendDeNotificacion(socketRam,CERRAR_CONEXION);
+		return 0;
+	}
 	actualizar_estado(socketRam,tripulante,EXEC);
 	while(strcmp(tarea,"FIN")!=0){
 
@@ -174,10 +177,13 @@ void *labor_tripulante_new(void * trip){
 			if(!sabotaje){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
-				sem_wait(&tripulante->new);
-				sem_post(&tripulante->new);
 			}
-
+			if(tripulante->expulsado){
+				sendDeNotificacion(socketRam,CERRAR_CONEXION);
+				sem_post(&cola_exec);
+				sem_post(&exec);
+				return 0;
+			}
 			if (sabotaje && !tripulante->elegido){
 				sem_wait(&detenerReaunudarEjecucion);
 				sem_post(&detenerReaunudarEjecucion);
@@ -334,6 +340,10 @@ void *labor_tripulante_new(void * trip){
 					sem_post(&colaEjecutados);
 					sem_post(&exec);
 					sem_wait(&tripulante->exec);
+					if(tripulante->expulsado){
+						sendDeNotificacion(socketRam,CERRAR_CONEXION);
+						return 0;
+						}
 					actualizar_estado(socketRam,tripulante,EXEC);
 
 

@@ -111,10 +111,10 @@ void crear_patota(char * comando){
 	}
 	}
 	if(recvDeNotificacion(socketServerMiRam) == PATOTA_CREADA){
-	if(list_size(list_trip_aux)>1){
+	/*if(list_size(list_trip_aux)>1){
 		list_sort(list_trip_aux,sortId);
 		//Para que lleguen a new por id
-	}
+	}*/
 	while(list_size(list_trip_aux)!=0){
 		t_tripulante * trip = list_remove(list_trip_aux,0);
 		sem_post(&trip->creacion);

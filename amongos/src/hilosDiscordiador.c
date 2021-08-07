@@ -54,7 +54,6 @@ void planificar_cola_bloq(){
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
 
-
 		pthread_mutex_lock(&planificacion_mutex_bloq);
 		tripulante = list_get(planificacion_cola_bloq->elements,0);
 		pthread_mutex_unlock(&planificacion_mutex_bloq);

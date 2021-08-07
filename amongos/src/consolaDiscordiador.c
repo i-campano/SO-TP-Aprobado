@@ -85,15 +85,16 @@ void leer_consola() {
 		}
 		else if(strncmp(leido, "EXPULSAR_TRIPULANTE", 9) == 0){
 			char** separado = string_split(leido," ");
-			t_tripulante* trip = buscarTripulante(atoi(separado[1]));
-			if(trip != NULL) {
-			sem_wait(&trip->new);
-			log_info(logger,"El tripulante %i fue expulsado de la nave",trip->id);
-			sendDeNotificacion(socketServerMiRam, EXPULSAR_TRIPULANTE);
-			sendDeNotificacion(socketServerMiRam,trip->id);
-			sendDeNotificacion(socketServerMiRam,trip->patota_id);
-			sendDeNotificacion(socketServerMiRam,trip->direccionLogica);
+			t_tripulante* tripulante = buscarTripulante(atoi(separado[1]));
+			if(tripulante != NULL) {
 
+			log_info(logger,"El tripulante %i fue expulsado de la nave",tripulante->id);
+			actualizar_estado(socketServerMiRam,tripulante,FIN);
+			sendDeNotificacion(socketServerMiRam,EXPULSAR_TRIPULANTE);
+			sendDeNotificacion(socketServerMiRam,tripulante->id);
+			sendDeNotificacion(socketServerMiRam,tripulante->patota_id);
+			sendDeNotificacion(socketServerMiRam,tripulante->direccionLogica);
+			//recvDeNotificacion(socketServerMiRam);
 			}
 			else{
 				log_error(logger,"No pudo ser encontrado el tripulante");
@@ -253,14 +254,15 @@ t_tripulante* buscarTripulante(uint32_t id_trip){
 		if(trip != NULL){
 			log_info(logger,"El tripulante se encontraba en ready");
 			queue_push(planificacion_cola_fin,list_remove_by_condition(planificacion_cola_ready->elements,condicionId));
+			trip->expulsado = true;
+			sem_post(&trip->exec);
 		}
 		else{
 			trip = list_find(lista_exec,condicionId);
 			if(trip != NULL){
 				log_info(logger,"El tripulante se encontraba en exec");
 				queue_push(planificacion_cola_fin,list_remove_by_condition(lista_exec,condicionId));
-				sem_post(&exec);
-				sem_post(&cola_exec);
+				trip->expulsado = true;
 			}
 			else{
 				trip = list_find(planificacion_cola_bloq->elements,condicionId);

@@ -96,7 +96,7 @@ sem_t colaEjecutados;
 
 sem_t activar_actualizaciones_mongo;
 sem_t terminarPrograma;
-
+sem_t expulsarEnCurso;
 typedef struct _infoHilos{
 	int socket;
 	pthread_t hiloAtendedor;

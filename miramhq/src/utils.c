@@ -285,6 +285,9 @@ void *atenderNotificacion(void * paqueteSocket){
 			pthread_mutex_unlock(&accesoMemoria);
 			break;
 		}
+		case CERRAR_CONEXION:
+			close(socket);
+			return 0;
 		default:
 			log_warning(logger, "La conexion recibida es erronea");
 			close(socket);

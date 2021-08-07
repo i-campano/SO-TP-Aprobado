@@ -1,0 +1,12 @@
+Dump: 22:06:21:227  
+Proceso: 1 	 Segmento: 0 	 Inicio: 0x0 	 Tam: 8 
+Proceso: 1 	 Segmento: 1 	 Inicio: 0x8 	 Tam: 99 
+Proceso: 3 	 Segmento: 2 	 Inicio: 0x6B 	 Tam: 8 
+Proceso: Libre 	 Segmento: 3 	 Inicio: 0x73 	 Tam: 9 
+Proceso: Libre 	 Segmento: 4 	 Inicio: 0x7C 	 Tam: 24 
+Proceso: 1 	 Segmento: 5 	 Inicio: 0x94 	 Tam: 24 
+Proceso: Libre 	 Segmento: 6 	 Inicio: 0xAC 	 Tam: 24 
+Proceso: 1 	 Segmento: 7 	 Inicio: 0xC4 	 Tam: 24 
+Proceso: Libre 	 Segmento: 8 	 Inicio: 0xDC 	 Tam: 24 
+Proceso: 3 	 Segmento: 9 	 Inicio: 0xF4 	 Tam: 29 
+Proceso: Libre 	 Segmento: 10 	 Inicio: 0x111 	 Tam: -17 
