@@ -175,7 +175,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			if(mapaActivo){
 			int dx = x - tcb->x;
 			int dy = y - tcb->y;
-			item_desplazar(nivel,tcb->id, dx,dy);
+			item_desplazar(nivel,tcb->id+64, dx,dy);
 			}
 			sem_post(&actualizarMapa);
 			tcb->x = x;
@@ -211,7 +211,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
 			if(mapaActivo){
-				item_borrar(nivel,id_trip);
+				item_borrar(nivel,id_trip+64);
 			}
 			sendDeNotificacion(socket,1);
 			close(socket);
@@ -249,7 +249,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			eliminar_tripulante(tabla,direccionLogica);
 			log_info(logger,"Fin de tripulante %i Patota: %i DirLog: %i",id_trip,id_patota,direccionLogica);
 			if(mapaActivo){
-				item_borrar(nivel,id_trip);
+				item_borrar(nivel,id_trip+64);
 			}
 			//eliminarTabla(tabla,confDatos.esquema);
 			pthread_mutex_unlock(&accesoListaTablas);
@@ -281,7 +281,7 @@ void *atenderNotificacion(void * paqueteSocket){
 				sendDeNotificacion(socket,tabla->ocupado - 1);
 			}
 			if(mapaActivo){
-			err = personaje_crear(nivel,tcb.id,tcb.x, tcb.y);
+			err = personaje_crear(nivel,tcb.id+64,tcb.x, tcb.y);
 			}
 			sendDeNotificacion(socket,1);
 			pthread_mutex_unlock(&accesoListaTablas);
