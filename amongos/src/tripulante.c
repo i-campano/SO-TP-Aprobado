@@ -160,7 +160,8 @@ void *labor_tripulante_new(void * trip){
 	tripulante->instrucciones_ejecutadas = 0;
 	//int tareas_pedidas = 0;
 	int rafaga = 0;
-	string_append(&claveNueva,tarea);
+	/*string_append(&claveNueva,tarea);
+	free(claveNueva);*/
 //	sem_wait(&tripulante->emergencia);
 	sem_wait(&tripulante->exec);
 	if (sabotaje){
@@ -439,7 +440,6 @@ void *labor_tripulante_new(void * trip){
 	//liberar_conexion(socketRam);
 	//liberar_conexion(socketMongo);
 	free(tarea);
-	free(claveNueva);
 
 	return 0; //Para que no moleste el warning
 }
