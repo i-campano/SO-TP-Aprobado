@@ -237,6 +237,7 @@ void *atenderNotificacion(void * paqueteSocket){
 			break;
 		}
 		case EXPULSAR_TRIPULANTE: {
+			log_info(logger,"--------------   Expulsar tripulante -------------------");
 			uint32_t id_trip = recvDeNotificacion(socket);
 			uint32_t id_patota = recvDeNotificacion(socket);
 			uint32_t direccionLogica = recvDeNotificacion(socket);
@@ -253,9 +254,9 @@ void *atenderNotificacion(void * paqueteSocket){
 			//eliminarTabla(tabla,confDatos.esquema);
 			pthread_mutex_unlock(&accesoListaTablas);
 			pthread_mutex_unlock(&accesoMemoria);
-			//close(socket);
+			close(socket);
 			sem_post(&actualizarMapa);
-			//return 0;
+			return 0;
 			break;
 		}
 		case CREAR_TRIPULANTE:{

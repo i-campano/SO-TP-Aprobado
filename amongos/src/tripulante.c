@@ -168,6 +168,8 @@ void *labor_tripulante_new(void * trip){
 		sem_post(&detenerReaunudarEjecucion);
 	}
 	if(tripulante->expulsado){
+		sem_wait(&detenerReaunudarEjecucion);
+		sem_post(&detenerReaunudarEjecucion);
 		sendDeNotificacion(socketRam,CERRAR_CONEXION);
 		return 0;
 	}

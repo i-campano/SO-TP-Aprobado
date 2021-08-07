@@ -87,14 +87,14 @@ void leer_consola() {
 			char** separado = string_split(leido," ");
 			t_tripulante* tripulante = buscarTripulante(atoi(separado[1]));
 			if(tripulante != NULL) {
-
-			log_info(logger,"El tripulante %i fue expulsado de la nave",tripulante->id);
-			actualizar_estado(socketServerMiRam,tripulante,FIN);
-			sendDeNotificacion(socketServerMiRam,EXPULSAR_TRIPULANTE);
-			sendDeNotificacion(socketServerMiRam,tripulante->id);
-			sendDeNotificacion(socketServerMiRam,tripulante->patota_id);
-			sendDeNotificacion(socketServerMiRam,tripulante->direccionLogica);
-			//recvDeNotificacion(socketServerMiRam);
+				socketServerMiRam = reConectarAServer(IP_MIRAM, PUERTO_MIRAM);
+				log_info(logger,"El tripulante %i fue expulsado de la nave",tripulante->id);
+				//actualizar_estado(socketServerMiRam,tripulante,FIN);
+				sendDeNotificacion(socketServerMiRam,EXPULSAR_TRIPULANTE);
+				sendDeNotificacion(socketServerMiRam,tripulante->id);
+				sendDeNotificacion(socketServerMiRam,tripulante->patota_id);
+				sendDeNotificacion(socketServerMiRam,tripulante->direccionLogica);
+				//recvDeNotificacion(socketServerMiRam);
 			}
 			else{
 				log_error(logger,"No pudo ser encontrado el tripulante");

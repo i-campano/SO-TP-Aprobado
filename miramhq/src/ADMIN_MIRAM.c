@@ -1562,11 +1562,17 @@ void liberarMemoriaHilos(void){
 void manejarSignal(int signal){
 	log_info(logger,"Recibi un signal");
 		log_info(logger,"Signal de compactacion");
-		pthread_mutex_lock(&accesoListaTablas);
-		pthread_mutex_lock(&accesoMemoria);
-		compactar_memoria();
-		pthread_mutex_unlock(&accesoListaTablas);
-		pthread_mutex_unlock(&accesoMemoria);
+		if(!strcmp(confDatos.esquema,"SEGMENTACION")){
+			pthread_mutex_lock(&accesoListaTablas);
+			pthread_mutex_lock(&accesoMemoria);
+			compactar_memoria();
+			pthread_mutex_unlock(&accesoListaTablas);
+			pthread_mutex_unlock(&accesoMemoria);
+		}
+		if(!strcmp(confDatos.esquema,"PAGINACION")){
+			log_error(logger,"No es posible compactar debido a que el esquema utilizado es PAGINACION");
+		}
+
 }
 void dumpMemoria(int signal){
 	char* nombreArchivo = string_new();

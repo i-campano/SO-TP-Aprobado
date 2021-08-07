@@ -102,31 +102,31 @@ void planificar_cola_bloq(){
 void planificar_cola_exec(){
 	while(1){
 		sem_wait(&cola_ready);
-		sem_wait(&exec);
-		sem_wait(&detenerReaunudarEjecucion);
-		sem_post(&detenerReaunudarEjecucion);
-		pthread_mutex_lock(&planificacion_mutex_ready);
-		t_tripulante * tripulante = NULL;
-			if(list_size(planificacion_cola_ready->elements)){
-				tripulante = queue_pop(planificacion_cola_ready);
-				//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+		if(list_size(planificacion_cola_ready->elements)){
+			sem_wait(&exec);
+			sem_wait(&detenerReaunudarEjecucion);
+			sem_post(&detenerReaunudarEjecucion);
+			pthread_mutex_lock(&planificacion_mutex_ready);
+			t_tripulante * tripulante = NULL;
+				if(list_size(planificacion_cola_ready->elements)){
+					tripulante = queue_pop(planificacion_cola_ready);
+					//log_info(logger,"SACO de READY tripu: %d", tripulante->id);
+				}
+			pthread_mutex_unlock(&planificacion_mutex_ready);
+			if(tripulante != NULL){
+				sem_wait(&cola_exec);
+				pthread_mutex_lock(&planificacion_mutex_exec);
+				//queue_push(planificacion_cola_ready,tripulante);
+				list_add(lista_exec,tripulante);
+				log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
+				pthread_mutex_unlock(&planificacion_mutex_exec);
+
+
+				sem_post(&tripulante->exec);
 			}
-		pthread_mutex_unlock(&planificacion_mutex_ready);
-		if(tripulante != NULL){
-			sem_wait(&cola_exec);
-			pthread_mutex_lock(&planificacion_mutex_exec);
-			//queue_push(planificacion_cola_ready,tripulante);
-			list_add(lista_exec,tripulante);
-			log_info(logger,"T%d - P%d : EXEC", tripulante->id,tripulante->patota_id);
-			pthread_mutex_unlock(&planificacion_mutex_exec);
-
-
-			sem_post(&tripulante->exec);
 		}
 		sem_wait(&detenerReaunudarEjecucion);
 		sem_post(&detenerReaunudarEjecucion);
-
-
 	}
 }
 

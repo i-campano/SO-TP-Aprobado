@@ -97,7 +97,7 @@ void sendRemasterizado(int aQuien, int tipoMsj, int tamanioMsj, void* peticionDe
 
 void sendDeNotificacion(int aQuien, uint32_t notificacion){
 	if(send(aQuien, &notificacion, sizeof(uint32_t),0)==-1){
-		perror("Error al enviar notificacion.");
+		printf("error\n");
 		exit(-1);
 	}
 }
