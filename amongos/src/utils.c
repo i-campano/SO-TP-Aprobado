@@ -112,10 +112,11 @@ int cerrar_conexiones_hilos(t_log* logger){
 	eliminar_cola(planificacion_cola_fin,planificacion_mutex_fin,logger);
 	//Quizas hay problemas con la cola de ejecutados
 	log_info(logger,"Liberando recursos de exec");
-	queue_destroy(planificacion_cola_new);
+	/*queue_destroy(planificacion_cola_new);
 	queue_destroy(planificacion_cola_ready);
 	list_destroy(lista_exec);
-	queue_destroy(cola_ejecutados);
+	queue_destroy(cola_ejecutados);*/
+	//config_destroy(config);
 	log_info(logger,"Cerrando hilos");
 	return 0;
 }

@@ -463,6 +463,7 @@ void actualizar_metadata(_archivo * archivo,int indice_bloque,char * valorAux){
 	config_save(archivo->metadata);
 	free(nuevo);
 	free(bytesString);
+	free(cadena);
 	
 }
 
@@ -486,9 +487,9 @@ void actualizar_metadata_borrado(_archivo * archivo,int cantidadABorrar){
 	int size = config_get_int_value(archivo->metadata,"SIZE");
 
 	size-=cantidadABorrar;
-
-	config_set_value(archivo->metadata,"SIZE",string_itoa(size));
-
+	char * sizeChar = string_itoa(size);
+	config_set_value(archivo->metadata,"SIZE",sizeChar);
+	free(sizeChar);
 	config_save(archivo->metadata);
 }
 
@@ -635,8 +636,9 @@ void actualizar_metadata_elimina_bloque_para_descartar(_archivo * archivo,int ca
 	char * bloques_str = array_to_string(blocks);
 
 	config_set_value(archivo->metadata,"BLOCKS",bloques_str);
-	config_set_value(archivo->metadata,"BLOCK_COUNT",string_itoa(block_count-1));
-
+	char * numero = string_itoa(block_count-1);
+	config_set_value(archivo->metadata,"BLOCK_COUNT",numero);
+	free(numero);
 	config_save(archivo->metadata);
 	int i = 0;
 	while(blocks[i]!=NULL){
@@ -644,6 +646,7 @@ void actualizar_metadata_elimina_bloque_para_descartar(_archivo * archivo,int ca
 		i++;
 	}
 	free(blocks);
+	free(bloques_str);
 }
 
 
@@ -701,6 +704,7 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 				}
 				bloque = bloques[cantidad_bloques];
 				indice = atoi(bloque);
+				free(contenidoBloque);
 				contenidoBloque = obtener_contenido_bloque(indice);
 
 				sizeUltimoBloque = superblock.tamanio_bloque;
@@ -713,9 +717,11 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 			}
 			else if (cantidadAConsumir<sizeUltimoBloque){
 				actualizar_metadata_borrado(archivo,cantidadAConsumir);
-
-				contenidoBloque = string_substring_until(contenidoBloque,sizeUltimoBloque-cantidadAConsumir);
-
+				char* substring = string_substring_until(contenidoBloque,sizeUltimoBloque-cantidadAConsumir);
+				free(contenidoBloque);
+				contenidoBloque = string_new();
+				string_append(&contenidoBloque,substring);
+				free(substring);
 				write_blocks(contenidoBloque,indice);
 				cantidadAConsumir=0;
 			}
@@ -734,6 +740,13 @@ void consumir_arch(_archivo * archivo,int cantidadAConsumir, uint32_t id_trip){
 		log_info(logger,"El tripulante %d quiso consumir: %s pero no habia recursos", id_trip,archivo->clave);
 		log_debug(logger,"consumir_arch(): NO HAY RECURSOS PARA CONSUMIR");
 	}
+	uint32_t i = 0;
+	while(bloques[i] != NULL){
+		free(bloques[i]);
+		i++;
+	}
+	free(bloques);
+	free(contenidoBloque);
 	pthread_mutex_unlock(&(archivo->mutex_file));
 
 }
@@ -767,7 +780,7 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 				cantidad_bloques--;
 
 		}
-		config_set_value(archivo->metadata,"SIZE",string_itoa(0));
+		config_set_value(archivo->metadata,"SIZE","0");
 		config_save(archivo->metadata);
 		log_trace(logger,"descartar_basura()->Recurso: %s - Copia blocks.ims: %s ",archivo->clave,_blocks.fs_bloques);
 		pthread_mutex_unlock(&(superblock.mutex_superbloque));
@@ -777,6 +790,13 @@ void descartar_basura(_archivo * archivo,uint32_t id_trip){
 	}else{
 		log_info(logger,"El tripulante %d quiso descartar la basura, pero estaba todo limpio!",id_trip);
 	}
+	int i = 0;
+	while(bloques[i] != NULL){
+		free(bloques[i]);
+		i++;
+	}
+	free(bloques);
+	free(contenidoBloque);
 	pthread_mutex_unlock(&(archivo->mutex_file));
 }
 

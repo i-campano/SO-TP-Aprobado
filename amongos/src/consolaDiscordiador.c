@@ -99,6 +99,9 @@ void leer_consola() {
 			else{
 				log_error(logger,"No pudo ser encontrado el tripulante");
 			}
+			free(separado[0]);
+			free(separado[1]);
+			free(separado);
 		}
 		else{
 			log_info(logger,"COMANDO INVALIDO");

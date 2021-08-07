@@ -233,6 +233,7 @@ void ejecutar_tarea_consumir(char * tarea,char caracter_tarea,_archivo * archivo
 	int cantidad = parsear_tarea(tarea);
 	char * cadena = string_repeat(caracter_tarea,cantidad);
 	consumir_arch(archivo,cantidad,id_trip);
+	free(cadena);
 }
 
 

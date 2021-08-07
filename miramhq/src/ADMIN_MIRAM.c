@@ -1262,9 +1262,11 @@ int buscar_frames(uint32_t id,uint32_t framesNecesarios,tabla_t* tablaPatota) {
 		pcb_t pcb;
 		pcb.id = id;
 		segmento_t* seg = buscar_segmento(pcb);
+		log_info(logger,"Fue creado el PCB %i",pcb.id);
 		list_add(tablaPatota->listaAsignados,seg);
 		//seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas);
 		seg = buscar_segmentoTareas(pcb,tablaPatota->tamanioTareas); //MODIFICAR BNUSCAR
+		log_info(logger,"Fueron creadas las tareas del PCB: %i",pcb.id);
 		list_add(tablaPatota->listaAsignados,seg);
 		while ((framesNecesarios - 2) > 0 ){
 			tcb_t tcb;

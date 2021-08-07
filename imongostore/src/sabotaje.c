@@ -82,7 +82,7 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 		log_trace(logger,"%s",aux);
 		t_config * config = config_create(aux);
 		char ** bloques_ocupados = config_get_array_value(config,"BLOCKS");
-		char * cadena = string_new();
+		char * cadena;
 		cadena = array_to_string(bloques_ocupados);
 		log_trace(logger,"Bitacora: %s Bloques: %s",archivo->clave,cadena);
 		for(int i = 0 ; i<longitud_array(bloques_ocupados); i++){
@@ -94,7 +94,9 @@ void bloques_file_bitacora(_archivo_bitacora * archivo,t_list * lista_bloques){
 		free(bloques_ocupados);
 		free(cadena);
 		free(resto_path);
+		free(path_files);
 		config_destroy(config);
+		free(aux);
 
 		pthread_mutex_unlock(&(archivo->mutex_file));
 
